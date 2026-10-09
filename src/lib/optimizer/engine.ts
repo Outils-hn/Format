@@ -1,10 +1,10 @@
 // Moteur d'optimisation 2D — materiau par materiau. Code pur, execute dans un Web Worker.
 import type { Material, Piece } from "../types";
 import { validatePiece } from "../validation";
-import { freeRects, guillotinePacker, maxRectsPacker } from "./packers";
+import { freeRects, guillotinePacker, maxRectsPacker, type GuillotineFit, type GuillotineSplit, type MaxRectsFit } from "./packers";
 import type {
   Balance, FormatCount, Item, MaterialResult, OptimizeOptions, OptimizeRequest, OptimizeResult,
-  Placement, SheetResult, Unplaced,
+  Objective, Placement, Rect, SheetResult, SolutionSummary, Unplaced,
 } from "./types";
 import { verifyMaterial } from "./verify";
 
@@ -23,13 +23,107 @@ function formatsOf(m: Material): Fmt[] {
   return [{ width: s.width, length: s.maxLength }];
 }
 
+type Cfg =
+  | { kind: "guillotine"; fit: GuillotineFit; split: GuillotineSplit; blocks: boolean }
+  | { kind: "free"; fit: MaxRectsFit; blocks: boolean };
+
+const FIT_LABEL: Record<string, string> = { bssf: "Best Short Side Fit", baf: "Best Area Fit", bl: "Bottom-Left", cp: "Contact Point" };
+const cfgLabel = (c: Cfg) =>
+  (c.kind === "guillotine"
+    ? `Guillotine · ${FIT_LABEL[c.fit]} · ${c.split === "short" ? "Shorter" : "Longer"} Leftover Axis`
+    : `MaxRects · ${FIT_LABEL[c.fit]}`) + (c.blocks ? " + blocs en grille" : "");
+
+interface Block { x: number; y: number; cols: number; rows: number; w: number; h: number; rotated: boolean }
+interface Pattern { count: number; blocks: Block[]; free: Rect[] }
+
+/**
+ * Meilleur motif en grille pour des pieces identiques dans un bac BW x BH (trait inclus) :
+ * grille simple dans chaque sens, ou deux blocs (un bloc + un bloc tourne dans la bande restante).
+ * La premiere coupe separe les deux blocs de bord a bord : compatible guillotine.
+ */
+function bestPattern(it: Item, BW: number, BH: number, k: number): Pattern | null {
+  const f = !!it.flip;
+  const os: [number, number, boolean][] = [[it.w, it.h, f]];
+  if (it.canRotate && it.w !== it.h) os.push([it.h, it.w, !f]);
+  let best: Pattern | null = null;
+  const consider = (p: Pattern) => { if (p.count > 0 && (!best || p.count > best.count)) best = p; };
+  for (let i = 0; i < os.length; i++) {
+    const A = os[i]!, B = os[(i + 1) % os.length]!;
+    const aw = A[0] + k, ah = A[1] + k, bw = B[0] + k, bh = B[1] + k;
+    // bande verticale : bloc A a gauche, bloc B a droite
+    const colsA = Math.floor(BW / aw), rowsA = Math.floor(BH / ah);
+    for (let c1 = 1; c1 <= colsA && rowsA > 0; c1++) {
+      const w1 = c1 * aw, h1 = rowsA * ah;
+      const c2 = os.length > 1 ? Math.floor((BW - w1) / bw) : 0, r2 = c2 ? Math.floor(BH / bh) : 0;
+      const w2 = r2 ? c2 * bw : 0, h2 = r2 * bh;
+      const blocks: Block[] = [{ x: 0, y: 0, cols: c1, rows: rowsA, w: A[0], h: A[1], rotated: A[2] }];
+      if (r2) blocks.push({ x: w1, y: 0, cols: c2, rows: r2, w: B[0], h: B[1], rotated: B[2] });
+      const free = [
+        { x: 0, y: h1, w: w1, h: BH - h1 },
+        { x: w1, y: h2, w: w2, h: BH - h2 },
+        { x: w1 + w2, y: 0, w: BW - w1 - w2, h: BH },
+      ].filter((r) => r.w > 0 && r.h > 0);
+      consider({ count: c1 * rowsA + c2 * r2, blocks, free });
+    }
+    // bande horizontale : bloc A en haut, bloc B en dessous
+    for (let r1 = 1; r1 <= rowsA && colsA > 0; r1++) {
+      const h1 = r1 * ah, w1 = colsA * aw;
+      const r2 = os.length > 1 ? Math.floor((BH - h1) / bh) : 0, c2 = r2 ? Math.floor(BW / bw) : 0;
+      const h2 = c2 ? r2 * bh : 0, w2 = c2 * bw;
+      const blocks: Block[] = [{ x: 0, y: 0, cols: colsA, rows: r1, w: A[0], h: A[1], rotated: A[2] }];
+      if (c2) blocks.push({ x: 0, y: h1, cols: c2, rows: r2, w: B[0], h: B[1], rotated: B[2] });
+      const free = [
+        { x: w1, y: 0, w: BW - w1, h: h1 },
+        { x: w2, y: h1, w: BW - w2, h: h2 },
+        { x: 0, y: h1 + h2, w: BW, h: BH - h1 - h2 },
+      ].filter((r) => r.w > 0 && r.h > 0);
+      consider({ count: colsA * r1 + c2 * r2, blocks, free });
+    }
+  }
+  return best;
+}
+
 /** Remplit un panneau avec les items dans l'ordre donne ; renvoie placements et items restants. */
-function fillSheet(m: Material, f: Fmt, items: Item[]) {
-  const W = f.width - 2 * m.trim, L = f.length - 2 * m.trim;
-  const packer = m.cutType === "free" ? maxRectsPacker(W, L, m.kerf) : guillotinePacker(W, L, m.kerf);
+function fillSheet(m: Material, f: Fmt, items: Item[], cfg: Cfg) {
+  const W = f.width - 2 * m.trim, L = f.length - 2 * m.trim, k = m.kerf;
   const placements: Placement[] = [];
+  let todo = items;
+  let initFree: Rect[] | undefined;
+  const used: Rect[] = [];
+  if (cfg.blocks) {
+    // groupe de pieces identiques remplissant le plus de surface avec un motif complet
+    const groups = new Map<string, Item[]>();
+    for (const it of items) {
+      const key = `${it.w}x${it.h}|${it.canRotate}|${!!it.flip}`;
+      (groups.get(key) ?? groups.set(key, []).get(key)!).push(it);
+    }
+    let pick: { g: Item[]; p: Pattern; score: number } | null = null;
+    for (const g of groups.values()) {
+      if (g.length < 2) continue;
+      const p = bestPattern(g[0]!, W + k, L + k, k);
+      if (!p || p.count < 2 || p.count > g.length) continue;
+      const score = p.count * g[0]!.w * g[0]!.h;
+      if (!pick || score > pick.score) pick = { g, p, score };
+    }
+    if (pick) {
+      const take = new Set(pick.g.slice(0, pick.p.count));
+      const queue = [...take];
+      for (const b of pick.p.blocks)
+        for (let r = 0; r < b.rows; r++)
+          for (let c = 0; c < b.cols; c++) {
+            const it = queue.shift()!;
+            placements.push({ x: b.x + c * (b.w + k), y: b.y + r * (b.h + k), w: b.w, h: b.h, pieceId: it.pieceId, label: it.label, rotated: b.rotated });
+          }
+      for (const b of pick.p.blocks) used.push({ x: b.x, y: b.y, w: b.cols * (b.w + k), h: b.rows * (b.h + k) });
+      initFree = pick.p.free;
+      todo = items.filter((it) => !take.has(it));
+    }
+  }
+  const packer = cfg.kind === "free"
+    ? maxRectsPacker(W, L, k, cfg.fit, initFree, used)
+    : guillotinePacker(W, L, k, cfg.fit, cfg.split, initFree);
   const rest: Item[] = [];
-  for (const it of items) {
+  for (const it of todo) {
     const p = packer.insert(it);
     if (p) placements.push(p); else rest.push(it);
   }
@@ -38,14 +132,22 @@ function fillSheet(m: Material, f: Fmt, items: Item[]) {
 
 const placedArea = (ps: Placement[]) => ps.reduce((s, p) => s + p.w * p.h, 0);
 
-function packAll(m: Material, fmts: Fmt[], items: Item[], opt: OptimizeOptions): RawSheet[] | null {
-  const byPrice = opt.objective === "price" && fmts.every((f) => f.price != null);
+/** Format reellement achete (longueur raccourcie en mode longueur a la demande). */
+function boughtFmt(m: Material, r: RawSheet): Fmt {
+  const s = m.supply;
+  if (s.mode !== "fixedWidth") return r.fmt;
+  const used = Math.max(0, ...r.placements.map((p) => p.y + p.h));
+  const len = Math.min(s.maxLength, Math.max(s.minLength, Math.ceil((used + 2 * m.trim) / s.step) * s.step));
+  return { width: s.width, length: len };
+}
+
+function packAll(m: Material, fmts: Fmt[], items: Item[], byPrice: boolean, cfg: Cfg): RawSheet[] | null {
   const sheets: RawSheet[] = [];
   let rest = items;
   while (rest.length) {
     let best: { fmt: Fmt; placements: Placement[]; rest: Item[]; score: number } | null = null;
     for (const f of fmts) {
-      const r = fillSheet(m, f, rest);
+      const r = fillSheet(m, f, rest, cfg);
       if (!r.placements.length) continue;
       const a = placedArea(r.placements);
       const score = byPrice ? f.price! / a : area(f) / a; // cout par mm² de piece
@@ -62,20 +164,30 @@ function packAll(m: Material, fmts: Fmt[], items: Item[], opt: OptimizeOptions):
     const cost = (f: Fmt) => (byPrice ? f.price! : area(f));
     for (const f of [...fmts].sort((a, b) => cost(a) - cost(b))) {
       if (cost(f) >= cost(last.fmt)) break;
-      const r = fillSheet(m, f, lastItems);
+      const r = fillSheet(m, f, lastItems, cfg);
       if (!r.rest.length) { sheets[sheets.length - 1] = { fmt: f, placements: r.placements }; break; }
     }
   }
   return sheets;
 }
 
-function solutionScore(sheets: RawSheet[], byPrice: boolean): number[] {
-  const cost = sheets.reduce((s, x) => s + (byPrice ? x.fmt.price! : area(x.fmt)), 0);
+function solutionScore(m: Material, sheets: RawSheet[], objective: Objective, byPrice: boolean): number[] {
+  const bought = sheets.map((x) => boughtFmt(m, x));
+  const surface = bought.reduce((s, f) => s + area(f), 0);
+  const price = byPrice ? bought.reduce((s, f) => s + (f.price ?? 0), 0) : surface;
   // a cout egal, preferer des panneaux tres remplis et un dernier panneau peu rempli
-  const fill = sheets.reduce((s, x) => s + (placedArea(x.placements) / area(x.fmt)) ** 2, 0);
-  return [cost, -fill];
+  const fill = sheets.reduce((s, x, i) => s + (placedArea(x.placements) / area(bought[i]!)) ** 2, 0);
+  if (objective === "sheets") return [sheets.length, surface, -fill];
+  if (objective === "price" && byPrice) return [price, sheets.length, -fill];
+  return [surface, sheets.length, -fill];
 }
-const better = (a: number[], b: number[]) => a[0]! < b[0]! - 1e-9 || (Math.abs(a[0]! - b[0]!) <= 1e-9 && a[1]! < b[1]!);
+const better = (a: number[], b: number[]) => {
+  for (let i = 0; i < a.length; i++) {
+    if (a[i]! < b[i]! - 1e-9) return true;
+    if (a[i]! > b[i]! + 1e-9) return false;
+  }
+  return false;
+};
 
 const SORTS: ((a: Item, b: Item) => number)[] = [
   (a, b) => b.w * b.h - a.w * a.h,
@@ -84,6 +196,16 @@ const SORTS: ((a: Item, b: Item) => number)[] = [
   (a, b) => b.h - a.h,
 ];
 
+/** Variantes d'orientation : libre, pivotables forcees tournees, aucune rotation. */
+function orientationVariants(items: Item[]): Item[][] {
+  if (!items.some((i) => i.canRotate)) return [items];
+  return [
+    items,
+    items.map((i) => (i.canRotate ? { ...i, w: i.h, h: i.w, canRotate: false, flip: true } : i)),
+    items.map((i) => ({ ...i, canRotate: false })),
+  ];
+}
+
 function shuffle<T>(a: T[]): T[] {
   const r = [...a];
   for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j]!, r[i]!]; }
@@ -91,15 +213,9 @@ function shuffle<T>(a: T[]): T[] {
 }
 
 function finalizeSheets(m: Material, raw: RawSheet[]): SheetResult[] {
-  const s = m.supply;
   const reuseMin = m.reuseMin ?? DEFAULT_REUSE_MIN;
   return raw.map((r, i) => {
-    let fmt = r.fmt;
-    if (s.mode === "fixedWidth") {
-      const used = Math.max(0, ...r.placements.map((p) => p.y + p.h));
-      const len = Math.min(s.maxLength, Math.max(s.minLength, Math.ceil((used + 2 * m.trim) / s.step) * s.step));
-      fmt = { width: s.width, length: len };
-    }
+    const fmt = boughtFmt(m, r);
     const W = fmt.width - 2 * m.trim, L = fmt.length - 2 * m.trim;
     const occupied = r.placements.map((p) => ({ x: p.x, y: p.y, w: p.w + m.kerf, h: p.h + m.kerf }));
     const offcuts = freeRects(W, L, occupied).map((o) => ({ ...o, reusable: o.w >= reuseMin && o.h >= reuseMin }));
@@ -109,6 +225,15 @@ function finalizeSheets(m: Material, raw: RawSheet[]): SheetResult[] {
       placements: r.placements, offcuts, piecesArea, efficiency: piecesArea / area(fmt),
     };
   });
+}
+
+function countFormats(sheets: { width: number; length: number; price?: number | undefined }[]): FormatCount[] {
+  const formats: FormatCount[] = [];
+  for (const s of sheets) {
+    const f = formats.find((x) => x.width === s.width && x.length === s.length);
+    if (f) f.count++; else formats.push({ width: s.width, length: s.length, count: 1, price: s.price });
+  }
+  return formats;
 }
 
 export function balanceOf(sheets: SheetResult[]): Balance {
@@ -144,35 +269,71 @@ function optimizeMaterial(m: Material, pieces: Piece[], opt: OptimizeOptions, bu
   const fmts = formatsOf(m).filter((f) => f.width > 2 * m.trim && f.length > 2 * m.trim);
   const byPrice = opt.objective === "price" && fmts.every((f) => f.price != null);
 
+  // strategies de formats : panneau par panneau, puis "uniquement ce format" pour chaque format
+  const strategies: { label: string; fmts: Fmt[] }[] = [];
+  if (m.supply.mode === "catalog" && fmts.length > 1) {
+    strategies.push({ label: "Panneau par panneau (formats mixtes)", fmts });
+    for (const f of fmts) strategies.push({ label: `Uniquement ${f.width} × ${f.length}`, fmts: [f] });
+  } else if (fmts.length) strategies.push({ label: "", fmts });
+
+  const hasGroups = (() => {
+    const seen = new Set<string>();
+    for (const it of items) { const key = `${it.w}x${it.h}`; if (seen.has(key)) return true; seen.add(key); }
+    return false;
+  })();
+  const cfgs: Cfg[] = [];
+  for (const blocks of hasGroups ? [false, true] : [false]) {
+    if (m.cutType === "free") for (const fit of ["bssf", "baf", "bl", "cp"] as const) cfgs.push({ kind: "free", fit, blocks });
+    else for (const fit of ["bssf", "baf"] as const) for (const split of ["short", "long"] as const) cfgs.push({ kind: "guillotine", fit, split, blocks });
+  }
+
   let best: RawSheet[] | null = null;
   let bestScore: number[] = [];
-  const consider = (order: Item[]) => {
-    const sol = packAll(m, fmts, order, opt);
+  const perKey = new Map<string, { sol: RawSheet[]; score: number[] }>();
+  const consider = (key: string, sf: Fmt[], order: Item[], cfg: Cfg) => {
+    const sol = packAll(m, sf, order, byPrice, cfg);
     if (!sol) return;
-    const sc = solutionScore(sol, byPrice);
+    const sc = solutionScore(m, sol, opt.objective, byPrice);
+    const prev = perKey.get(key);
+    if (!prev || better(sc, prev.score)) perKey.set(key, { sol, score: sc });
     if (!best || better(sc, bestScore)) { best = sol; bestScore = sc; }
   };
+  const keyOf = (s: { label: string }, cfg: Cfg) => s.label || cfgLabel(cfg);
+  const variants = orientationVariants(items);
   if (items.length) {
-    for (const s of SORTS) consider([...items].sort(s));
-    if (opt.intensive) {
+    for (const s of strategies)
+      for (const cfg of cfgs)
+        for (const v of variants)
+          for (const sort of SORTS) consider(keyOf(s, cfg), s.fmts, [...v].sort(sort), cfg);
+    if (opt.intensive && strategies.length) {
       const end = Date.now() + budgetMs;
-      while (Date.now() < end) consider(shuffle(items));
+      const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)]!;
+      while (Date.now() < end) {
+        const s = pick(strategies), cfg = pick(cfgs);
+        consider(keyOf(s, cfg), s.fmts, shuffle(pick(variants)), cfg);
+      }
     }
   }
   const raw: RawSheet[] = best ?? [];
   if (items.length && !best) unplaced.push(...own.map((p) => ({ pieceId: p.id, label: p.label, quantity: p.quantity, reason: "Aucun format utilisable" })));
 
+  const solutions: SolutionSummary[] = [...perKey.entries()].map(([label, { sol }]) => {
+    const bought = sol.map((r) => boughtFmt(m, r));
+    return {
+      label, formats: countFormats(bought), sheets: sol.length,
+      purchased: bought.reduce((s, f) => s + area(f), 0),
+      price: bought.every((f) => f.price != null) ? bought.reduce((s, f) => s + f.price!, 0) : null,
+      unplaced: 0, chosen: sol === best,
+    };
+  });
+
   const sheets = finalizeSheets(m, raw);
-  const formats: FormatCount[] = [];
-  for (const s of sheets) {
-    const f = formats.find((x) => x.width === s.width && x.length === s.length);
-    if (f) f.count++; else formats.push({ width: s.width, length: s.length, count: 1, price: s.price });
-  }
+  const formats = countFormats(sheets);
   const totalPrice = sheets.length && sheets.every((s) => s.price != null) ? sheets.reduce((a, s) => a + s.price!, 0) : sheets.length ? null : 0;
   const unplacedMap = new Map(unplaced.map((u) => [u.pieceId, u.quantity]));
   return {
     materialId: m.id, name: m.name, thickness: m.thickness, sheets, formats, totalPrice,
-    balance: balanceOf(sheets), unplaced, errors: verifyMaterial(m, pieces, sheets, unplacedMap),
+    balance: balanceOf(sheets), unplaced, errors: verifyMaterial(m, pieces, sheets, unplacedMap), solutions,
   };
 }
 
