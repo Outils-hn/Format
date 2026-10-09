@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { FilePlus2, FolderOpen, Play, Save } from "lucide-react";
+import { FilePlus2, FolderOpen, Loader2, Play, Save } from "lucide-react";
 import { toast } from "sonner";
 import type { Material, Project } from "@/lib/types";
 import { newProject } from "@/lib/defaults";
@@ -11,6 +11,8 @@ import { Logo } from "@/components/format/Logo";
 import { MaterialsCard } from "@/components/format/MaterialsCard";
 import { PiecesCard } from "@/components/format/PiecesCard";
 import { ProjectsDialog } from "@/components/format/ProjectsDialog";
+import { ResultsPanel } from "@/components/format/ResultsPanel";
+import { runOptimization, type Objective, type OptimizeResult } from "@/lib/optimizer";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -31,6 +33,23 @@ function Index() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [project, setProject] = useState<Project>(newProject);
   const [showProjects, setShowProjects] = useState(false);
+  const [objective, setObjective] = useState<Objective>("waste");
+  const [intensive, setIntensive] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<OptimizeResult | null>(null);
+
+  const usedMats = materials.filter((m) => project.pieces.some((p) => p.materialId === m.id));
+  const priceAvailable = usedMats.length > 0 && usedMats.every((m) => m.supply.mode === "catalog" && m.supply.formats.every((f) => f.price != null));
+  const run = async () => {
+    if (!project.pieces.length) { toast.error("Ajoutez des pièces avant de lancer l'optimisation"); return; }
+    setRunning(true);
+    try {
+      setResult(await runOptimization({ materials, pieces: project.pieces, options: { objective: priceAvailable ? objective : "waste", intensive } }));
+    } catch (e) {
+      toast.error("Échec de l'optimisation");
+      console.error(e);
+    } finally { setRunning(false); }
+  };
 
   useEffect(() => {
     setMaterials(loadMaterials());
@@ -106,19 +125,37 @@ function Index() {
           <PiecesCard pieces={project.pieces} materials={materials} onChange={(pieces) => setProject({ ...project, pieces })} />
         </div>
 
-        <div className="flex justify-center">
-          <button className="btn-primary h-11 px-6 text-base" onClick={() => toast("Optimisation disponible à la prochaine étape")}><Play size={16} /> Lancer l'optimisation</button>
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Objectif</span>
+            <select className="input-tech w-48" value={priceAvailable ? objective : "waste"} onChange={(e) => setObjective(e.target.value as Objective)}>
+              <option value="waste">Minimiser la chute</option>
+              <option value="price" disabled={!priceAvailable}>Minimiser le prix{priceAvailable ? "" : " (prix manquants)"}</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-sm" title="Essais aléatoires supplémentaires pendant 2 secondes">
+            <button type="button" role="switch" aria-checked={intensive} onClick={() => setIntensive(!intensive)}
+              className={`relative h-5 w-9 rounded-full transition-colors ${intensive ? "bg-primary" : "bg-muted"}`}>
+              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow transition-all ${intensive ? "left-[18px]" : "left-0.5"}`} />
+            </button>
+            Optimisation intensive
+          </label>
+          <button className="btn-primary h-11 px-6 text-base" disabled={running} onClick={run}>
+            {running ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />} {running ? "Calcul en cours…" : "Lancer l'optimisation"}
+          </button>
         </div>
 
         <section className="card-tech">
           <div className="card-tech-head"><h2 className="card-title">Résultats</h2></div>
-          <div className="flex flex-col items-center gap-4 px-4 py-12 text-sm text-muted-foreground">
-            <div className="flex gap-2">
-              <span className="h-8 w-12 rounded-sm border border-border hatch-waste" />
-              <span className="h-8 w-12 rounded-sm border border-border hatch-reuse" />
+          {result ? <ResultsPanel result={result} /> : (
+            <div className="flex flex-col items-center gap-4 px-4 py-12 text-sm text-muted-foreground">
+              <div className="flex gap-2">
+                <span className="h-8 w-12 rounded-sm border border-border hatch-waste" />
+                <span className="h-8 w-12 rounded-sm border border-border hatch-reuse" />
+              </div>
+              Lancez l'optimisation pour voir les résultats
             </div>
-            Optimisation disponible à la prochaine étape
-          </div>
+          )}
         </section>
       </main>
 

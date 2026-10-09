@@ -1,5 +1,4 @@
-# Retouches
-- [x] Restaurer les accents français sans modifier les identifiants.
-- [x] Élargir le conteneur à 1600 px avec espaces latéraux de 32 px.
-- [x] Répartir les exemples sur les trois modes et mettre à jour le catalogue alu.
-- [x] Vérifier les textes, la page et les formats d’exemple.
+# Étape 2 — moteur d'optimisation
+- [x] Moteur Guillotine / MaxRects, modes d'approvisionnement, chutes, bilan, vérification (Web Worker).
+- [x] Résultats chiffrés dans la page (sans dessin des plans).
+- [ ] Étape 3 : dessin des plans de découpe.

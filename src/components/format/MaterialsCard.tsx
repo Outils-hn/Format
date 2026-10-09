@@ -98,6 +98,7 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
             <option value="free">Placement libre (CNC)</option>
           </select>
         </label>
+        <Num label="Chute réutil. mini (mm)" value={m.reuseMin ?? 300} onChange={(reuseMin) => set({ reuseMin })} />
         <label className="col-span-4 flex items-center gap-2 text-sm">
           <input type="checkbox" className="accent-primary" checked={m.grainLocked} onChange={(e) => set({ grainLocked: e.target.checked })} />
           Sens imposé <span className="text-muted-foreground">— les pièces ne tournent pas (décor, fil du bois, laquage)</span>
