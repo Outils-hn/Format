@@ -1,7 +1,7 @@
 // Types du moteur d'optimisation — dimensions en mm, surfaces en mm².
 import type { Material, Piece } from "../types";
 
-export type Objective = "waste" | "price";
+export type Objective = "waste" | "price" | "sheets";
 
 export interface OptimizeOptions {
   objective: Objective;
@@ -17,7 +17,7 @@ export interface OptimizeRequest {
 export interface Rect { x: number; y: number; w: number; h: number }
 
 /** Exemplaire de piece a placer (une unite). */
-export interface Item { pieceId: string; label: string; w: number; h: number; canRotate: boolean }
+export interface Item { pieceId: string; label: string; w: number; h: number; canRotate: boolean; flip?: boolean }
 
 export interface Placement extends Rect { pieceId: string; label: string; rotated: boolean }
 
@@ -48,6 +48,17 @@ export interface FormatCount { width: number; length: number; count: number; pri
 
 export interface Unplaced { pieceId: string; label: string; quantity: number; reason: string }
 
+/** Resume d'une solution testee, pour le tableau "Solutions comparees". */
+export interface SolutionSummary {
+  label: string;
+  formats: FormatCount[];
+  sheets: number;
+  purchased: number; // mm²
+  price: number | null;
+  unplaced: number;
+  chosen: boolean;
+}
+
 export interface MaterialResult {
   materialId: string;
   name: string;
@@ -58,6 +69,7 @@ export interface MaterialResult {
   balance: Balance;
   unplaced: Unplaced[];
   errors: string[]; // verification
+  solutions: SolutionSummary[];
 }
 
 export interface OptimizeResult {

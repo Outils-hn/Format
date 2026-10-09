@@ -7,18 +7,45 @@ export interface Packer {
   insert(item: Item): Placement | null;
 }
 
+export type GuillotineFit = "bssf" | "baf";
+export type GuillotineSplit = "short" | "long";
+export type MaxRectsFit = "bssf" | "baf" | "bl" | "cp";
+
 interface Choice { rect: number; w: number; h: number; rotated: boolean; score: number; score2: number }
 
-function bestShortSide(free: Rect[], item: Item, k: number): Choice | null {
+/** Orientations possibles ; `flip` signifie que l'item est deja fourni tourne. */
+function tries(item: Item): [number, number, boolean][] {
+  const f = !!item.flip;
+  const t: [number, number, boolean][] = [[item.w, item.h, f]];
+  if (item.canRotate && item.w !== item.h) t.push([item.h, item.w, !f]);
+  return t;
+}
+
+const overlap1 = (a0: number, a1: number, b0: number, b1: number) => Math.max(0, Math.min(a1, b1) - Math.max(a0, b0));
+
+function choose(free: Rect[], item: Item, k: number, fit: MaxRectsFit, used: Rect[], binW: number, binH: number): Choice | null {
   let best: Choice | null = null;
-  const tries: [number, number, boolean][] = [[item.w, item.h, false]];
-  if (item.canRotate && item.w !== item.h) tries.push([item.h, item.w, true]);
+  const ts = tries(item);
   free.forEach((r, i) => {
-    for (const [w, h, rotated] of tries) {
+    for (const [w, h, rotated] of ts) {
       const ow = w + k, oh = h + k;
       if (ow > r.w || oh > r.h) continue;
       const a = r.w - ow, b = r.h - oh;
-      const score = Math.min(a, b), score2 = Math.max(a, b);
+      let score: number, score2: number;
+      if (fit === "bssf") { score = Math.min(a, b); score2 = Math.max(a, b); }
+      else if (fit === "baf") { score = r.w * r.h - ow * oh; score2 = Math.min(a, b); }
+      else if (fit === "bl") { score = r.y + oh; score2 = r.x; }
+      else {
+        // Contact Point : maximise le perimetre en contact (bords et pieces) -> score negatif
+        let c = 0;
+        if (r.x === 0 || r.x + ow === binW) c += oh;
+        if (r.y === 0 || r.y + oh === binH) c += ow;
+        for (const u of used) {
+          if (u.x === r.x + ow || u.x + u.w === r.x) c += overlap1(u.y, u.y + u.h, r.y, r.y + oh);
+          if (u.y === r.y + oh || u.y + u.h === r.y) c += overlap1(u.x, u.x + u.w, r.x, r.x + ow);
+        }
+        score = -c; score2 = Math.min(a, b);
+      }
       if (!best || score < best.score || (score === best.score && score2 < best.score2))
         best = { rect: i, w, h, rotated, score, score2 };
     }
@@ -26,19 +53,19 @@ function bestShortSide(free: Rect[], item: Item, k: number): Choice | null {
   return best;
 }
 
-/** Guillotine : Best Short Side Fit + decoupe Shorter Leftover Axis. */
-export function guillotinePacker(W: number, L: number, k: number): Packer {
-  const free: Rect[] = [{ x: 0, y: 0, w: W + k, h: L + k }];
+/** Guillotine : Best Short Side Fit ou Best Area Fit, decoupe Shorter ou Longer Leftover Axis. */
+export function guillotinePacker(W: number, L: number, k: number, fit: GuillotineFit = "bssf", split: GuillotineSplit = "short", initFree?: Rect[]): Packer {
+  const free: Rect[] = initFree ? initFree.map((r) => ({ ...r })) : [{ x: 0, y: 0, w: W + k, h: L + k }];
   return {
     insert(item) {
-      const c = bestShortSide(free, item, k);
+      const c = choose(free, item, k, fit, [], W + k, L + k);
       if (!c) return null;
       const r = free[c.rect]!;
       const ow = c.w + k, oh = c.h + k;
       const lw = r.w - ow, lh = r.h - oh;
       free.splice(c.rect, 1);
       let right: Rect, bottom: Rect;
-      if (lw < lh) {
+      if ((lw < lh) === (split === "short")) {
         right = { x: r.x + ow, y: r.y, w: lw, h: oh };
         bottom = { x: r.x, y: r.y + oh, w: r.w, h: lh };
       } else {
@@ -52,15 +79,17 @@ export function guillotinePacker(W: number, L: number, k: number): Packer {
   };
 }
 
-/** MaxRects : Best Short Side Fit. */
-export function maxRectsPacker(W: number, L: number, k: number): Packer {
-  let free: Rect[] = [{ x: 0, y: 0, w: W + k, h: L + k }];
+/** MaxRects : Best Short Side Fit, Best Area Fit, Bottom-Left ou Contact Point. */
+export function maxRectsPacker(W: number, L: number, k: number, fit: MaxRectsFit = "bssf", initFree?: Rect[], initUsed: Rect[] = []): Packer {
+  let free: Rect[] = initFree ? initFree.map((r) => ({ ...r })) : [{ x: 0, y: 0, w: W + k, h: L + k }];
+  const used: Rect[] = [...initUsed];
   return {
     insert(item) {
-      const c = bestShortSide(free, item, k);
+      const c = choose(free, item, k, fit, used, W + k, L + k);
       if (!c) return null;
       const r = free[c.rect]!;
       const u: Rect = { x: r.x, y: r.y, w: c.w + k, h: c.h + k };
+      used.push(u);
       const next: Rect[] = [];
       for (const f of free) {
         if (u.x >= f.x + f.w || u.x + u.w <= f.x || u.y >= f.y + f.h || u.y + u.h <= f.y) { next.push(f); continue; }
