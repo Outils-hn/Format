@@ -3,6 +3,7 @@ import { Maximize2, Minus, Plus, X } from "lucide-react";
 import type { Material } from "@/lib/types";
 import type { Placement } from "@/lib/optimizer/types";
 import { cutSequence, type Cut, type SheetGroup } from "@/lib/cutplan";
+import { labeledOffcuts } from "@/lib/offcuts";
 
 const INK = "var(--foreground)";
 
@@ -33,13 +34,16 @@ function PlanSvg({ group, material, colorOf, cuts, onHover, hovered }: Props & {
       <rect x={0} y={0} width={s.width} height={s.length} fill="var(--muted)" stroke={INK} strokeWidth={sw * 2} />
       <rect x={t} y={t} width={s.usableW} height={s.usableL} fill="var(--card)" stroke={INK} strokeWidth={sw * 0.6} strokeDasharray={`${fs / 3} ${fs / 4}`} />
       {/* chutes */}
-      {s.offcuts.map((o, i) => {
+      {labeledOffcuts(s).map((o) => {
         const showDim = Math.min(o.w, o.h) > fs * 1.6 && o.w > fs * 6;
+         const labelSize = Math.min(fs * 0.9, o.h / 2.5, o.w / (o.label.length * 0.8));
         return (
-          <g key={i}>
+           <g key={o.label}>
+             <title>{o.label} — {o.w} × {o.h} mm — {o.reusable ? "À conserver" : "Perte"}</title>
             <rect x={o.x + t} y={o.y + t} width={o.w} height={o.h} fill={`url(#${o.reusable ? "r" : "w"}${uid})`} stroke="var(--muted-foreground)" strokeWidth={sw * 0.5} />
+             {labelSize > fs * 0.15 && <text x={o.x + t + o.w / 2} y={o.y + t + o.h / 2 - (showDim ? fs * 0.55 : 0)} fontSize={labelSize} fontWeight={600} textAnchor="middle" dominantBaseline="middle" fill={INK} paintOrder="stroke" stroke="var(--card)" strokeWidth={labelSize * 0.25}>{o.label}</text>}
             {showDim && (
-              <text x={o.x + t + o.w / 2} y={o.y + t + o.h / 2} fontSize={fs * 0.75} textAnchor="middle" dominantBaseline="middle" fill={INK} paintOrder="stroke" stroke="var(--card)" strokeWidth={fs * 0.25}>
+               <text x={o.x + t + o.w / 2} y={o.y + t + o.h / 2 + fs * 0.55} fontSize={fs * 0.75} textAnchor="middle" dominantBaseline="middle" fill={INK} paintOrder="stroke" stroke="var(--card)" strokeWidth={fs * 0.25}>
                 {Math.round(o.w)} × {Math.round(o.h)}
               </text>
             )}
@@ -164,6 +168,26 @@ export function SheetPlan(props: Props) {
           ))}
         </tbody>
       </table>
+
+       <div>
+         <h4 className="mb-1 text-xs font-semibold uppercase tracking-[0.14em]">Chutes</h4>
+         <div className="overflow-x-auto">
+           <table className="w-full text-xs">
+             <thead className="text-left text-muted-foreground"><tr className="border-b border-border">
+               <th className="py-1 pr-2 font-medium">Repère</th><th className="px-2 py-1 font-medium">Dimensions (mm)</th>
+               <th className="px-2 py-1 text-right font-medium">Surface (m²)</th><th className="px-2 py-1 font-medium">Position X / Y (mm)</th>
+               <th className="px-2 py-1 font-medium">Destination</th>
+             </tr></thead>
+             <tbody className="mono">{labeledOffcuts(s).map((o) => <tr key={o.label} className="border-b border-border">
+               <td className="py-1 pr-2 font-semibold">{o.label}</td><td className="px-2 py-1 whitespace-nowrap">{o.w} × {o.h}</td>
+               <td className="px-2 py-1 text-right">{(o.w * o.h / 1e6).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+               <td className="px-2 py-1">{o.x + material.trim} / {o.y + material.trim}</td>
+               <td className="px-2 py-1 font-sans"><span className={`mr-1.5 inline-block h-3 w-4 border border-border align-middle ${o.reusable ? "hatch-reuse" : "hatch-waste"}`} />{o.reusable ? "À conserver" : "Perte"}</td>
+             </tr>)}</tbody>
+           </table>
+         </div>
+         {s.offcuts.length === 0 && <p className="text-xs text-muted-foreground">Aucune chute.</p>}
+       </div>
 
       {hover && (
         <div className="pointer-events-none fixed z-[60] rounded-sm border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow" style={{ left: hover.x + 14, top: hover.y + 14 }}>

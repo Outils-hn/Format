@@ -5,6 +5,7 @@ import type { Material, Piece, ProjectInfo } from "../types";
 import { cutSequence, groupSheets, type Cut, type SheetGroup } from "../cutplan";
 import { PLAN_COLORS } from "../palette";
 import { cleanName, download, pieceOrder } from "./common";
+import { labeledOffcuts, retainedOffcuts } from "../offcuts";
 
 type RGB = [number, number, number];
 const INK: RGB = [20, 24, 32];
@@ -63,18 +64,26 @@ class Writer {
     };
     this.ensure(rh * 2); head();
     rows.forEach((r, i) => {
-      if (this.y + rh > this.bottom) { this.newPage(this.W > this.H ? "landscape" : "portrait"); head(); }
       this.font(8, boldLast && i === rows.length - 1);
-      let x = M;
-      r.forEach((v, j) => {
-        const c = cols[j]!;
-        const s = this.doc.splitTextToSize(v, c.w * k - 3)[0] as string;
-        this.doc.text(s, c.right ? x + c.w * k - 1.5 : x + 1.5, this.y + 3.6, { align: c.right ? "right" : "left" });
-        x += c.w * k;
-      });
-      this.doc.setDrawColor(200, 203, 210); this.doc.setLineWidth(0.15);
-      this.doc.line(M, this.y + rh, this.W - M, this.y + rh);
-      this.y += rh;
+      const cells = cols.map((c, j) => this.doc.splitTextToSize(r[j] ?? "", c.w * k - 3) as string[]);
+      const lineCount = Math.max(1, ...cells.map((c) => c.length));
+      let offset = 0;
+      while (offset < lineCount) {
+        if (this.y + rh > this.bottom) { this.newPage(this.W > this.H ? "landscape" : "portrait"); head(); }
+        this.font(8, boldLast && i === rows.length - 1);
+        const count = Math.min(lineCount - offset, Math.max(1, Math.floor((this.bottom - this.y - 2) / 3.6)));
+        const height = Math.max(rh, count * 3.6 + 1.6);
+        let x = M;
+        cols.forEach((c, j) => {
+          const lines = cells[j]?.slice(offset, offset + count) ?? [];
+          lines.forEach((line, n) => this.doc.text(line, c.right ? x + c.w * k - 1.5 : x + 1.5, this.y + 3.6 + n * 3.6, { align: c.right ? "right" : "left" }));
+          x += c.w * k;
+        });
+        this.doc.setDrawColor(200, 203, 210); this.doc.setLineWidth(0.15);
+        this.doc.line(M, this.y + height, this.W - M, this.y + height);
+        this.y += height;
+        offset += count;
+      }
     });
     this.y += 3;
   }
@@ -140,7 +149,7 @@ function drawPlan(doc: jsPDF, s: SheetResult, mat: Material, cuts: Cut[], color:
   doc.setFillColor(255, 255, 255); doc.setLineWidth(0.15); doc.setLineDashPattern([1, 0.8], 0);
   doc.rect(X(t), Y(t), s.usableW * k, s.usableL * k, "FD");
   doc.setLineDashPattern([], 0);
-  for (const o of s.offcuts) {
+  for (const o of labeledOffcuts(s)) {
     const x = X(o.x + t), y = Y(o.y + t), w = o.w * k, h = o.h * k;
     doc.setFillColor(...(o.reusable ? reuseBg : wasteBg));
     doc.rect(x, y, w, h, "F");
@@ -148,10 +157,19 @@ function drawPlan(doc: jsPDF, s: SheetResult, mat: Material, cuts: Cut[], color:
     doc.setDrawColor(...GREY); doc.setLineWidth(0.15); doc.rect(x, y, w, h);
     if (Math.min(w, h) > 7 && w > 22) {
       doc.setFont("helvetica", "normal"); doc.setFontSize(6.5); doc.setTextColor(...INK);
-      const label = `${Math.round(o.w)} × ${Math.round(o.h)}`;
+      const label = `${o.label} · ${Math.round(o.w)} × ${Math.round(o.h)}`;
       const tw = doc.getTextWidth(label) + 2;
-      doc.setFillColor(255, 255, 255); doc.rect(x + w / 2 - tw / 2, y + h / 2 - 1.8, tw, 3.6, "F");
+      doc.setFontSize(Math.min(6.5, 6.5 * (w - 1) / tw));
+      const fittedWidth = doc.getTextWidth(label) + 1;
+      doc.setFillColor(255, 255, 255); doc.rect(x + w / 2 - fittedWidth / 2, y + h / 2 - 1.8, fittedWidth, 3.6, "F");
       doc.text(label, x + w / 2, y + h / 2, { align: "center", baseline: "middle" });
+    } else {
+      doc.setFont("helvetica", "bold"); doc.setTextColor(...INK);
+      const size = Math.min(6.5, Math.min(w, h) * PT / 1.5, w * PT / (o.label.length * 0.65));
+      if (size >= 2) {
+        doc.setFontSize(size);
+        doc.text(o.label, x + w / 2, y + h / 2, { align: "center", baseline: "middle" });
+      }
     }
   }
   for (const p of s.placements) {
@@ -214,7 +232,10 @@ function sheetPage(w: Writer, g: SheetGroup, mat: Material, r: { name: string; t
   }
   w.y += 12;
   const cuts = mat.cutType === "guillotine" ? cutSequence(s.placements, s.usableW, s.usableL, mat.kerf, mat.trim) : [];
-  const availW = w.W - 2 * M - 8, availH = (w.bottom - w.y) * 0.62;
+  const pieceRows = new Set(s.placements.map((p) => `${p.pieceId}|${p.w}|${p.h}|${p.rotated}`)).size;
+  const reserved = 65 + cuts.length * 3.7 + (pieceRows + labeledOffcuts(s).length) * 5.2;
+  const availW = w.W - 2 * M - 8;
+  const availH = Math.max(25, Math.min((w.bottom - w.y) * 0.62, w.bottom - w.y - reserved));
   const k = Math.min(availW / s.width, availH / s.length);
   const ox = M + 8 + (availW - s.width * k) / 2;
   drawPlan(w.doc, s, mat, cuts, color, ox, w.y + 4, k);
@@ -255,6 +276,14 @@ function sheetPage(w: Writer, g: SheetGroup, mat: Material, r: { name: string; t
     [{ h: "Repère", w: 18 }, { h: "Dimensions (mm)", w: 22 }, { h: "Qté", w: 8, right: true }, { h: "Tournée", w: 12 }, { h: "Position X / Y (mm)", w: 60 }],
     [...map.values()].map((e) => [e.label, `${e.w} × ${e.h}`, String(e.qty), e.rot ? "oui" : "non", e.pos.join(" · ")]),
   );
+  w.ensure(16);
+  w.text(`Chutes — Panneau ${g.indexes.join(", ")}`, 9, true);
+  const offcuts = labeledOffcuts(s);
+  if (offcuts.length) w.table(
+    [{ h: "Repère", w: 14 }, { h: "Dimensions (mm)", w: 30 }, { h: "Surface (m²)", w: 25, right: true }, { h: "Position X / Y (mm)", w: 35 }, { h: "Destination", w: 25 }],
+    offcuts.map((o) => [o.label, `${o.w} × ${o.h}`, m2(o.w * o.h), `${o.x + mat.trim} / ${o.y + mat.trim}`, o.reusable ? "À conserver" : "Perte"]),
+  );
+  else w.text("Aucune chute.", 8, false, GREY);
 }
 
 export function exportWorkshopPdf(result: OptimizeResult, materials: Material[], pieces: Piece[], info: ProjectInfo) {
@@ -301,6 +330,15 @@ export function exportWorkshopPdf(result: OptimizeResult, materials: Material[],
     );
     w.y += 3;
   }
+
+  const retained = retainedOffcuts(result);
+  w.ensure(20);
+  w.text("Chutes à conserver", 12, true);
+  if (retained.length) w.table(
+    [{ h: "Matériau", w: 28 }, { h: "Ép. (mm)", w: 15, right: true }, { h: "Dimensions (mm)", w: 28 }, { h: "Qté", w: 10, right: true }, { h: "Surface (m²)", w: 23, right: true }, { h: "Panneau / Repère", w: 40 }],
+    retained.map((o) => [o.material, String(o.thickness), `${o.w} × ${o.h}`, String(o.quantity), m2(o.w * o.h * o.quantity), o.origins.join(" · ")]),
+  );
+  else w.text("Aucune chute réutilisable à conserver.", 8.5, false, GREY);
 
   for (const r of result.materials) {
     const mat = materials.find((m) => m.id === r.materialId);
