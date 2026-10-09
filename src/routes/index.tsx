@@ -53,7 +53,7 @@ function Index() {
     if (!project.pieces.length) { toast.error("Ajoutez des pièces avant de lancer l'optimisation"); return; }
     const runId = ++calculation.current;
     const key = inputKey;
-    const options = { objective: priceAvailable ? objective : "waste" as Objective, intensive };
+    const options = { objective: objective === "price" && !priceAvailable ? "waste" as Objective : objective, intensive };
     const isCurrent = () => calculation.current === runId && latestInput.current === key;
     setSuggestion(null);
     setRunning(true);
@@ -165,8 +165,9 @@ function Index() {
         <div className="flex flex-wrap items-center justify-center gap-4">
           <label className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground">Objectif</span>
-            <select className="input-tech w-48" value={priceAvailable ? objective : "waste"} onChange={(e) => setObjective(e.target.value as Objective)}>
+            <select className="input-tech w-64" value={objective === "price" && !priceAvailable ? "waste" : objective} onChange={(e) => setObjective(e.target.value as Objective)}>
               <option value="waste">Minimiser la chute</option>
+              <option value="sheets">Minimiser le nombre de panneaux</option>
               <option value="price" disabled={!priceAvailable}>Minimiser le prix{priceAvailable ? "" : " (prix manquants)"}</option>
             </select>
           </label>
