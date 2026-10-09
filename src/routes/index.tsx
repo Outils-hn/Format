@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { FilePlus2, FolderOpen, Loader2, Play, Save } from "lucide-react";
+import { FilePlus2, FileSpreadsheet, FileText, FolderOpen, Loader2, Play, Save } from "lucide-react";
 import { toast } from "sonner";
 import type { Material, Project } from "@/lib/types";
 import { newProject } from "@/lib/defaults";
@@ -95,6 +95,17 @@ function Index() {
             </div>
           </div>
           <nav className="ml-auto flex flex-wrap gap-2">
+            <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"} onClick={async () => {
+              if (!result) return;
+              if ((!info.site.trim() || !info.taskNumber.trim()) && !confirm("Le chantier ou le numéro de tâche est vide. Générer le PDF quand même ?")) return;
+              try { const { exportWorkshopPdf } = await import("@/lib/export/pdf"); exportWorkshopPdf(result, materials, project.pieces, info); }
+              catch (e) { console.error(e); toast.error("Échec de la génération du PDF"); }
+            }}><FileText size={15} /> PDF atelier</button>
+            <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"} onClick={async () => {
+              if (!result) return;
+              try { const { exportOrderXlsx } = await import("@/lib/export/xlsx"); exportOrderXlsx(result, materials, info); }
+              catch (e) { console.error(e); toast.error("Échec de l'export Excel"); }
+            }}><FileSpreadsheet size={15} /> Commande Excel</button>
             <button className="btn-ghost" onClick={() => setShowProjects(true)}><FolderOpen size={15} /> Mes projets</button>
             <button className="btn-ghost" onClick={() => confirm("Commencer un nouveau projet ? Les modifications non sauvegardées seront perdues.") && setProject(newProject())}><FilePlus2 size={15} /> Nouveau</button>
             <button className="btn-primary" onClick={() => { setProject(saveProject(project)); toast.success("Projet sauvegardé"); }}><Save size={15} /> Sauvegarder</button>
