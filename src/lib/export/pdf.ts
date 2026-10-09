@@ -88,15 +88,15 @@ function kpis(w: Writer, b: Balance, sheets: number, price: number | null) {
     ["Chutes réutilisables", `${m2(b.reusable)} m²`],
     ...(price != null ? [["Prix total", eur(price)] as [string, string]] : []),
   ];
-  const gap = 2.5, h = 17;
+  const gap = 2.5, h = 18;
   const bw = (w.W - 2 * M - gap * (items.length - 1)) / items.length;
   w.ensure(h + 2);
   items.forEach(([l, v, sub], i) => {
     const x = M + i * (bw + gap);
     w.doc.setDrawColor(...INK); w.doc.setLineWidth(0.25); w.doc.rect(x, w.y, bw, h);
-    w.font(items.length > 4 ? 6 : 7, false, GREY); w.doc.text(w.doc.splitTextToSize(l, bw - 3)[0] as string, x + 2, w.y + 4.5);
-    w.font(12, true); w.doc.text(v, x + 2, w.y + 10.5);
-    if (sub) { w.font(6.5, false, GREY); w.doc.text(sub, x + 2, w.y + 14.5); }
+    w.font(items.length > 4 ? 6 : 7, false, GREY); w.doc.text(w.doc.splitTextToSize(l, bw - 4) as string[], x + 2, w.y + 3.8);
+    w.font(12, true); w.doc.text(v, x + 2, w.y + 12.2);
+    if (sub) { w.font(6.5, false, GREY); w.doc.text(sub, x + 2, w.y + 15.8); }
   });
   w.y += h + 3;
 }
