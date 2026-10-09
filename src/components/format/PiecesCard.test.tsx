@@ -44,7 +44,7 @@ describe("Entry sections", () => {
 
   it("shows a two-level linear section independently of pieces", () => {
     render(<PiecesCard pieces={[]} materials={materials} onChange={() => {}}
-      linears={[newLinear(materials[0].id, 1)]} onLinearsChange={() => {}} />);
+      linears={[newLinear("mat-mdf19", 1)]} onLinearsChange={() => {}} />);
     expect(screen.queryByRole("table", { name: "Pièces" })).not.toBeInTheDocument();
     const table = screen.getByRole("table", { name: "Linéaires" });
     expect(table.querySelectorAll("tbody tr")).toHaveLength(2);
