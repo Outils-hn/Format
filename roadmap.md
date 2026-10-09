@@ -5,5 +5,5 @@
 - [x] Corriger la rotation par défaut et ajouter la case globale.
 - [x] Proposer la rotation lorsqu’elle économise des panneaux, sans changer le moteur ni la vérification.
 - [x] Adoucir les hachures à l’écran et en PDF, puis vérifier les corrections.
-- [ ] Ajouter les repères C1, C2 et le tableau Chutes sous chaque panneau, à l’écran et en PDF.
-- [ ] Ajouter le récapitulatif Chutes à conserver à la synthèse PDF et vérifier les dessins et les quantités.
+- [x] Ajouter les repères C1, C2 et le tableau Chutes sous chaque panneau, à l’écran et en PDF.
+- [x] Ajouter le récapitulatif Chutes à conserver à la synthèse PDF et vérifier les dessins et les quantités.
