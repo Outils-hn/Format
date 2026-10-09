@@ -48,7 +48,7 @@ export const loadPasteMapping = () => read<string[] | null>(K.pasteMapping, null
 export const savePasteMapping = (m: string[]) => write(K.pasteMapping, m);
 
 export function exportProject(project: Project, materials: Material[]): string {
-  const used = new Set(project.pieces.map((p) => p.materialId));
+  const used = new Set([...project.pieces, ...(project.linears ?? [])].map((p) => p.materialId));
   const file: ProjectFile = {
     app: "format",
     version: 1,

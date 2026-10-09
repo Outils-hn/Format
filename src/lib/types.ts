@@ -36,6 +36,19 @@ export interface Piece {
   canRotate: boolean;
 }
 
+export interface Linear {
+  id: string;
+  label: string;
+  materialId: string;
+  bandWidth: number | null; // largeur de bande (mm)
+  totalLength: number | null; // longueur totale (m)
+  mode: "fixed" | "joined"; // troncons fixes | raboutage autorise
+  segment: number | null; // mode fixed (mm)
+  min: number | null; // mode joined (mm)
+  max: number | null;
+  multiple: number | null;
+}
+
 export interface ProjectInfo {
   site: string; // chantier
   taskNumber: string;
@@ -47,6 +60,7 @@ export interface Project {
   id: string;
   info: ProjectInfo;
   pieces: Piece[];
+  linears?: Linear[] | undefined;
   updatedAt: string;
 }
 
