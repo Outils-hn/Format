@@ -93,11 +93,11 @@ export function rowsToPieces(
   });
 }
 
-/** Fusionne les doublons (meme repere, materiau, dimensions). */
+/** Fusionne les doublons de même repère, matériau, dimensions et rotation. */
 export function mergeDuplicates(pieces: Piece[]): Piece[] {
   const map = new Map<string, Piece>();
   for (const p of pieces) {
-    const k = [normalize(p.label), p.materialId, p.width, p.height].join("|");
+    const k = [normalize(p.label), p.materialId, p.width, p.height, p.canRotate].join("|");
     const ex = map.get(k);
     if (ex) ex.quantity += p.quantity;
     else map.set(k, { ...p });

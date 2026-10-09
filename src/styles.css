@@ -101,8 +101,10 @@
   --plan-8: oklch(0.72 0.06 260);
   --plan-9: oklch(0.88 0.06 340);
   --plan-10: oklch(0.8 0.05 125);
-  --offcut-waste: oklch(0.7 0.01 250);
-  --offcut-reuse: oklch(0.75 0.16 55);
+  --offcut-waste: oklch(0.82 0.006 250);
+  --offcut-reuse: oklch(0.82725006 0.10580234 66.84605835); /* #F5B97A */
+  --hatch-width: 0.5px;
+  --hatch-spacing: 12px;
   --chart-1: var(--plan-1); --chart-2: var(--plan-2); --chart-3: var(--plan-3); --chart-4: var(--plan-4); --chart-5: var(--plan-5);
   --sidebar: oklch(1 0 0); --sidebar-foreground: var(--foreground); --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground); --sidebar-accent: var(--accent);
@@ -148,8 +150,8 @@
 
 /* Chutes : toujours hachurees */
 @utility hatch-waste {
-  background: repeating-linear-gradient(45deg, var(--offcut-waste) 0 2px, transparent 2px 7px);
+  background: repeating-linear-gradient(-45deg, var(--offcut-waste) 0 var(--hatch-width), transparent var(--hatch-width) var(--hatch-spacing));
 }
 @utility hatch-reuse {
-  background: repeating-linear-gradient(45deg, var(--offcut-reuse) 0 2px, transparent 2px 7px);
+  background: repeating-linear-gradient(45deg, var(--offcut-reuse) 0 var(--hatch-width), transparent var(--hatch-width) var(--hatch-spacing));
 }
