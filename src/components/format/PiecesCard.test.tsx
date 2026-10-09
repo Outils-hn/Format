@@ -3,6 +3,7 @@ import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import { PiecesCard } from "./PiecesCard";
 import { sampleMaterials, newPiece } from "@/lib/defaults";
+import { newLinear } from "@/lib/linear";
 import type { Piece } from "@/lib/types";
 
 const materials = sampleMaterials();
@@ -31,5 +32,23 @@ describe("Bulk rotation", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Ajouter$/ }));
     expect(screen.getByRole("checkbox", { name: "Autoriser la rotation de P4" })).not.toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Autoriser la rotation de P4" })).toBeDisabled();
+  });
+});
+
+describe("Entry sections", () => {
+  it("shows only the empty message when there are no rows", () => {
+    render(<PiecesCard pieces={[]} materials={materials} onChange={() => {}} linears={[]} onLinearsChange={() => {}} />);
+    expect(screen.getByText("Ajoutez des pièces ou un linéaire")).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  it("shows a two-level linear section independently of pieces", () => {
+    render(<PiecesCard pieces={[]} materials={materials} onChange={() => {}}
+      linears={[newLinear("mat-mdf19", 1)]} onLinearsChange={() => {}} />);
+    expect(screen.queryByRole("table", { name: "Pièces" })).not.toBeInTheDocument();
+    const table = screen.getByRole("table", { name: "Linéaires" });
+    expect(table.querySelectorAll("tbody tr")).toHaveLength(2);
+    expect(screen.getByLabelText("Mode de tronçons")).toBeInTheDocument();
+    expect(screen.getByLabelText("Tronçon (mm)")).toBeInTheDocument();
   });
 });
