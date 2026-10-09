@@ -21,7 +21,7 @@ export function parseNumber(raw: string, toMm = true): number | null {
   const s = raw.replace(/[\s\u00a0\u202f]/g, "").toLowerCase();
   const m = s.match(/^(-?\d+(?:[.,]\d+)?)([a-z]*)/);
   if (!m) return null;
-  let n = parseFloat(m[1].replace(",", "."));
+  let n = parseFloat(m[1]!.replace(",", "."));
   if (!isFinite(n)) return null;
   if (toMm && m[2]) {
     if (m[2] === "m") n *= 1000;

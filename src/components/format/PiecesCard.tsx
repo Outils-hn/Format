@@ -32,7 +32,7 @@ export function PiecesCard({
           <button className="btn-outline" onClick={() => setPasting(true)}><ClipboardPaste size={14} /> Coller depuis Excel</button>
           <button className="btn-outline" onClick={copy} disabled={!pieces.length}><ClipboardCopy size={14} /> Copier pour Excel</button>
           <button className="btn-primary" disabled={!materials.length}
-            onClick={() => onChange([...pieces, newPiece(pieces.at(-1)?.materialId ?? materials[0].id, pieces.length + 1)])}>
+            onClick={() => onChange([...pieces, newPiece(pieces.at(-1)?.materialId ?? materials[0]!.id, pieces.length + 1)])}>
             <Plus size={14} /> Ajouter
           </button>
         </div>

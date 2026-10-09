@@ -24,7 +24,7 @@ export function PasteDialog({
   const header = useMemo(() => (table[0] ? detectHeader(table[0]) : null), [table]);
   const cols = Math.max(0, ...table.map((r) => r.length));
   const effRoles: ColumnRole[] = Array.from({ length: cols }, (_, i) =>
-    roles?.[i] ?? header?.[i] ?? (loadPasteMapping() ?? DEFAULT_ROLES)[i] ?? "ignore");
+    roles?.[i] ?? header?.[i] ?? ((loadPasteMapping() as ColumnRole[] | null) ?? DEFAULT_ROLES)[i] ?? "ignore");
   const dataRows = header ? table.slice(1) : table;
 
   const matCol = effRoles.indexOf("material");

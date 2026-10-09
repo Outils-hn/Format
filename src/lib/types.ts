@@ -6,7 +6,7 @@ export interface SheetFormat {
   id: string;
   width: number;
   length: number;
-  price?: number; // prix optionnel par panneau
+  price?: number | undefined; // prix optionnel par panneau
 }
 
 export type Supply =
