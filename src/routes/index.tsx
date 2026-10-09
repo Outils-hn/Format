@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FilePlus2, FileSpreadsheet, FileText, FolderOpen, Loader2, Play, Save } from "lucide-react";
 import { toast } from "sonner";
 import type { Material, Project } from "@/lib/types";
@@ -13,6 +13,7 @@ import { PiecesCard } from "@/components/format/PiecesCard";
 import { ProjectsDialog } from "@/components/format/ProjectsDialog";
 import { ResultsPanel } from "@/components/format/ResultsPanel";
 import { runOptimization, type Objective, type OptimizeResult } from "@/lib/optimizer";
+import { allowRotation, rotationCandidates, rotationSavings } from "@/lib/rotation";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -37,18 +38,43 @@ function Index() {
   const [intensive, setIntensive] = useState(false);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<OptimizeResult | null>(null);
+  const [suggestion, setSuggestion] = useState<{
+    key: string; ids: string[]; saved: number; result: OptimizeResult;
+  } | null>(null);
+  const calculation = useRef(0);
+  const inputKey = JSON.stringify({ materials, pieces: project.pieces, objective, intensive, projectId: project.id });
+  const latestInput = useRef(inputKey);
+  latestInput.current = inputKey;
+  const visibleSuggestion = suggestion?.key === inputKey ? suggestion : null;
 
   const usedMats = materials.filter((m) => project.pieces.some((p) => p.materialId === m.id));
   const priceAvailable = usedMats.length > 0 && usedMats.every((m) => m.supply.mode === "catalog" && m.supply.formats.every((f) => f.price != null));
   const run = async () => {
     if (!project.pieces.length) { toast.error("Ajoutez des pièces avant de lancer l'optimisation"); return; }
+    const runId = ++calculation.current;
+    const key = inputKey;
+    const options = { objective: priceAvailable ? objective : "waste" as Objective, intensive };
+    const isCurrent = () => calculation.current === runId && latestInput.current === key;
+    setSuggestion(null);
     setRunning(true);
     try {
-      setResult(await runOptimization({ materials, pieces: project.pieces, options: { objective: priceAvailable ? objective : "waste", intensive } }));
+      const baseline = await runOptimization({ materials, pieces: project.pieces, options });
+      if (!isCurrent()) return;
+      setResult(baseline);
+      setRunning(false);
+      const ids = rotationCandidates(project.pieces, materials).map((p) => p.id);
+      if (!ids.length) return;
+      try {
+        const alternative = await runOptimization({ materials, pieces: allowRotation(project.pieces, ids), options });
+        const saved = rotationSavings(baseline, alternative);
+        if (isCurrent() && saved > 0) setSuggestion({ key, ids, saved, result: alternative });
+      } catch {
+        // A failed optional comparison must not interrupt the displayed result.
+      }
     } catch (e) {
       toast.error("Échec de l'optimisation");
       console.error(e);
-    } finally { setRunning(false); }
+    } finally { if (calculation.current === runId) setRunning(false); }
   };
 
   useEffect(() => {
@@ -158,6 +184,18 @@ function Index() {
 
         <section className="card-tech">
           <div className="card-tech-head"><h2 className="card-title">Résultats</h2></div>
+          {visibleSuggestion && (
+            <div role="status" className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-accent px-4 py-3 text-sm text-accent-foreground">
+              <p>Autoriser la rotation de ces pièces économiserait {visibleSuggestion.saved} panneau(x)</p>
+              <button className="btn-primary" onClick={() => {
+                calculation.current++;
+                setProject({ ...project, pieces: allowRotation(project.pieces, visibleSuggestion.ids) });
+                setResult(visibleSuggestion.result);
+                setSuggestion(null);
+                setRunning(false);
+              }}>Appliquer</button>
+            </div>
+          )}
           {result ? <ResultsPanel result={result} materials={materials} /> : (
             <div className="flex flex-col items-center gap-4 px-4 py-12 text-sm text-muted-foreground">
               <div className="flex gap-2">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ClipboardCopy, ClipboardPaste, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Material, Piece } from "@/lib/types";
@@ -18,6 +18,18 @@ export function PiecesCard({
   const [pasting, setPasting] = useState(false);
   const upd = (id: string, patch: Partial<Piece>) => onChange(pieces.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   const num = (v: string) => (v === "" ? null : parseFloat(v.replace(",", ".")));
+  const eligible = pieces.filter((p) => materials.some((m) => m.id === p.materialId && !m.grainLocked));
+  const checkedCount = eligible.filter((p) => p.canRotate).length;
+  const allChecked = eligible.length > 0 && checkedCount === eligible.length;
+  const headerCheckbox = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (headerCheckbox.current) headerCheckbox.current.indeterminate = checkedCount > 0 && !allChecked;
+  }, [checkedCount, allChecked]);
+  const add = () => {
+    const material = materials.find((m) => m.id === pieces.at(-1)?.materialId) ?? materials[0];
+    if (!material) return;
+    onChange([...pieces, newPiece(material.id, pieces.length + 1, material.grainLocked)]);
+  };
 
   const copy = async () => {
     await navigator.clipboard.writeText(piecesToTsv(pieces, materials));
@@ -32,7 +44,7 @@ export function PiecesCard({
           <button className="btn-outline" onClick={() => setPasting(true)}><ClipboardPaste size={14} /> Coller depuis Excel</button>
           <button className="btn-outline" onClick={copy} disabled={!pieces.length}><ClipboardCopy size={14} /> Copier pour Excel</button>
           <button className="btn-primary" disabled={!materials.length}
-            onClick={() => onChange([...pieces, newPiece(pieces.at(-1)?.materialId ?? materials[0]!.id, pieces.length + 1)])}>
+            onClick={add}>
             <Plus size={14} /> Ajouter
           </button>
         </div>
@@ -46,7 +58,17 @@ export function PiecesCard({
               <th className="px-2 py-2 text-right font-medium">Largeur (mm)</th>
               <th className="px-2 py-2 text-right font-medium">Hauteur (mm)</th>
               <th className="px-2 py-2 text-right font-medium">Qté</th>
-              <th className="px-2 py-2 text-center font-medium">Peut tourner</th>
+              <th className="px-2 py-2 text-center font-medium">
+                <label className="inline-flex items-center gap-2 whitespace-nowrap">
+                  <input ref={headerCheckbox} type="checkbox" className="accent-primary disabled:opacity-40"
+                    aria-label="Autoriser la rotation de toutes les pièces" checked={allChecked} disabled={!eligible.length}
+                    onChange={(e) => {
+                      const selected = new Set(eligible.map((p) => p.id));
+                      onChange(pieces.map((p) => selected.has(p.id) ? { ...p, canRotate: e.target.checked } : p));
+                    }} />
+                  Peut tourner
+                </label>
+              </th>
               <th className="w-10" />
             </tr>
           </thead>
@@ -74,7 +96,7 @@ export function PiecesCard({
                   <td className="px-2 py-1.5"><input inputMode="decimal" className={`input-num w-24 ${err ? "border-destructive" : ""}`} value={p.height ?? ""} onChange={(e) => upd(p.id, { height: num(e.target.value) })} /></td>
                   <td className="px-2 py-1.5"><input inputMode="numeric" className="input-num w-16" value={p.quantity} onChange={(e) => upd(p.id, { quantity: Math.max(0, parseInt(e.target.value) || 0) })} /></td>
                   <td className="px-2 py-1.5 text-center">
-                    <input type="checkbox" className="accent-primary disabled:opacity-40" disabled={locked} checked={!locked && p.canRotate}
+                    <input type="checkbox" aria-label={`Autoriser la rotation de ${p.label}`} className="accent-primary disabled:opacity-40" disabled={locked} checked={!locked && p.canRotate}
                       title={locked ? "Sens imposé par le matériau" : undefined} onChange={(e) => upd(p.id, { canRotate: e.target.checked })} />
                   </td>
                   <td className="pr-3">

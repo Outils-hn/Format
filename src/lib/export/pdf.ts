@@ -111,15 +111,15 @@ function supplyText(m: Material) {
   return `largeur ${s.width} mm, longueur ${s.minLength} à ${s.maxLength} mm par pas de ${s.step} mm`;
 }
 
-function hatch(doc: jsPDF, x: number, y: number, w: number, h: number, step: number, color: RGB, cross: boolean, lw: number) {
+function hatch(doc: jsPDF, x: number, y: number, w: number, h: number, step: number, color: RGB, reusable: boolean, lw: number) {
   doc.saveGraphicsState();
   doc.rect(x, y, w, h, null);
   doc.clip();
   doc.discardPath();
   doc.setDrawColor(...color); doc.setLineWidth(lw);
   for (let k = -h; k < w; k += step) {
-    doc.line(x + k, y + h, x + k + h, y);
-    if (cross) doc.line(x + k, y, x + k + h, y + h);
+    if (reusable) doc.line(x + k, y + h, x + k + h, y);
+    else doc.line(x + k, y, x + k + h, y + h);
   }
   doc.restoreGraphicsState();
 }
@@ -128,6 +128,10 @@ function drawPlan(doc: jsPDF, s: SheetResult, mat: Material, cuts: Cut[], color:
   const t = mat.trim;
   const X = (v: number) => ox + v * k, Y = (v: number) => oy + v * k;
   const reuse = resolveColor("var(--offcut-reuse)");
+  const waste = resolveColor("var(--offcut-waste)");
+  const tokens = getComputedStyle(document.documentElement);
+  const hatchWidth = parseFloat(tokens.getPropertyValue("--hatch-width")) * 25.4 / 96;
+  const hatchSpacing = parseFloat(tokens.getPropertyValue("--hatch-spacing")) * 25.4 / 96;
   doc.setLineDashPattern([], 0);
   doc.setFillColor(225, 227, 231); doc.setDrawColor(...INK); doc.setLineWidth(0.5);
   doc.rect(X(0), Y(0), s.width * k, s.length * k, "FD");
@@ -136,7 +140,7 @@ function drawPlan(doc: jsPDF, s: SheetResult, mat: Material, cuts: Cut[], color:
   doc.setLineDashPattern([], 0);
   for (const o of s.offcuts) {
     const x = X(o.x + t), y = Y(o.y + t), w = o.w * k, h = o.h * k;
-    hatch(doc, x, y, w, h, o.reusable ? 2.2 : 1.6, o.reusable ? reuse.map((c) => c * 0.75) as RGB : GREY, o.reusable, o.reusable ? 0.3 : 0.15);
+    hatch(doc, x, y, w, h, hatchSpacing, o.reusable ? reuse : waste, o.reusable, hatchWidth);
     doc.setDrawColor(...GREY); doc.setLineWidth(0.15); doc.rect(x, y, w, h);
     if (Math.min(w, h) > 7 && w > 22) {
       doc.setFont("helvetica", "normal"); doc.setFontSize(6.5); doc.setTextColor(...INK);
@@ -212,8 +216,9 @@ function sheetPage(w: Writer, g: SheetGroup, mat: Material, r: { name: string; t
   drawPlan(w.doc, s, mat, cuts, color, ox, w.y + 4, k);
   w.y += 4 + s.length * k + 3;
   w.font(7.5, false, GREY);
-  w.doc.text("Cotes mesurées depuis le coin brut haut gauche · T = pièce tournée · hachures croisées = chute réutilisable · hachures simples = perte", w.W / 2, w.y + 2, { align: "center" });
-  w.y += 6;
+  w.doc.text("Cotes mesurées depuis le coin brut haut gauche", w.W / 2, w.y + 2, { align: "center" });
+  w.doc.text("T = pièce tournée · hachures / = chute réutilisable · hachures \\ = perte", w.W / 2, w.y + 6, { align: "center" });
+  w.y += 10;
   if (cuts.length) {
     w.text("Séquence de coupe", 9, true, INK, 0.5);
     for (const c of cuts) w.text(`${c.n}. ${c.text}`, 8, false, INK, 0);

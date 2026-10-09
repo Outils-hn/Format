@@ -52,14 +52,14 @@ export const newMaterial = (): Material => ({
   supply: { mode: "single", width: 2070, length: 2800 },
 });
 
-export const newPiece = (materialId: string, n: number): Piece => ({
+export const newPiece = (materialId: string, n: number, grainLocked = false): Piece => ({
   id: uid(),
   label: `P${n}`,
   materialId,
   width: null,
   height: null,
   quantity: 1,
-  canRotate: true,
+  canRotate: !grainLocked,
 });
 
 export const newProject = (): Project => ({
