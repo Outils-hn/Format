@@ -21,9 +21,11 @@ function PlanSvg({ group, material, colorOf, cuts, onHover, hovered }: Props & {
     <svg viewBox={`${-m} ${-m} ${s.width + 1.6 * m} ${s.length + 1.6 * m}`} className="h-auto w-full" style={{ fontFamily: "var(--font-mono)" }}>
       <defs>
         <pattern id={`w${uid}`} patternUnits="userSpaceOnUse" width={fs * 1.4} height={fs * 1.4} patternTransform="rotate(-45)">
+          <rect width={fs * 1.4} height={fs * 1.4} fill="var(--offcut-waste-bg)" />
           <line x1="0" y1="0" x2="0" y2={fs * 1.4} stroke="var(--offcut-waste)" strokeWidth="var(--hatch-width)" vectorEffect="non-scaling-stroke" />
         </pattern>
         <pattern id={`r${uid}`} patternUnits="userSpaceOnUse" width={fs * 1.4} height={fs * 1.4} patternTransform="rotate(45)">
+          <rect width={fs * 1.4} height={fs * 1.4} fill="var(--offcut-reuse-bg)" />
           <line x1="0" y1="0" x2="0" y2={fs * 1.4} stroke="var(--offcut-reuse)" strokeWidth="var(--hatch-width)" vectorEffect="non-scaling-stroke" />
         </pattern>
       </defs>
