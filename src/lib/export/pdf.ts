@@ -270,7 +270,7 @@ function sheetPage(w: Writer, g: SheetGroup, mat: Material, r: { name: string; t
   const defaultH = Math.min((w.bottom - w.y) * 0.62, availW / s.width * s.length);
   const fittingH = w.bottom - w.y - reserved;
   // Only a slight reduction; otherwise move an entire table to the next page.
-  const availH = fittingH >= defaultH * 0.8 ? Math.min(defaultH, fittingH) : defaultH;
+  const availH = fittingH >= defaultH * 0.75 ? Math.min(defaultH, fittingH) : defaultH;
   const k = Math.min(availW / s.width, availH / s.length);
   const ox = M + 8 + (availW - s.width * k) / 2;
   drawPlan(w.doc, s, mat, cuts, color, ox, w.y + 4, k);
