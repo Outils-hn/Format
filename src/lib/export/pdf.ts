@@ -129,6 +129,8 @@ function drawPlan(doc: jsPDF, s: SheetResult, mat: Material, cuts: Cut[], color:
   const X = (v: number) => ox + v * k, Y = (v: number) => oy + v * k;
   const reuse = resolveColor("var(--offcut-reuse)");
   const waste = resolveColor("var(--offcut-waste)");
+  const reuseBg = resolveColor("var(--offcut-reuse-bg)");
+  const wasteBg = resolveColor("var(--offcut-waste-bg)");
   const tokens = getComputedStyle(document.documentElement);
   const hatchWidth = parseFloat(tokens.getPropertyValue("--hatch-width")) * 25.4 / 96;
   const hatchSpacing = parseFloat(tokens.getPropertyValue("--hatch-spacing")) * 25.4 / 96;
