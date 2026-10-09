@@ -220,8 +220,9 @@ function sheetPage(w: Writer, g: SheetGroup, mat: Material, r: { name: string; t
   drawPlan(w.doc, s, mat, cuts, color, ox, w.y + 4, k);
   w.y += 4 + s.length * k + 3;
   w.font(7.5, false, GREY);
-  w.doc.text("T = pièce tournée", w.W / 2, w.y + 2, { align: "center" });
-  w.y += 5;
+  w.doc.text("Cotes mesurées depuis le coin brut haut gauche", w.W / 2, w.y + 2, { align: "center" });
+  w.doc.text("T = pièce tournée", w.W / 2, w.y + 6, { align: "center" });
+  w.y += 9;
   // légende chutes avec échantillons
   const swW = 9, swH = 4;
   const entries: [boolean, string][] = [[true, "chute réutilisable"], [false, "perte"]];
