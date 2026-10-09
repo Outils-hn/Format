@@ -22,6 +22,7 @@ export interface Material {
   trim: number; // delignage par bord
   grainLocked: boolean; // sens impose
   cutType: CutType;
+  reuseMin?: number | undefined; // seuil de chute reutilisable (mm), defaut 300
   supply: Supply;
 }
 
