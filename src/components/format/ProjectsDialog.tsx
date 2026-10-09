@@ -22,7 +22,7 @@ export function ProjectsDialog({
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-medium">{p.info.site || "Sans nom"}</div>
               <div className="mono text-xs text-muted-foreground">
-                {p.info.taskNumber && `#${p.info.taskNumber} · `}{p.info.date} · {p.pieces.length} piece(s)
+                {p.info.taskNumber && `#${p.info.taskNumber} · `}{p.info.date} · {p.pieces.length} pièce(s)
               </div>
             </div>
             <button className="btn-outline" onClick={() => onOpen(p)}><FolderOpen size={14} /> Ouvrir</button>
@@ -32,7 +32,7 @@ export function ProjectsDialog({
             </button>
           </li>
         ))}
-        {projects.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted-foreground">Aucun projet sauvegarde</li>}
+        {projects.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted-foreground">Aucun projet sauvegardé</li>}
       </ul>
       <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
         <button className="btn-outline" onClick={onExport}><Download size={14} /> Exporter le projet (.json)</button>

@@ -16,9 +16,9 @@ export function usableSizes(m: Material): { w: number; l: number }[] {
 /** Retourne un message d'erreur, ou null si la piece est faisable. */
 export function validatePiece(p: Piece, materials: Material[]): string | null {
   const m = materials.find((x) => x.id === p.materialId);
-  if (!m) return "Materiau inconnu";
+  if (!m) return "Matériau inconnu";
   if (!p.width || !p.height || p.width <= 0 || p.height <= 0) return "Dimensions manquantes";
-  if (!p.quantity || p.quantity <= 0) return "Quantite nulle";
+  if (!p.quantity || p.quantity <= 0) return "Quantité nulle";
   const rotate = p.canRotate && !m.grainLocked;
   const fits = usableSizes(m).some(
     ({ w, l }) =>
