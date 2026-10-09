@@ -133,20 +133,18 @@
   h1, h2, h3 { color: var(--color-foreground); }
 }
 
-@layer components {
-  .card-tech { @apply rounded-md border border-border bg-card; }
-  .card-tech-head { @apply flex items-center justify-between gap-2 border-b border-border px-4 py-3; }
-  .card-title { @apply text-xs font-semibold uppercase tracking-[0.14em] text-foreground; }
-  .field-label { @apply mb-1 block text-xs font-medium text-muted-foreground; }
-  .input-tech { @apply h-8 w-full rounded-sm border border-input bg-card px-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 disabled:opacity-50; }
-  .input-num { @apply input-tech text-right font-mono tabular-nums; }
-  .btn { @apply inline-flex h-8 items-center gap-1.5 rounded-sm px-3 text-sm font-medium transition-colors disabled:opacity-50; }
-  .btn-primary { @apply btn bg-primary text-primary-foreground hover:bg-primary/90; }
-  .btn-outline { @apply btn border border-border bg-card text-foreground hover:border-primary hover:text-primary; }
-  .btn-ghost { @apply btn text-muted-foreground hover:bg-muted hover:text-foreground; }
-  .btn-danger { @apply btn text-muted-foreground hover:bg-destructive-soft hover:text-destructive; }
-  .mono { @apply font-mono tabular-nums; }
-}
+@utility card-tech { @apply rounded-md border border-border bg-card; }
+@utility card-tech-head { @apply flex items-center justify-between gap-2 border-b border-border px-4 py-3; }
+@utility card-title { @apply text-xs font-semibold uppercase tracking-[0.14em] text-foreground; }
+@utility field-label { @apply mb-1 block text-xs font-medium text-muted-foreground; }
+@utility input-tech { @apply h-8 w-full rounded-sm border border-input bg-card px-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 disabled:opacity-50; }
+@utility input-num { @apply input-tech text-right font-mono tabular-nums; }
+@utility btn { @apply inline-flex h-8 items-center gap-1.5 rounded-sm px-3 text-sm font-medium transition-colors disabled:opacity-50; }
+@utility btn-primary { @apply btn bg-primary text-primary-foreground hover:bg-primary/90; }
+@utility btn-outline { @apply btn border border-border bg-card text-foreground hover:border-primary hover:text-primary; }
+@utility btn-ghost { @apply btn text-muted-foreground hover:bg-muted hover:text-foreground; }
+@utility btn-danger { @apply btn text-muted-foreground hover:bg-destructive-soft hover:text-destructive; }
+@utility mono { @apply font-mono tabular-nums; }
 
 /* Chutes : toujours hachurees */
 @utility hatch-waste {
