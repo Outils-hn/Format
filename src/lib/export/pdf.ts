@@ -94,7 +94,7 @@ function kpis(w: Writer, b: Balance, sheets: number, price: number | null) {
   items.forEach(([l, v, sub], i) => {
     const x = M + i * (bw + gap);
     w.doc.setDrawColor(...INK); w.doc.setLineWidth(0.25); w.doc.rect(x, w.y, bw, h);
-    w.font(7, false, GREY); w.doc.text(l, x + 2, w.y + 4.5, { maxWidth: bw - 4 });
+    w.font(items.length > 4 ? 6 : 7, false, GREY); w.doc.text(w.doc.splitTextToSize(l, bw - 3)[0] as string, x + 2, w.y + 4.5);
     w.font(12, true); w.doc.text(v, x + 2, w.y + 10.5);
     if (sub) { w.font(6.5, false, GREY); w.doc.text(sub, x + 2, w.y + 14.5); }
   });
