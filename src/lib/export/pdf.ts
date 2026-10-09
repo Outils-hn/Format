@@ -129,6 +129,8 @@ function drawPlan(doc: jsPDF, s: SheetResult, mat: Material, cuts: Cut[], color:
   const X = (v: number) => ox + v * k, Y = (v: number) => oy + v * k;
   const reuse = resolveColor("var(--offcut-reuse)");
   const waste = resolveColor("var(--offcut-waste)");
+  const reuseBg = resolveColor("var(--offcut-reuse-bg)");
+  const wasteBg = resolveColor("var(--offcut-waste-bg)");
   const tokens = getComputedStyle(document.documentElement);
   const hatchWidth = parseFloat(tokens.getPropertyValue("--hatch-width")) * 25.4 / 96;
   const hatchSpacing = parseFloat(tokens.getPropertyValue("--hatch-spacing")) * 25.4 / 96;
@@ -140,6 +142,8 @@ function drawPlan(doc: jsPDF, s: SheetResult, mat: Material, cuts: Cut[], color:
   doc.setLineDashPattern([], 0);
   for (const o of s.offcuts) {
     const x = X(o.x + t), y = Y(o.y + t), w = o.w * k, h = o.h * k;
+    doc.setFillColor(...(o.reusable ? reuseBg : wasteBg));
+    doc.rect(x, y, w, h, "F");
     hatch(doc, x, y, w, h, hatchSpacing, o.reusable ? reuse : waste, o.reusable, hatchWidth);
     doc.setDrawColor(...GREY); doc.setLineWidth(0.15); doc.rect(x, y, w, h);
     if (Math.min(w, h) > 7 && w > 22) {
@@ -217,8 +221,25 @@ function sheetPage(w: Writer, g: SheetGroup, mat: Material, r: { name: string; t
   w.y += 4 + s.length * k + 3;
   w.font(7.5, false, GREY);
   w.doc.text("Cotes mesurées depuis le coin brut haut gauche", w.W / 2, w.y + 2, { align: "center" });
-  w.doc.text("T = pièce tournée · hachures / = chute réutilisable · hachures \\ = perte", w.W / 2, w.y + 6, { align: "center" });
-  w.y += 10;
+  w.doc.text("T = pièce tournée", w.W / 2, w.y + 6, { align: "center" });
+  w.y += 9;
+  // légende chutes avec échantillons
+  const swW = 9, swH = 4;
+  const entries: [boolean, string][] = [[true, "chute réutilisable"], [false, "perte"]];
+  const widths = entries.map(([, l]) => swW + 2 + w.doc.getTextWidth(l));
+  const total = widths.reduce((a, b) => a + b, 0) + 8;
+  let lx = w.W / 2 - total / 2;
+  entries.forEach(([reusable, label], i) => {
+    const stroke = resolveColor(reusable ? "var(--offcut-reuse)" : "var(--offcut-waste)");
+    const bg = resolveColor(reusable ? "var(--offcut-reuse-bg)" : "var(--offcut-waste-bg)");
+    w.doc.setFillColor(...bg); w.doc.rect(lx, w.y, swW, swH, "F");
+    hatch(w.doc, lx, w.y, swW, swH, 2.4, stroke, reusable, 0.2);
+    w.doc.setDrawColor(...GREY); w.doc.setLineWidth(0.15); w.doc.rect(lx, w.y, swW, swH);
+    w.font(7.5, false, GREY);
+    w.doc.text(label, lx + swW + 2, w.y + swH / 2, { baseline: "middle" });
+    lx += widths[i]! + 8;
+  });
+  w.y += swH + 5;
   if (cuts.length) {
     w.text("Séquence de coupe", 9, true, INK, 0.5);
     for (const c of cuts) w.text(`${c.n}. ${c.text}`, 8, false, INK, 0);
