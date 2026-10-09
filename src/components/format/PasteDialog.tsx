@@ -42,7 +42,7 @@ export function PasteDialog({
         <>
           <p className="mb-2 text-sm text-muted-foreground">Copiez des cellules dans Excel puis collez-les ici (Ctrl+V).</p>
           <textarea autoFocus className="input-tech mono h-48 py-2" value={text} onChange={(e) => setText(e.target.value)}
-            placeholder={"Repere\tMateriau\tLargeur\tHauteur\tQuantite\nA1\tMDF\t600\t400\t2"} />
+            placeholder={"Repère\tMatériau\tLargeur\tHauteur\tQuantité\nA1\tMDF\t600\t400\t2"} />
         </>
       ) : (
         <>
@@ -71,7 +71,7 @@ export function PasteDialog({
               </tbody>
             </table>
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">{dataRows.length} ligne(s){header && " · en-tetes detectes"}</p>
+          <p className="mt-2 text-xs text-muted-foreground">{dataRows.length} ligne(s){header && " · en-têtes détectés"}</p>
 
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {unmatched.map((t) => (
@@ -84,7 +84,7 @@ export function PasteDialog({
             ))}
             {matCol < 0 && (
               <label className="flex items-center gap-2 text-sm">
-                <span className="flex-1">Materiau pour toutes les pieces</span>
+                <span className="flex-1">Matériau pour toutes les pièces</span>
                 <select className="input-tech w-48" value={fallback} onChange={(e) => setFallback(e.target.value)}>
                   {materials.map((m) => <option key={m.id} value={m.id}>{m.name} {m.thickness}</option>)}
                 </select>
@@ -95,7 +95,7 @@ export function PasteDialog({
           <div className="mt-5 flex justify-end gap-2">
             <button className="btn-ghost mr-auto" onClick={() => { setText(""); setRoles(null); }}>Recommencer</button>
             <button className="btn-outline" onClick={() => apply("replace")}>Remplacer la liste</button>
-            <button className="btn-primary" onClick={() => apply("append")}>Ajouter a la liste</button>
+            <button className="btn-primary" onClick={() => apply("append")}>Ajouter à la liste</button>
           </div>
         </>
       )}

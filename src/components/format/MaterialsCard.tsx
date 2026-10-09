@@ -30,7 +30,7 @@ export function MaterialsCard({
   return (
     <section className="card-tech">
       <div className="card-tech-head">
-        <h2 className="card-title">Materiaux</h2>
+        <h2 className="card-title">Matériaux</h2>
         <button className="btn-outline" onClick={() => setEditing(newMaterial())}><Plus size={14} /> Nouveau</button>
       </div>
       <ul className="divide-y divide-border">
@@ -41,7 +41,7 @@ export function MaterialsCard({
                 {m.name} <span className="mono text-muted-foreground">{m.thickness} mm</span>
               </div>
               <div className="mono text-xs text-muted-foreground">
-                {supplyLabel(m.supply)} · trait {m.kerf} · delign. {m.trim}
+                {supplyLabel(m.supply)} · trait {m.kerf} · délign. {m.trim}
                 {m.grainLocked && " · sens"} · {m.cutType === "free" ? "CNC" : "scie"}
               </div>
             </div>
@@ -53,7 +53,7 @@ export function MaterialsCard({
             ><Trash2 size={14} /></button>
           </li>
         ))}
-        {materials.length === 0 && <li className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun materiau</li>}
+        {materials.length === 0 && <li className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun matériau</li>}
       </ul>
       {editing && <MaterialForm initial={editing} onCancel={() => setEditing(null)} onSave={save} />}
     </section>
@@ -82,25 +82,25 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
   };
 
   return (
-    <Modal title={initial.name ? "Materiau" : "Nouveau materiau"} onClose={onCancel}>
+    <Modal title={initial.name ? "Matériau" : "Nouveau matériau"} onClose={onCancel}>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <label className="col-span-2 block">
           <span className="field-label">Nom</span>
           <input className="input-tech" value={m.name} onChange={(e) => set({ name: e.target.value })} />
         </label>
-        <Num label="Epaisseur (mm)" value={m.thickness} onChange={(thickness) => set({ thickness })} />
+        <Num label="Épaisseur (mm)" value={m.thickness} onChange={(thickness) => set({ thickness })} />
         <Num label="Trait de coupe (mm)" value={m.kerf} onChange={(kerf) => set({ kerf })} />
-        <Num label="Delignage / bord (mm)" value={m.trim} onChange={(trim) => set({ trim })} />
+        <Num label="Délignage / bord (mm)" value={m.trim} onChange={(trim) => set({ trim })} />
         <label className="col-span-3 block">
-          <span className="field-label">Type de decoupe</span>
+          <span className="field-label">Type de découpe</span>
           <select className="input-tech" value={m.cutType} onChange={(e) => set({ cutType: e.target.value as Material["cutType"] })}>
-            <option value="guillotine">Coupes traversantes (scie a panneaux)</option>
+            <option value="guillotine">Coupes traversantes (scie à panneaux)</option>
             <option value="free">Placement libre (CNC)</option>
           </select>
         </label>
         <label className="col-span-4 flex items-center gap-2 text-sm">
           <input type="checkbox" className="accent-primary" checked={m.grainLocked} onChange={(e) => set({ grainLocked: e.target.checked })} />
-          Sens impose <span className="text-muted-foreground">— les pieces ne tournent pas (decor, fil du bois, laquage)</span>
+          Sens imposé <span className="text-muted-foreground">— les pièces ne tournent pas (décor, fil du bois, laquage)</span>
         </label>
       </div>
 
@@ -109,8 +109,8 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
         <div className="mb-3 grid grid-cols-3 gap-1 rounded-sm border border-border p-1">
           {([
             ["single", "Format unique"],
-            ["catalog", "Formats catalogue"],
-            ["fixedWidth", "Longueur a la demande"],
+            ["catalog", "Plusieurs formats catalogue"],
+            ["fixedWidth", "Longueur à la demande"],
           ] as const).map(([k, l]) => (
             <button key={k} className={`btn justify-center text-xs ${s.mode === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`} onClick={() => setMode(k)}>{l}</button>
           ))}

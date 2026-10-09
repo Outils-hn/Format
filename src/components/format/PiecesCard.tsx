@@ -21,13 +21,13 @@ export function PiecesCard({
 
   const copy = async () => {
     await navigator.clipboard.writeText(piecesToTsv(pieces, materials));
-    toast.success("Liste copiee — collez-la dans Excel");
+    toast.success("Liste copiée — collez-la dans Excel");
   };
 
   return (
     <section className="card-tech">
       <div className="card-tech-head flex-wrap">
-        <h2 className="card-title">Pieces a decouper</h2>
+        <h2 className="card-title">Pièces à découper</h2>
         <div className="flex flex-wrap gap-2">
           <button className="btn-outline" onClick={() => setPasting(true)}><ClipboardPaste size={14} /> Coller depuis Excel</button>
           <button className="btn-outline" onClick={copy} disabled={!pieces.length}><ClipboardCopy size={14} /> Copier pour Excel</button>
@@ -41,11 +41,11 @@ export function PiecesCard({
         <table className="w-full text-sm">
           <thead className="text-left text-xs text-muted-foreground">
             <tr className="border-b border-border">
-              <th className="px-4 py-2 font-medium">Repere</th>
-              <th className="px-2 py-2 font-medium">Materiau</th>
+              <th className="px-4 py-2 font-medium">Repère</th>
+              <th className="px-2 py-2 font-medium">Matériau</th>
               <th className="px-2 py-2 text-right font-medium">Largeur (mm)</th>
               <th className="px-2 py-2 text-right font-medium">Hauteur (mm)</th>
-              <th className="px-2 py-2 text-right font-medium">Qte</th>
+              <th className="px-2 py-2 text-right font-medium">Qté</th>
               <th className="px-2 py-2 text-center font-medium">Peut tourner</th>
               <th className="w-10" />
             </tr>
@@ -75,7 +75,7 @@ export function PiecesCard({
                   <td className="px-2 py-1.5"><input inputMode="numeric" className="input-num w-16" value={p.quantity} onChange={(e) => upd(p.id, { quantity: Math.max(0, parseInt(e.target.value) || 0) })} /></td>
                   <td className="px-2 py-1.5 text-center">
                     <input type="checkbox" className="accent-primary disabled:opacity-40" disabled={locked} checked={!locked && p.canRotate}
-                      title={locked ? "Sens impose par le materiau" : undefined} onChange={(e) => upd(p.id, { canRotate: e.target.checked })} />
+                      title={locked ? "Sens imposé par le matériau" : undefined} onChange={(e) => upd(p.id, { canRotate: e.target.checked })} />
                   </td>
                   <td className="pr-3">
                     <button className="btn-danger h-7 px-1.5" aria-label="Supprimer" onClick={() => onChange(pieces.filter((x) => x.id !== p.id))}><Trash2 size={14} /></button>
@@ -85,11 +85,11 @@ export function PiecesCard({
             })}
           </tbody>
         </table>
-        {pieces.length === 0 && <p className="px-4 py-10 text-center text-sm text-muted-foreground">Aucune piece. Ajoutez-en ou collez une liste depuis Excel.</p>}
+        {pieces.length === 0 && <p className="px-4 py-10 text-center text-sm text-muted-foreground">Aucune pièce. Ajoutez-en ou collez une liste depuis Excel.</p>}
       </div>
       {pieces.some((p) => validatePiece(p, materials)) && (
         <p className="px-4 py-2 text-xs text-destructive">
-          {pieces.filter((p) => validatePiece(p, materials)).length} piece(s) impossible(s) — survolez une ligne pour le detail.
+          {pieces.filter((p) => validatePiece(p, materials)).length} pièce(s) impossible(s) — survolez une ligne pour le détail.
         </p>
       )}
       {pasting && (

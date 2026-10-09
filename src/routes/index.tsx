@@ -15,10 +15,10 @@ import { ProjectsDialog } from "@/components/format/ProjectsDialog";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Format — Optimisation de decoupe 2D" },
-      { name: "description", content: "Preparez vos fiches de debit de panneaux bois, platre, tole et composite. Donnees stockees dans votre navigateur." },
-      { property: "og:title", content: "Format — Optimisation de decoupe 2D" },
-      { property: "og:description", content: "Saisie des materiaux et pieces pour l'optimisation de debit de panneaux." },
+      { title: "Format — Optimisation de découpe 2D" },
+      { name: "description", content: "Préparez vos fiches de débit de panneaux bois, plâtre, tôle et composite. Données stockées dans votre navigateur." },
+      { property: "og:title", content: "Format — Optimisation de découpe 2D" },
+      { property: "og:description", content: "Saisie des matériaux et pièces pour l'optimisation de débit de panneaux." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -58,7 +58,7 @@ function Index() {
       setMaterials(r.materials);
       setProject(r.project);
       setShowProjects(false);
-      toast.success("Projet importe");
+      toast.success("Projet importé");
     } catch {
       toast.error("Fichier invalide");
     }
@@ -67,27 +67,27 @@ function Index() {
   return (
     <div className="min-h-screen">
       <header className="border-b border-border bg-card/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-4 px-4 py-3">
+        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-4 px-8 py-3">
           <div className="flex items-center gap-3">
             <Logo />
             <div>
               <h1 className="text-lg font-bold leading-none tracking-[0.35em]">FORMAT</h1>
-              <p className="mt-1 text-[10px] font-medium tracking-[0.2em] text-muted-foreground">OPTIMISATION DE DECOUPE 2D</p>
+              <p className="mt-1 text-[10px] font-medium tracking-[0.2em] text-muted-foreground">OPTIMISATION DE DÉCOUPE 2D</p>
             </div>
           </div>
           <nav className="ml-auto flex flex-wrap gap-2">
             <button className="btn-ghost" onClick={() => setShowProjects(true)}><FolderOpen size={15} /> Mes projets</button>
-            <button className="btn-ghost" onClick={() => confirm("Commencer un nouveau projet ? Les modifications non sauvegardees seront perdues.") && setProject(newProject())}><FilePlus2 size={15} /> Nouveau</button>
-            <button className="btn-primary" onClick={() => { setProject(saveProject(project)); toast.success("Projet sauvegarde"); }}><Save size={15} /> Sauvegarder</button>
+            <button className="btn-ghost" onClick={() => confirm("Commencer un nouveau projet ? Les modifications non sauvegardées seront perdues.") && setProject(newProject())}><FilePlus2 size={15} /> Nouveau</button>
+            <button className="btn-primary" onClick={() => { setProject(saveProject(project)); toast.success("Projet sauvegardé"); }}><Save size={15} /> Sauvegarder</button>
           </nav>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl space-y-5 px-4 py-6">
+      <main className="mx-auto max-w-[1600px] space-y-5 px-8 py-6">
         <section className="card-tech">
           <div className="card-tech-head"><h2 className="card-title">Informations du projet</h2></div>
           <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
-            {([["site", "Chantier"], ["taskNumber", "Numero de tache"], ["client", "Client"]] as const).map(([k, l]) => (
+            {([["site", "Chantier"], ["taskNumber", "Numéro de tâche"], ["client", "Client"]] as const).map(([k, l]) => (
               <label key={k} className="block">
                 <span className="field-label">{l}</span>
                 <input className="input-tech" value={info[k]} onChange={(e) => setInfo({ [k]: e.target.value })} />
@@ -97,7 +97,7 @@ function Index() {
               <span className="field-label">Date</span>
               <input type="date" className="input-tech mono" value={info.date} onChange={(e) => setInfo({ date: e.target.value })} />
             </label>
-            <p className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-4">Ces informations apparaitront en haut de la fiche de debit PDF.</p>
+            <p className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-4">Ces informations apparaîtront en haut de la fiche de débit PDF.</p>
           </div>
         </section>
 
@@ -107,17 +107,17 @@ function Index() {
         </div>
 
         <div className="flex justify-center">
-          <button className="btn-primary h-11 px-6 text-base" onClick={() => toast("Optimisation disponible a la prochaine etape")}><Play size={16} /> Lancer l'optimisation</button>
+          <button className="btn-primary h-11 px-6 text-base" onClick={() => toast("Optimisation disponible à la prochaine étape")}><Play size={16} /> Lancer l'optimisation</button>
         </div>
 
         <section className="card-tech">
-          <div className="card-tech-head"><h2 className="card-title">Resultats</h2></div>
+          <div className="card-tech-head"><h2 className="card-title">Résultats</h2></div>
           <div className="flex flex-col items-center gap-4 px-4 py-12 text-sm text-muted-foreground">
             <div className="flex gap-2">
               <span className="h-8 w-12 rounded-sm border border-border hatch-waste" />
               <span className="h-8 w-12 rounded-sm border border-border hatch-reuse" />
             </div>
-            Optimisation disponible a la prochaine etape
+            Optimisation disponible à la prochaine étape
           </div>
         </section>
       </main>

@@ -4,11 +4,11 @@ import { uid } from "./ids";
 
 export type ColumnRole = "label" | "material" | "width" | "height" | "quantity" | "ignore";
 export const COLUMN_ROLES: { value: ColumnRole; label: string }[] = [
-  { value: "label", label: "Repere" },
-  { value: "material", label: "Materiau" },
+  { value: "label", label: "Repère" },
+  { value: "material", label: "Matériau" },
   { value: "width", label: "Largeur" },
   { value: "height", label: "Hauteur" },
-  { value: "quantity", label: "Quantite" },
+  { value: "quantity", label: "Quantité" },
   { value: "ignore", label: "Ignorer" },
 ];
 
@@ -109,7 +109,7 @@ const fr = (n: number | null) => (n == null ? "" : String(n).replace(".", ","));
 
 export function piecesToTsv(pieces: Piece[], materials: Material[]): string {
   const name = (id: string) => materials.find((m) => m.id === id)?.name ?? "";
-  const lines = [["Repere", "Materiau", "Largeur", "Hauteur", "Quantite"].join("\t")];
+  const lines = [["Repère", "Matériau", "Largeur", "Hauteur", "Quantité"].join("\t")];
   for (const p of pieces)
     lines.push([p.label, name(p.materialId), fr(p.width), fr(p.height), fr(p.quantity)].join("\t"));
   return lines.join("\n");
