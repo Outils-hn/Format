@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ClipboardCopy, ClipboardPaste, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import type { Material, Piece } from "@/lib/types";
+import type { Linear, Material, Piece } from "@/lib/types";
+import { linearSegments, newLinear, segmentsText } from "@/lib/linear";
 import { newPiece } from "@/lib/defaults";
 import { mergeDuplicates, piecesToTsv } from "@/lib/excel";
 import { validatePiece } from "@/lib/validation";
@@ -9,12 +10,15 @@ import { planColor } from "@/lib/palette";
 import { PasteDialog } from "./PasteDialog";
 
 export function PiecesCard({
-  pieces, materials, onChange,
+  pieces, materials, onChange, linears = [], onLinearsChange,
 }: {
   pieces: Piece[];
   materials: Material[];
   onChange: (p: Piece[]) => void;
+  linears?: Linear[];
+  onLinearsChange?: (l: Linear[]) => void;
 }) {
+  const updL = (id: string, patch: Partial<Linear>) => onLinearsChange?.(linears.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   const [pasting, setPasting] = useState(false);
   const upd = (id: string, patch: Partial<Piece>) => onChange(pieces.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   const num = (v: string) => (v === "" ? null : parseFloat(v.replace(",", ".")));
@@ -47,6 +51,12 @@ export function PiecesCard({
             onClick={add}>
             <Plus size={14} /> Ajouter
           </button>
+          {onLinearsChange && (
+            <button className="btn-outline" disabled={!materials.length}
+              onClick={() => onLinearsChange([...linears, newLinear((materials.find((m) => m.id === linears.at(-1)?.materialId) ?? materials[0]!).id, linears.length + 1)])}>
+              <Plus size={14} /> Ajouter un linéaire
+            </button>
+          )}
         </div>
       </div>
       <div className="overflow-x-auto">
@@ -107,7 +117,60 @@ export function PiecesCard({
             })}
           </tbody>
         </table>
-        {pieces.length === 0 && <p className="px-4 py-10 text-center text-sm text-muted-foreground">Aucune pièce. Ajoutez-en ou collez une liste depuis Excel.</p>}
+        {linears.length > 0 && (
+          <table className="w-full text-sm">
+            <thead className="text-left text-xs text-muted-foreground">
+              <tr className="border-b border-border">
+                <th className="px-4 py-2 font-medium">Linéaire</th>
+                <th className="px-2 py-2 font-medium">Matériau</th>
+                <th className="px-2 py-2 text-right font-medium">Bande (mm)</th>
+                <th className="px-2 py-2 text-right font-medium">Longueur (m)</th>
+                <th className="px-2 py-2 font-medium">Tronçons</th>
+                <th className="w-10" />
+              </tr>
+            </thead>
+            <tbody>
+              {linears.map((l) => {
+                const seg = linearSegments(l, materials);
+                const err = typeof seg === "string" ? seg : null;
+                const mat = materials.find((m) => m.id === l.materialId);
+                return (
+                  <tr key={l.id} className="border-b border-border align-top">
+                    <td className="px-4 py-1.5"><input className="input-tech w-24" value={l.label} onChange={(e) => updL(l.id, { label: e.target.value })} /></td>
+                    <td className="px-2 py-1.5">
+                      <select className="input-tech min-w-36" value={l.materialId} onChange={(e) => updL(l.id, { materialId: e.target.value })}>
+                        {!mat && <option value={l.materialId}>— choisir —</option>}
+                        {materials.map((m) => <option key={m.id} value={m.id}>{m.name} {m.thickness}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-2 py-1.5"><input inputMode="decimal" aria-label="Largeur de bande" className="input-num w-20" value={l.bandWidth ?? ""} onChange={(e) => updL(l.id, { bandWidth: num(e.target.value) })} /></td>
+                    <td className="px-2 py-1.5"><input inputMode="decimal" aria-label="Longueur totale" className="input-num w-20" value={l.totalLength ?? ""} onChange={(e) => updL(l.id, { totalLength: num(e.target.value) })} /></td>
+                    <td className="px-2 py-1.5">
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <select className="input-tech w-52" value={l.mode} onChange={(e) => updL(l.id, { mode: e.target.value as Linear["mode"] })}>
+                          <option value="fixed">Tronçons de longueur fixe</option>
+                          <option value="joined">Raboutage autorisé</option>
+                        </select>
+                        {l.mode === "fixed" ? (
+                          <label className="flex items-center gap-1">Tronçon <input inputMode="decimal" className="input-num w-20" value={l.segment ?? ""} onChange={(e) => updL(l.id, { segment: num(e.target.value) })} /> mm</label>
+                        ) : (<>
+                          <label className="flex items-center gap-1">Mini <input inputMode="decimal" className="input-num w-16" value={l.min ?? ""} onChange={(e) => updL(l.id, { min: num(e.target.value) })} /></label>
+                          <label className="flex items-center gap-1">Maxi <input inputMode="decimal" className="input-num w-16" placeholder="panneau" value={l.max ?? ""} onChange={(e) => updL(l.id, { max: num(e.target.value) })} /></label>
+                          <label className="flex items-center gap-1">Multiple de <input inputMode="decimal" className="input-num w-16" value={l.multiple ?? ""} onChange={(e) => updL(l.id, { multiple: num(e.target.value) })} /> mm</label>
+                        </>)}
+                      </div>
+                      <p className={`mono mt-1 text-xs ${err ? "text-destructive" : "text-muted-foreground"}`}>{err ?? segmentsText(l, seg as Exclude<typeof seg, string>)}</p>
+                    </td>
+                    <td className="pr-3 pt-1.5">
+                      <button className="btn-danger h-7 px-1.5" aria-label="Supprimer le linéaire" onClick={() => onLinearsChange?.(linears.filter((x) => x.id !== l.id))}><Trash2 size={14} /></button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+        {pieces.length === 0 && linears.length === 0 && <p className="px-4 py-10 text-center text-sm text-muted-foreground">Aucune pièce. Ajoutez-en ou collez une liste depuis Excel.</p>}
       </div>
       {pieces.some((p) => validatePiece(p, materials)) && (
         <p className="px-4 py-2 text-xs text-destructive">

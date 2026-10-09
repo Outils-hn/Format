@@ -13,6 +13,7 @@ import { PiecesCard } from "@/components/format/PiecesCard";
 import { ProjectsDialog } from "@/components/format/ProjectsDialog";
 import { ResultsPanel } from "@/components/format/ResultsPanel";
 import { runOptimization, type Objective, type OptimizeResult } from "@/lib/optimizer";
+import { linearErrors, linearPieces, linearRecap, linearSegments } from "@/lib/linear";
 import { allowRotation, rotationCandidates, rotationSavings } from "@/lib/rotation";
 
 export const Route = createFileRoute("/")({
@@ -42,7 +43,10 @@ function Index() {
     key: string; ids: string[]; saved: number; result: OptimizeResult;
   } | null>(null);
   const calculation = useRef(0);
-  const inputKey = JSON.stringify({ materials, pieces: project.pieces, objective, intensive, projectId: project.id });
+  const linears = project.linears ?? [];
+  const allPieces = [...project.pieces, ...linearPieces(linears, materials)];
+  const recap = result ? linearRecap(linears, materials, allPieces, result) : [];
+  const inputKey = JSON.stringify({ materials, pieces: project.pieces, linears, objective, intensive, projectId: project.id });
   const latestInput = useRef(inputKey);
   latestInput.current = inputKey;
   const visibleSuggestion = suggestion?.key === inputKey ? suggestion : null;
@@ -50,7 +54,9 @@ function Index() {
   const usedMats = materials.filter((m) => project.pieces.some((p) => p.materialId === m.id));
   const priceAvailable = usedMats.length > 0 && usedMats.every((m) => m.supply.mode === "catalog" && m.supply.formats.every((f) => f.price != null));
   const run = async () => {
-    if (!project.pieces.length) { toast.error("Ajoutez des pièces avant de lancer l'optimisation"); return; }
+    if (!allPieces.length) { toast.error("Ajoutez des pièces avant de lancer l'optimisation"); return; }
+    if (linears.some((l) => typeof linearSegments(l, materials) === "string")) { toast.error("Un linéaire est incomplet ou impossible"); return; }
+    const withLinearCheck = (r: OptimizeResult) => ({ ...r, errors: [...r.errors, ...linearErrors(linearRecap(linears, materials, allPieces, r))] });
     const runId = ++calculation.current;
     const key = inputKey;
     const options = { objective: objective === "price" && !priceAvailable ? "waste" as Objective : objective, intensive };
@@ -58,14 +64,14 @@ function Index() {
     setSuggestion(null);
     setRunning(true);
     try {
-      const baseline = await runOptimization({ materials, pieces: project.pieces, options });
+      const baseline = withLinearCheck(await runOptimization({ materials, pieces: allPieces, options }));
       if (!isCurrent()) return;
       setResult(baseline);
       setRunning(false);
-      const ids = rotationCandidates(project.pieces, materials).map((p) => p.id);
+      const ids = rotationCandidates(allPieces, materials).map((p) => p.id);
       if (!ids.length) return;
       try {
-        const alternative = await runOptimization({ materials, pieces: allowRotation(project.pieces, ids), options });
+        const alternative = withLinearCheck(await runOptimization({ materials, pieces: allowRotation(allPieces, ids), options }));
         const saved = rotationSavings(baseline, alternative);
         if (isCurrent() && saved > 0) setSuggestion({ key, ids, saved, result: alternative });
       } catch {
@@ -124,7 +130,7 @@ function Index() {
             <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"} onClick={async () => {
               if (!result) return;
               if ((!info.site.trim() || !info.taskNumber.trim()) && !confirm("Le chantier ou le numéro de tâche est vide. Générer le PDF quand même ?")) return;
-              try { const { exportWorkshopPdf } = await import("@/lib/export/pdf"); exportWorkshopPdf(result, materials, project.pieces, info); }
+              try { const { exportWorkshopPdf } = await import("@/lib/export/pdf"); exportWorkshopPdf(result, materials, allPieces, info, recap); }
               catch (e) { console.error(e); toast.error("Échec de la génération du PDF"); }
             }}><FileText size={15} /> PDF atelier</button>
             <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"} onClick={async () => {
@@ -159,7 +165,8 @@ function Index() {
 
         <div className="grid gap-5 lg:grid-cols-[minmax(300px,380px)_1fr]">
           <MaterialsCard materials={materials} onChange={setMaterials} />
-          <PiecesCard pieces={project.pieces} materials={materials} onChange={(pieces) => setProject({ ...project, pieces })} />
+          <PiecesCard pieces={project.pieces} materials={materials} onChange={(pieces) => setProject({ ...project, pieces })}
+            linears={linears} onLinearsChange={(l) => setProject({ ...project, linears: l })} />
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-4">
@@ -197,7 +204,7 @@ function Index() {
               }}>Appliquer</button>
             </div>
           )}
-          {result ? <ResultsPanel result={result} materials={materials} /> : (
+          {result ? <ResultsPanel result={result} materials={materials} linears={recap} /> : (
             <div className="flex flex-col items-center gap-4 px-4 py-12 text-sm text-muted-foreground">
               <div className="flex gap-2">
                 <span className="h-8 w-12 rounded-sm border border-border hatch-waste" />
