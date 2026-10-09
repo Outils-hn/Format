@@ -1,24 +1,131 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { FilePlus2, FolderOpen, Play, Save } from "lucide-react";
+import { toast } from "sonner";
+import type { Material, Project } from "@/lib/types";
+import { newProject } from "@/lib/defaults";
+import {
+  exportProject, importProject, loadCurrent, loadMaterials, saveCurrent, saveMaterials, saveProject,
+} from "@/lib/storage";
+import { Logo } from "@/components/format/Logo";
+import { MaterialsCard } from "@/components/format/MaterialsCard";
+import { PiecesCard } from "@/components/format/PiecesCard";
+import { ProjectsDialog } from "@/components/format/ProjectsDialog";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Format — Optimisation de decoupe 2D" },
+      { name: "description", content: "Preparez vos fiches de debit de panneaux bois, platre, tole et composite. Donnees stockees dans votre navigateur." },
+      { property: "og:title", content: "Format — Optimisation de decoupe 2D" },
+      { property: "og:description", content: "Saisie des materiaux et pieces pour l'optimisation de debit de panneaux." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
+  const [ready, setReady] = useState(false);
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [project, setProject] = useState<Project>(newProject);
+  const [showProjects, setShowProjects] = useState(false);
+
+  useEffect(() => {
+    setMaterials(loadMaterials());
+    const cur = loadCurrent();
+    if (cur) setProject(cur);
+    setReady(true);
+  }, []);
+  useEffect(() => { if (ready) saveMaterials(materials); }, [materials, ready]);
+  useEffect(() => { if (ready) saveCurrent(project); }, [project, ready]);
+
+  const info = project.info;
+  const setInfo = (patch: Partial<typeof info>) => setProject({ ...project, info: { ...info, ...patch } });
+
+  const doExport = () => {
+    const blob = new Blob([exportProject(project, materials)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `format-${(info.site || "projet").replace(/[^\w-]+/g, "_")}-${info.date}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  const doImport = (json: string) => {
+    try {
+      const r = importProject(json, materials);
+      setMaterials(r.materials);
+      setProject(r.project);
+      setShowProjects(false);
+      toast.success("Projet importe");
+    } catch {
+      toast.error("Fichier invalide");
+    }
+  };
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen">
+      <header className="border-b border-border bg-card/90 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-4 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Logo />
+            <div>
+              <h1 className="text-lg font-bold leading-none tracking-[0.35em]">FORMAT</h1>
+              <p className="mt-1 text-[10px] font-medium tracking-[0.2em] text-muted-foreground">OPTIMISATION DE DECOUPE 2D</p>
+            </div>
+          </div>
+          <nav className="ml-auto flex flex-wrap gap-2">
+            <button className="btn-ghost" onClick={() => setShowProjects(true)}><FolderOpen size={15} /> Mes projets</button>
+            <button className="btn-ghost" onClick={() => confirm("Commencer un nouveau projet ? Les modifications non sauvegardees seront perdues.") && setProject(newProject())}><FilePlus2 size={15} /> Nouveau</button>
+            <button className="btn-primary" onClick={() => { setProject(saveProject(project)); toast.success("Projet sauvegarde"); }}><Save size={15} /> Sauvegarder</button>
+          </nav>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-7xl space-y-5 px-4 py-6">
+        <section className="card-tech">
+          <div className="card-tech-head"><h2 className="card-title">Informations du projet</h2></div>
+          <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
+            {([["site", "Chantier"], ["taskNumber", "Numero de tache"], ["client", "Client"]] as const).map(([k, l]) => (
+              <label key={k} className="block">
+                <span className="field-label">{l}</span>
+                <input className="input-tech" value={info[k]} onChange={(e) => setInfo({ [k]: e.target.value })} />
+              </label>
+            ))}
+            <label className="block">
+              <span className="field-label">Date</span>
+              <input type="date" className="input-tech mono" value={info.date} onChange={(e) => setInfo({ date: e.target.value })} />
+            </label>
+            <p className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-4">Ces informations apparaitront en haut de la fiche de debit PDF.</p>
+          </div>
+        </section>
+
+        <div className="grid gap-5 lg:grid-cols-[minmax(300px,380px)_1fr]">
+          <MaterialsCard materials={materials} onChange={setMaterials} />
+          <PiecesCard pieces={project.pieces} materials={materials} onChange={(pieces) => setProject({ ...project, pieces })} />
+        </div>
+
+        <div className="flex justify-center">
+          <button className="btn-primary h-11 px-6 text-base" onClick={() => toast("Optimisation disponible a la prochaine etape")}><Play size={16} /> Lancer l'optimisation</button>
+        </div>
+
+        <section className="card-tech">
+          <div className="card-tech-head"><h2 className="card-title">Resultats</h2></div>
+          <div className="flex flex-col items-center gap-4 px-4 py-12 text-sm text-muted-foreground">
+            <div className="flex gap-2">
+              <span className="h-8 w-12 rounded-sm border border-border hatch-waste" />
+              <span className="h-8 w-12 rounded-sm border border-border hatch-reuse" />
+            </div>
+            Optimisation disponible a la prochaine etape
+          </div>
+        </section>
+      </main>
+
+      {showProjects && (
+        <ProjectsDialog onClose={() => setShowProjects(false)} onExport={doExport} onImport={doImport}
+          onOpen={(p) => { setProject(p); setShowProjects(false); }} />
+      )}
     </div>
   );
 }

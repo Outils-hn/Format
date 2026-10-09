@@ -1,0 +1,71 @@
+// Persistance locale (localStorage) — aucune donnee ne quitte le navigateur.
+import type { Material, Project, ProjectFile } from "./types";
+import { sampleMaterials } from "./defaults";
+import { uid } from "./ids";
+
+const K = {
+  materials: "format.materials",
+  projects: "format.projects",
+  current: "format.current",
+  pasteMapping: "format.pasteMapping",
+};
+
+function read<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+const write = (key: string, v: unknown) => localStorage.setItem(key, JSON.stringify(v));
+
+export function loadMaterials(): Material[] {
+  const m = read<Material[] | null>(K.materials, null);
+  if (m) return m;
+  const s = sampleMaterials();
+  write(K.materials, s);
+  return s;
+}
+export const saveMaterials = (m: Material[]) => write(K.materials, m);
+
+export const listProjects = (): Project[] =>
+  read<Project[]>(K.projects, []).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+
+export function saveProject(p: Project): Project {
+  const saved = { ...p, updatedAt: new Date().toISOString() };
+  const all = read<Project[]>(K.projects, []).filter((x) => x.id !== p.id);
+  write(K.projects, [...all, saved]);
+  return saved;
+}
+export const deleteProject = (id: string) =>
+  write(K.projects, read<Project[]>(K.projects, []).filter((x) => x.id !== id));
+
+export const loadCurrent = () => read<Project | null>(K.current, null);
+export const saveCurrent = (p: Project) => write(K.current, p);
+
+export const loadPasteMapping = () => read<string[] | null>(K.pasteMapping, null);
+export const savePasteMapping = (m: string[]) => write(K.pasteMapping, m);
+
+export function exportProject(project: Project, materials: Material[]): string {
+  const used = new Set(project.pieces.map((p) => p.materialId));
+  const file: ProjectFile = {
+    app: "format",
+    version: 1,
+    project,
+    materials: materials.filter((m) => used.has(m.id)),
+  };
+  return JSON.stringify(file, null, 2);
+}
+
+/** Importe un fichier : ajoute les materiaux inconnus a la bibliotheque. */
+export function importProject(
+  json: string,
+  materials: Material[],
+): { project: Project; materials: Material[] } {
+  const f = JSON.parse(json) as ProjectFile;
+  if (f?.app !== "format" || !f.project) throw new Error("Fichier non reconnu");
+  const known = new Set(materials.map((m) => m.id));
+  const merged = [...materials, ...(f.materials ?? []).filter((m) => !known.has(m.id))];
+  return { project: { ...f.project, id: f.project.id || uid() }, materials: merged };
+}
