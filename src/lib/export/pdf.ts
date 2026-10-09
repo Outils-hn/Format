@@ -232,7 +232,10 @@ function sheetPage(w: Writer, g: SheetGroup, mat: Material, r: { name: string; t
   }
   w.y += 12;
   const cuts = mat.cutType === "guillotine" ? cutSequence(s.placements, s.usableW, s.usableL, mat.kerf, mat.trim) : [];
-  const availW = w.W - 2 * M - 8, availH = (w.bottom - w.y) * 0.62;
+  const pieceRows = new Set(s.placements.map((p) => `${p.pieceId}|${p.w}|${p.h}|${p.rotated}`)).size;
+  const reserved = 65 + cuts.length * 3.7 + (pieceRows + labeledOffcuts(s).length) * 5.2;
+  const availW = w.W - 2 * M - 8;
+  const availH = Math.max(25, Math.min((w.bottom - w.y) * 0.62, w.bottom - w.y - reserved));
   const k = Math.min(availW / s.width, availH / s.length);
   const ox = M + 8 + (availW - s.width * k) / 2;
   drawPlan(w.doc, s, mat, cuts, color, ox, w.y + 4, k);
