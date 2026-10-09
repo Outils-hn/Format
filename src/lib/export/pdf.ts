@@ -30,7 +30,9 @@ const eur = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("fr-F
 const ratio = (a: number, b: number) => (b > 0 ? a / b : 0);
 const fmtDate = (iso: string) => iso.split("-").reverse().join("/");
 
-class Writer {
+type TableColumn = { h: string; w: number; right?: boolean };
+
+export class Writer {
   doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   y = M;
   get W() { return this.doc.internal.pageSize.getWidth(); }
@@ -50,40 +52,58 @@ class Writer {
     for (const l of lines) { this.ensure(lh); this.doc.text(l, M, this.y + lh * 0.8); this.y += lh; }
     this.y += gap;
   }
-  table(cols: { h: string; w: number; right?: boolean }[], rows: string[][], boldLast = false) {
+  measureTable(cols: TableColumn[], rows: string[][], size = 8) {
     const total = cols.reduce((a, c) => a + c.w, 0);
     const k = (this.W - 2 * M) / total;
-    const rh = 5.2;
-    const head = () => {
-      this.doc.setFillColor(232, 234, 238);
-      this.doc.rect(M, this.y, this.W - 2 * M, rh, "F");
-      this.font(8, true);
-      let x = M;
-      for (const c of cols) { this.doc.text(c.h, c.right ? x + c.w * k - 1.5 : x + 1.5, this.y + 3.6, { align: c.right ? "right" : "left" }); x += c.w * k; }
-      this.y += rh;
-    };
-    this.ensure(rh * 2); head();
-    rows.forEach((r, i) => {
-      this.font(8, boldLast && i === rows.length - 1);
+    const scale = size / 8;
+    const lineHeight = 3.6 * scale;
+    const padding = 1.6 * scale;
+    this.font(size, true);
+    const header = cols.map((c) => this.doc.splitTextToSize(c.h, c.w * k - 3) as string[]);
+    const heightOf = (cells: string[][]) => Math.max(5.2 * scale, Math.max(1, ...cells.map((c) => c.length)) * lineHeight + padding);
+    const headerHeight = heightOf(header);
+    const body = rows.map((r) => {
+      // Bold measurement is conservative, including the optional total row.
       const cells = cols.map((c, j) => this.doc.splitTextToSize(r[j] ?? "", c.w * k - 3) as string[]);
-      const lineCount = Math.max(1, ...cells.map((c) => c.length));
-      let offset = 0;
-      while (offset < lineCount) {
-        if (this.y + rh > this.bottom) { this.newPage(this.W > this.H ? "landscape" : "portrait"); head(); }
-        this.font(8, boldLast && i === rows.length - 1);
-        const count = Math.min(lineCount - offset, Math.max(1, Math.floor((this.bottom - this.y - 2) / 3.6)));
-        const height = Math.max(rh, count * 3.6 + 1.6);
-        let x = M;
-        cols.forEach((c, j) => {
-          const lines = cells[j]?.slice(offset, offset + count) ?? [];
-          lines.forEach((line, n) => this.doc.text(line, c.right ? x + c.w * k - 1.5 : x + 1.5, this.y + 3.6 + n * 3.6, { align: c.right ? "right" : "left" }));
-          x += c.w * k;
-        });
-        this.doc.setDrawColor(200, 203, 210); this.doc.setLineWidth(0.15);
-        this.doc.line(M, this.y + height, this.W - M, this.y + height);
-        this.y += height;
-        offset += count;
-      }
+      return { cells, height: heightOf(cells) };
+    });
+    return { k, header, headerHeight, body, lineHeight, height: headerHeight + body.reduce((sum, r) => sum + r.height, 0) + 3 };
+  }
+  table(cols: TableColumn[], rows: string[][], boldLast = false, title?: string) {
+    let size = 8;
+    let layout = this.measureTable(cols, rows, size);
+    const titleHeight = title ? 7 : 0;
+    // Decide the page before drawing anything, including the block title.
+    if (this.y + titleHeight + layout.height > this.bottom && this.y > M) {
+      this.newPage(this.W > this.H ? "landscape" : "portrait");
+    }
+    // An exceptionally long table still stays whole: fit it to a fresh page.
+    while (titleHeight + layout.height > this.bottom - this.y && size > 0.5) {
+      size *= 0.9;
+      layout = this.measureTable(cols, rows, size);
+    }
+    const fit = Math.min(1, (this.bottom - this.y - titleHeight - 3) / (layout.height - 3));
+    const drawCells = (cells: string[][], height: number, bold: boolean) => {
+      this.font(size * fit, bold);
+      let x = M;
+      cols.forEach((c, j) => {
+        (cells[j] ?? []).forEach((line, n) => this.doc.text(line, c.right ? x + c.w * layout.k - 1.5 : x + 1.5,
+          this.y + (3.6 * size / 8 + n * layout.lineHeight) * fit, { align: c.right ? "right" : "left" }));
+        x += c.w * layout.k;
+      });
+      this.y += height * fit;
+    };
+    if (title) {
+      this.font(9, true); this.doc.text(title, M, this.y + 4);
+      this.y += titleHeight;
+    }
+    this.doc.setFillColor(232, 234, 238);
+    this.doc.rect(M, this.y, this.W - 2 * M, layout.headerHeight * fit, "F");
+    drawCells(layout.header, layout.headerHeight, true);
+    layout.body.forEach((r, i) => {
+      drawCells(r.cells, r.height, boldLast && i === rows.length - 1);
+      this.doc.setDrawColor(200, 203, 210); this.doc.setLineWidth(0.15);
+      this.doc.line(M, this.y, this.W - M, this.y);
     });
     this.y += 3;
   }
@@ -232,10 +252,25 @@ function sheetPage(w: Writer, g: SheetGroup, mat: Material, r: { name: string; t
   }
   w.y += 12;
   const cuts = mat.cutType === "guillotine" ? cutSequence(s.placements, s.usableW, s.usableL, mat.kerf, mat.trim) : [];
-  const pieceRows = new Set(s.placements.map((p) => `${p.pieceId}|${p.w}|${p.h}|${p.rotated}`)).size;
-  const reserved = 65 + cuts.length * 3.7 + (pieceRows + labeledOffcuts(s).length) * 5.2;
+  const map = new Map<string, { label: string; w: number; h: number; rot: boolean; qty: number; pos: string[] }>();
+  for (const p of s.placements) {
+    const key = `${p.pieceId}|${p.w}|${p.h}|${p.rotated}`;
+    const e = map.get(key) ?? { label: p.label, w: p.w, h: p.h, rot: p.rotated, qty: 0, pos: [] };
+    e.qty++; e.pos.push(`${p.x + mat.trim}/${p.y + mat.trim}`); map.set(key, e);
+  }
+  const pieceCols: TableColumn[] = [{ h: "Repère", w: 18 }, { h: "Dimensions (mm)", w: 22 }, { h: "Qté", w: 8, right: true }, { h: "Tournée", w: 12 }, { h: "Position X / Y (mm)", w: 60 }];
+  const pieceRows = [...map.values()].map((e) => [e.label, `${e.w} × ${e.h}`, String(e.qty), e.rot ? "oui" : "non", e.pos.join(" · ")]);
+  const offcuts = labeledOffcuts(s);
+  const offcutCols: TableColumn[] = [{ h: "Repère", w: 14 }, { h: "Dimensions (mm)", w: 30 }, { h: "Surface (m²)", w: 25, right: true }, { h: "Position X / Y (mm)", w: 35 }, { h: "Destination", w: 25 }];
+  const offcutRows = offcuts.map((o) => [o.label, `${o.w} × ${o.h}`, m2(o.w * o.h), `${o.x + mat.trim} / ${o.y + mat.trim}`, o.reusable ? "À conserver" : "Perte"]);
+  w.font(8);
+  const cutHeight = cuts.length ? 7 + cuts.reduce((sum, c) => sum + (w.doc.splitTextToSize(`${c.n}. ${c.text}`, w.W - 2 * M) as string[]).length * 8 / PT * 1.3, 0) : 0;
+  const reserved = 32 + cutHeight + w.measureTable(pieceCols, pieceRows).height + 7 + (offcuts.length ? w.measureTable(offcutCols, offcutRows).height : 6);
   const availW = w.W - 2 * M - 8;
-  const availH = Math.max(25, Math.min((w.bottom - w.y) * 0.62, w.bottom - w.y - reserved));
+  const defaultH = Math.min((w.bottom - w.y) * 0.62, availW / s.width * s.length);
+  const fittingH = w.bottom - w.y - reserved;
+  // Only a slight reduction; otherwise move an entire table to the next page.
+  const availH = fittingH >= defaultH * 0.75 ? Math.min(defaultH, fittingH) : defaultH;
   const k = Math.min(availW / s.width, availH / s.length);
   const ox = M + 8 + (availW - s.width * k) / 2;
   drawPlan(w.doc, s, mat, cuts, color, ox, w.y + 4, k);
@@ -266,24 +301,9 @@ function sheetPage(w: Writer, g: SheetGroup, mat: Material, r: { name: string; t
     for (const c of cuts) w.text(`${c.n}. ${c.text}`, 8, false, INK, 0);
     w.y += 2;
   }
-  const map = new Map<string, { label: string; w: number; h: number; rot: boolean; qty: number; pos: string[] }>();
-  for (const p of s.placements) {
-    const key = `${p.pieceId}|${p.w}|${p.h}|${p.rotated}`;
-    const e = map.get(key) ?? { label: p.label, w: p.w, h: p.h, rot: p.rotated, qty: 0, pos: [] };
-    e.qty++; e.pos.push(`${p.x + mat.trim}/${p.y + mat.trim}`); map.set(key, e);
-  }
-  w.table(
-    [{ h: "Repère", w: 18 }, { h: "Dimensions (mm)", w: 22 }, { h: "Qté", w: 8, right: true }, { h: "Tournée", w: 12 }, { h: "Position X / Y (mm)", w: 60 }],
-    [...map.values()].map((e) => [e.label, `${e.w} × ${e.h}`, String(e.qty), e.rot ? "oui" : "non", e.pos.join(" · ")]),
-  );
-  w.ensure(16);
-  w.text(`Chutes — Panneau ${g.indexes.join(", ")}`, 9, true);
-  const offcuts = labeledOffcuts(s);
-  if (offcuts.length) w.table(
-    [{ h: "Repère", w: 14 }, { h: "Dimensions (mm)", w: 30 }, { h: "Surface (m²)", w: 25, right: true }, { h: "Position X / Y (mm)", w: 35 }, { h: "Destination", w: 25 }],
-    offcuts.map((o) => [o.label, `${o.w} × ${o.h}`, m2(o.w * o.h), `${o.x + mat.trim} / ${o.y + mat.trim}`, o.reusable ? "À conserver" : "Perte"]),
-  );
-  else w.text("Aucune chute.", 8, false, GREY);
+  w.table(pieceCols, pieceRows, false, `Pièces — Panneau ${g.indexes.join(", ")}`);
+  if (offcuts.length) w.table(offcutCols, offcutRows, false, `Chutes — Panneau ${g.indexes.join(", ")}`);
+  else { w.ensure(13); w.text(`Chutes — Panneau ${g.indexes.join(", ")}`, 9, true); w.text("Aucune chute.", 8, false, GREY); }
 }
 
 export function exportWorkshopPdf(result: OptimizeResult, materials: Material[], pieces: Piece[], info: ProjectInfo) {
@@ -332,13 +352,12 @@ export function exportWorkshopPdf(result: OptimizeResult, materials: Material[],
   }
 
   const retained = retainedOffcuts(result);
-  w.ensure(20);
-  w.text("Chutes à conserver", 12, true);
   if (retained.length) w.table(
     [{ h: "Matériau", w: 28 }, { h: "Ép. (mm)", w: 15, right: true }, { h: "Dimensions (mm)", w: 28 }, { h: "Qté", w: 10, right: true }, { h: "Surface (m²)", w: 23, right: true }, { h: "Panneau / Repère", w: 40 }],
     retained.map((o) => [o.material, String(o.thickness), `${o.w} × ${o.h}`, String(o.quantity), m2(o.w * o.h * o.quantity), o.origins.join(" · ")]),
+    false, "Chutes à conserver",
   );
-  else w.text("Aucune chute réutilisable à conserver.", 8.5, false, GREY);
+  else { w.ensure(20); w.text("Chutes à conserver", 12, true); w.text("Aucune chute réutilisable à conserver.", 8.5, false, GREY); }
 
   for (const r of result.materials) {
     const mat = materials.find((m) => m.id === r.materialId);

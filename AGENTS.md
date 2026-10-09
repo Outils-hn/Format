@@ -17,3 +17,4 @@
 - Rotation suggestions use a second call to the unchanged optimizer, with candidate selection and safe savings comparison in src/lib/rotation.ts; input snapshots guard stale results and applying a suggestion reuses its verified plan.
 - The optimiser explores format strategies × heuristics × orientation variants × sort orders (plus grid blocks for identical pieces) and reports per-strategy bests as solutions — keeps the choice transparent while verify.ts stays the single safety net.
 - Offcut labels and retained-offcut summaries are derived in src/lib/offcuts.ts and shared by screen and PDF; quantities use actual sheets rather than grouped drawings to preserve traceability without altering the optimizer.
+- PDF tables are measured before rendering and placed atomically with their titles; shared measurement also sizes sheet drawings so wrapped cells cannot trigger mid-table page breaks.
