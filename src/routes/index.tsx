@@ -147,7 +147,7 @@ function Index() {
 
         <section className="card-tech">
           <div className="card-tech-head"><h2 className="card-title">Résultats</h2></div>
-          {result ? <ResultsPanel result={result} /> : (
+          {result ? <ResultsPanel result={result} materials={materials} /> : (
             <div className="flex flex-col items-center gap-4 px-4 py-12 text-sm text-muted-foreground">
               <div className="flex gap-2">
                 <span className="h-8 w-12 rounded-sm border border-border hatch-waste" />
