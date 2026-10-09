@@ -150,8 +150,8 @@
 
 /* Chutes : toujours hachurees */
 @utility hatch-waste {
-  background: repeating-linear-gradient(-45deg, var(--offcut-waste) 0 var(--hatch-width), transparent var(--hatch-width) var(--hatch-spacing));
+  background: repeating-linear-gradient(45deg, var(--offcut-waste) 0 var(--hatch-width), transparent var(--hatch-width) var(--hatch-spacing));
 }
 @utility hatch-reuse {
-  background: repeating-linear-gradient(45deg, var(--offcut-reuse) 0 var(--hatch-width), transparent var(--hatch-width) var(--hatch-spacing));
+  background: repeating-linear-gradient(-45deg, var(--offcut-reuse) 0 var(--hatch-width), transparent var(--hatch-width) var(--hatch-spacing));
 }
