@@ -7,4 +7,4 @@
 - [x] Adoucir les hachures à l’écran et en PDF, puis vérifier les corrections.
 - [x] Ajouter les repères C1, C2 et le tableau Chutes sous chaque panneau, à l’écran et en PDF.
 - [x] Ajouter le récapitulatif Chutes à conserver à la synthèse PDF et vérifier les dessins et les quantités.
-- [ ] Garder les tableaux PDF entiers avec leur titre et vérifier les changements de page.
+- [x] Garder les tableaux PDF entiers avec leur titre et vérifier les changements de page.
