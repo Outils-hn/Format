@@ -1,5 +1,9 @@
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 import type { Balance, OptimizeResult } from "@/lib/optimizer";
+import type { Material } from "@/lib/types";
+import { planColor } from "@/lib/palette";
+import { groupSheets } from "@/lib/cutplan";
+import { SheetPlan } from "./SheetPlan";
 
 const m2 = (mm2: number) => (mm2 / 1e6).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const pct = (r: number) => `${(r * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`;
@@ -37,8 +41,27 @@ function Kpis({ b, sheets, price }: { b: Balance; sheets: number; price: number 
   );
 }
 
-export function ResultsPanel({ result }: { result: OptimizeResult }) {
+function Legend({ entries }: { entries: { id: string; label: string; color: string }[] }) {
+  const sw = "inline-block h-3.5 w-5 rounded-[1px] border border-foreground align-middle";
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-sm border border-border p-3 text-xs">
+      <span className="font-semibold uppercase tracking-[0.14em]">Légende</span>
+      {entries.map((e) => <span key={e.id} className="flex items-center gap-1.5"><span className={sw} style={{ background: e.color }} />{e.label}</span>)}
+      <span className="flex items-center gap-1.5"><span className={`${sw} hatch-reuse`} />Chute réutilisable</span>
+      <span className="flex items-center gap-1.5"><span className={`${sw} hatch-waste`} />Perte</span>
+      <span className="flex items-center gap-1.5"><span className={`${sw} bg-muted`} />Délignage</span>
+      <span className="flex items-center gap-1.5">↻ Pièce tournée</span>
+    </div>
+  );
+}
+
+export function ResultsPanel({ result, materials }: { result: OptimizeResult; materials: Material[] }) {
   const ok = result.errors.length === 0;
+  const ids: { id: string; label: string; color: string }[] = [];
+  for (const r of result.materials) for (const s of r.sheets) for (const p of s.placements)
+    if (!ids.some((e) => e.id === p.pieceId)) ids.push({ id: p.pieceId, label: p.label, color: planColor(ids.length)! });
+  const mat = (id: string) => materials.find((m) => m.id === id);
+  const colorOf = (id: string) => ids.find((e) => e.id === id)?.color ?? "var(--card)";
   return (
     <div className="space-y-6 p-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -94,6 +117,15 @@ export function ResultsPanel({ result }: { result: OptimizeResult }) {
                 ))}
               </tbody>
             </table>
+          )}
+          {mat(r.materialId) && r.sheets.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-xs font-semibold uppercase tracking-[0.14em]">Plans de découpe</h4>
+              <Legend entries={ids.filter((e) => r.sheets.some((s) => s.placements.some((p) => p.pieceId === e.id)))} />
+              <div className="grid gap-4 xl:grid-cols-2">
+                {groupSheets(r.sheets).map((g) => <SheetPlan key={g.sheet.index} group={g} material={mat(r.materialId)!} colorOf={colorOf} />)}
+              </div>
+            </div>
           )}
         </div>
       ))}
