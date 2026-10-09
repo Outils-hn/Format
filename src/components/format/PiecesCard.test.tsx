@@ -3,10 +3,11 @@ import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import { PiecesCard } from "./PiecesCard";
 import { sampleMaterials, newPiece } from "@/lib/defaults";
+import type { Piece } from "@/lib/types";
 
 const materials = sampleMaterials();
 function Example() {
-  const [pieces, setPieces] = useState([
+  const [pieces, setPieces] = useState<Piece[]>([
     { ...newPiece("mat-mdf19", 1), width: 600, height: 400 },
     { ...newPiece("mat-mdf19", 2), width: 600, height: 400, canRotate: false },
     { ...newPiece("mat-mela18", 3, true), width: 600, height: 400 },
@@ -27,7 +28,7 @@ describe("Bulk rotation", () => {
     fireEvent.click(all);
     expect(screen.getByRole("checkbox", { name: "Autoriser la rotation de P1" })).not.toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Autoriser la rotation de P2" })).not.toBeChecked();
-    fireEvent.click(screen.getByRole("button", { name: "Ajouter", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: /^Ajouter$/ }));
     expect(screen.getByRole("checkbox", { name: "Autoriser la rotation de P4" })).not.toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Autoriser la rotation de P4" })).toBeDisabled();
   });
