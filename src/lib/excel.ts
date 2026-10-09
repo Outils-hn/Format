@@ -23,7 +23,7 @@ export function parseNumber(raw: string, toMm = true): number | null {
   if (!m) return null;
   let n = parseFloat(m[1].replace(",", "."));
   if (!isFinite(n)) return null;
-  if (toMm) {
+  if (toMm && m[2]) {
     if (m[2] === "m") n *= 1000;
     else if (m[2] === "cm") n *= 10;
   }
