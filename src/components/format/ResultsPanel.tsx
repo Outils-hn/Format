@@ -1,5 +1,5 @@
 import { CheckCircle2, AlertTriangle } from "lucide-react";
-import type { Balance, OptimizeResult } from "@/lib/optimizer";
+import type { Balance, OptimizeResult, SolutionSummary } from "@/lib/optimizer";
 import type { Material } from "@/lib/types";
 import { planColor } from "@/lib/palette";
 import { groupSheets } from "@/lib/cutplan";
@@ -55,6 +55,35 @@ function Legend({ entries }: { entries: { id: string; label: string; color: stri
   );
 }
 
+function Solutions({ list }: { list: SolutionSummary[] }) {
+  if (list.length < 2) return null;
+  return (
+    <details className="rounded-sm border border-border text-xs">
+      <summary className="cursor-pointer select-none px-3 py-2 font-medium">Solutions comparées ({list.length})</summary>
+      <table className="w-full">
+        <thead className="text-left text-muted-foreground">
+          <tr className="border-y border-border">
+            <th className="px-3 py-1.5 font-normal">Solution</th><th className="px-3 py-1.5 font-normal">Formats utilisés</th>
+            <th className="px-3 py-1.5 text-right font-normal">Panneaux</th><th className="px-3 py-1.5 text-right font-normal">Surface achetée (m²)</th>
+            <th className="px-3 py-1.5 text-right font-normal">Prix</th>
+          </tr>
+        </thead>
+        <tbody>
+          {list.map((s) => (
+            <tr key={s.label} className={s.chosen ? "bg-primary/10 font-semibold" : "border-b border-border last:border-0"}>
+              <td className="px-3 py-1.5">{s.label}{s.chosen && <span className="ml-2 rounded-sm bg-primary px-1.5 py-0.5 text-[10px] text-primary-foreground">Retenue</span>}</td>
+              <td className="mono px-3 py-1.5">{s.formats.map((f) => `${f.count} × ${f.width} × ${f.length}`).join(" · ")}</td>
+              <td className="mono px-3 py-1.5 text-right">{s.sheets}</td>
+              <td className="mono px-3 py-1.5 text-right">{m2(s.purchased)}</td>
+              <td className="mono px-3 py-1.5 text-right">{eur(s.price)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </details>
+  );
+}
+
 export function ResultsPanel({ result, materials }: { result: OptimizeResult; materials: Material[] }) {
   const ok = result.errors.length === 0;
   const ids: { id: string; label: string; color: string }[] = [];
@@ -88,6 +117,7 @@ export function ResultsPanel({ result, materials }: { result: OptimizeResult; ma
           <p className="mono text-xs">
             {r.formats.map((f) => `${f.count} × ${f.width} × ${f.length}${f.price != null ? ` (${eur(f.count * f.price)})` : ""}`).join(" · ") || "Aucun panneau"}
           </p>
+          <Solutions list={r.solutions ?? []} />
           {r.unplaced.length > 0 && (
             <div className="rounded-sm bg-destructive-soft p-3 text-xs text-destructive">
               <div className="mb-1 font-medium">Pièces impossibles à placer</div>
