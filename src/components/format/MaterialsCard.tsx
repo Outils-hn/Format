@@ -40,9 +40,9 @@ export function MaterialsCard({
               <div className="truncate text-sm font-medium">
                 {m.name} <span className="mono text-muted-foreground">{m.thickness} mm</span>
               </div>
-              <div className="mono text-xs text-muted-foreground">
-                {supplyLabel(m.supply)} · trait {m.kerf} · délign. {m.trim}
-                {m.grainLocked && " · sens"} · {m.cutType === "free" ? "CNC" : "scie"}
+              <div className="mono overflow-x-auto text-xs leading-5 text-muted-foreground">
+                <p className="whitespace-nowrap">{supplyLabel(m.supply)} · {m.cutType === "free" ? "CNC" : "scie"}</p>
+                <p className="whitespace-nowrap">trait {m.kerf} · délign. {m.trim}{m.grainLocked && " · sens"}</p>
               </div>
             </div>
             <button className="btn-ghost h-7 px-1.5" aria-label="Modifier" onClick={() => setEditing(m)}><Pencil size={14} /></button>

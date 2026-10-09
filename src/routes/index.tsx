@@ -7,6 +7,7 @@ import { newProject } from "@/lib/defaults";
 import {
   exportProject, importProject, loadCurrent, loadMaterials, saveCurrent, saveMaterials, saveProject,
 } from "@/lib/storage";
+import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/format/Logo";
 import { MaterialsCard } from "@/components/format/MaterialsCard";
 import { PiecesCard } from "@/components/format/PiecesCard";
@@ -169,10 +170,11 @@ function Index() {
             linears={linears} onLinearsChange={(l) => setProject({ ...project, linears: l })} />
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-4">
+        <div className="card-tech flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground">Objectif</span>
-            <select className="input-tech w-64" value={objective === "price" && !priceAvailable ? "waste" : objective} onChange={(e) => setObjective(e.target.value as Objective)}>
+            <select className="input-tech w-72 max-w-full" value={objective === "price" && !priceAvailable ? "waste" : objective} onChange={(e) => setObjective(e.target.value as Objective)}>
               <option value="waste">Minimiser la chute</option>
               <option value="sheets">Minimiser le nombre de panneaux</option>
               <option value="price" disabled={!priceAvailable}>Minimiser le prix{priceAvailable ? "" : " (prix manquants)"}</option>
@@ -185,9 +187,10 @@ function Index() {
             </button>
             Optimisation intensive
           </label>
-          <button className="btn-primary h-11 px-6 text-base" disabled={running} onClick={run}>
+          </div>
+          <Button className="btn-primary ml-auto h-9 px-4" disabled={running} onClick={run}>
             {running ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />} {running ? "Calcul en cours…" : "Lancer l'optimisation"}
-          </button>
+          </Button>
         </div>
 
         <section className="card-tech">
