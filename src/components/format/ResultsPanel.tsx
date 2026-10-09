@@ -4,6 +4,7 @@ import type { Material } from "@/lib/types";
 import { planColor } from "@/lib/palette";
 import { groupSheets } from "@/lib/cutplan";
 import { SheetPlan } from "./SheetPlan";
+import type { LinearRecap } from "@/lib/linear";
 
 const m2 = (mm2: number) => (mm2 / 1e6).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const pct = (r: number) => `${(r * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`;
@@ -84,7 +85,7 @@ function Solutions({ list }: { list: SolutionSummary[] }) {
   );
 }
 
-export function ResultsPanel({ result, materials }: { result: OptimizeResult; materials: Material[] }) {
+export function ResultsPanel({ result, materials, linears = [] }: { result: OptimizeResult; materials: Material[]; linears?: LinearRecap[] }) {
   const ok = result.errors.length === 0;
   const ids: { id: string; label: string; color: string }[] = [];
   for (const r of result.materials) for (const s of r.sheets) for (const p of s.placements)
@@ -108,6 +109,31 @@ export function ResultsPanel({ result, materials }: { result: OptimizeResult; ma
         <Kpis b={result.total.balance} sheets={result.total.sheets} price={result.total.totalPrice} />
         <BalanceLine b={result.total.balance} />
       </div>
+
+      {linears.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-semibold uppercase tracking-[0.14em]">Linéaires</h3>
+          <table className="w-full text-sm">
+            <thead className="text-left text-xs text-muted-foreground">
+              <tr className="border-b border-border">
+                <th className="py-1.5 pr-2 font-medium">Repère</th><th className="px-2 py-1.5 font-medium">Matériau</th>
+                <th className="px-2 py-1.5 text-right font-medium">Bande (mm)</th><th className="px-2 py-1.5 text-right font-medium">Demandé (mm)</th>
+                <th className="px-2 py-1.5 font-medium">Tronçons obtenus (mm)</th><th className="px-2 py-1.5 text-right font-medium">Produit (mm)</th>
+              </tr>
+            </thead>
+            <tbody className="mono">
+              {linears.map((l) => (
+                <tr key={l.id} className={`border-b border-border ${l.ok ? "" : "bg-destructive-soft text-destructive"}`}>
+                  <td className="py-1.5 pr-2 font-sans">{l.label}</td><td className="px-2 py-1.5 font-sans">{l.material}</td>
+                  <td className="px-2 py-1.5 text-right">{l.band}</td><td className="px-2 py-1.5 text-right">{l.requested}</td>
+                  <td className="px-2 py-1.5">{l.segments.map((x) => `${x.count} × ${x.length}`).join(" + ") || "—"}</td>
+                  <td className="px-2 py-1.5 text-right">{l.produced} {l.ok ? "✓" : "≠"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {result.materials.map((r) => (
         <div key={r.materialId} className="space-y-3 border-t border-border pt-5">

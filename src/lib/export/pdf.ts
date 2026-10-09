@@ -6,6 +6,7 @@ import { cutSequence, groupSheets, type Cut, type SheetGroup } from "../cutplan"
 import { PLAN_COLORS } from "../palette";
 import { cleanName, download, pieceOrder } from "./common";
 import { labeledOffcuts, retainedOffcuts } from "../offcuts";
+import type { LinearRecap } from "../linear";
 
 type RGB = [number, number, number];
 const INK: RGB = [20, 24, 32];
@@ -306,7 +307,7 @@ function sheetPage(w: Writer, g: SheetGroup, mat: Material, r: { name: string; t
   else { w.ensure(13); w.text(`Chutes — Panneau ${g.indexes.join(", ")}`, 9, true); w.text("Aucune chute.", 8, false, GREY); }
 }
 
-export function exportWorkshopPdf(result: OptimizeResult, materials: Material[], pieces: Piece[], info: ProjectInfo) {
+export function exportWorkshopPdf(result: OptimizeResult, materials: Material[], pieces: Piece[], info: ProjectInfo, linears: LinearRecap[] = []) {
   const w = new Writer();
   const order = pieceOrder(result);
   const palette = PLAN_COLORS.map(resolveColor);
@@ -347,6 +348,15 @@ export function exportWorkshopPdf(result: OptimizeResult, materials: Material[],
       [...list.map((p) => [p.label, `${p.width ?? "?"} × ${p.height ?? "?"}`, String(p.quantity), m2((p.width ?? 0) * (p.height ?? 0) * p.quantity)]),
         ["Total", "", String(qty), m2(area)]],
       true,
+    );
+    w.y += 3;
+  }
+
+  if (linears.length) {
+    w.table(
+      [{ h: "Repère", w: 18 }, { h: "Matériau", w: 30 }, { h: "Bande (mm)", w: 18, right: true }, { h: "Demandé (mm)", w: 22, right: true }, { h: "Tronçons obtenus (mm)", w: 54 }, { h: "Produit (mm)", w: 22, right: true }],
+      linears.map((l) => [l.label, l.material, String(l.band), String(l.requested), l.segments.map((x) => `${x.count} × ${x.length}`).join(" + ") || "—", `${l.produced}${l.ok ? "" : " (!)"}`]),
+      false, "Linéaires",
     );
     w.y += 3;
   }
