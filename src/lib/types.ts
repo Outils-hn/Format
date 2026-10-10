@@ -56,11 +56,19 @@ export interface ProjectInfo {
   date: string; // ISO yyyy-mm-dd
 }
 
+export interface MaterialStatus {
+  status: "toOrder" | "ordered" | "stock";
+  orderDate?: string | undefined;
+  supplier?: string | undefined;
+  orderNumber?: string | undefined;
+}
+
 export interface Project {
   id: string;
   info: ProjectInfo;
   pieces: Piece[];
   linears?: Linear[] | undefined;
+  materialStatus?: MaterialStatus | undefined;
   updatedAt: string;
 }
 
