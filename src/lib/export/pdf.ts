@@ -1,7 +1,8 @@
 // Export "PDF atelier" : dessin vectoriel jsPDF, A4, lisible en noir et blanc.
 import { jsPDF } from "jspdf";
 import type { Balance, OptimizeResult, SheetResult } from "../optimizer/types";
-import type { Material, Piece, ProjectInfo } from "../types";
+import type { Material, MaterialStatus, Piece, ProjectInfo } from "../types";
+import { indicators, lowerBound, materialLines, pct1, splitLine, statusSuffix, statusTitle } from "../indicators";
 import { cutSequence, groupSheets, type Cut, type SheetGroup } from "../cutplan";
 import { PLAN_COLORS } from "../palette";
 import { cleanName, download, pieceOrder } from "./common";
