@@ -27,9 +27,7 @@ function resolveColor(cssVar: string): RGB {
 }
 
 const m2 = (mm2: number) => (mm2 / 1e6).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\u202f|\u00a0/g, " ");
-const pct = (r: number) => `${(r * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`;
 const eur = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("fr-FR", { maximumFractionDigits: 2 }).replace(/\u202f|\u00a0/g, " ")} €`);
-const ratio = (a: number, b: number) => (b > 0 ? a / b : 0);
 const fmtDate = (iso: string) => iso.split("-").reverse().join("/");
 
 type TableColumn = { h: string; w: number; right?: boolean };

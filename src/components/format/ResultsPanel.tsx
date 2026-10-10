@@ -11,7 +11,6 @@ import type { LinearRecap } from "@/lib/linear";
 const m2 = (mm2: number) => (mm2 / 1e6).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const pct = (r: number) => `${(r * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`;
 const eur = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €`);
-const ratio = (a: number, b: number) => (b > 0 ? a / b : 0);
 
 function Card({ label, value, sub, tone }: { label: string; value: string; sub: string; tone: string }) {
   return (
@@ -47,7 +46,7 @@ function Kpis({ b }: { b: Balance }) {
   );
 }
 
-function Badge({ r, mat, pieces }: { r: MaterialResult; mat?: Material; pieces: Piece[] }) {
+function Badge({ r, mat, pieces }: { r: MaterialResult; mat?: Material | undefined; pieces: Piece[] }) {
   const lb = mat ? lowerBound(mat, pieces) : null;
   if (lb == null || r.unplaced.length) return null;
   const opt = r.sheets.length <= lb;
@@ -59,7 +58,7 @@ function Badge({ r, mat, pieces }: { r: MaterialResult; mat?: Material; pieces: 
   );
 }
 
-function Banner({ result, status, onStatus }: { result: OptimizeResult; status?: MaterialStatus; onStatus: (s: MaterialStatus) => void }) {
+function Banner({ result, status, onStatus }: { result: OptimizeResult; status?: MaterialStatus | undefined; onStatus: (s: MaterialStatus) => void }) {
   const i = indicators(result.total.balance);
   const s = status ?? { status: "toOrder" as const };
   return (
@@ -138,7 +137,7 @@ function Solutions({ list }: { list: SolutionSummary[] }) {
 }
 
 export function ResultsPanel({ result, materials, linears = [], pieces = [], status, onStatus = () => {} }: {
-  result: OptimizeResult; materials: Material[]; linears?: LinearRecap[]; pieces?: Piece[]; status?: MaterialStatus; onStatus?: (s: MaterialStatus) => void;
+  result: OptimizeResult; materials: Material[]; linears?: LinearRecap[]; pieces?: Piece[]; status?: MaterialStatus | undefined; onStatus?: (s: MaterialStatus) => void;
 }) {
   const ok = result.errors.length === 0;
   const ids: { id: string; label: string; color: string }[] = [];
