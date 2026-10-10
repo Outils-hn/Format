@@ -1,7 +1,8 @@
 // Export "PDF atelier" : dessin vectoriel jsPDF, A4, lisible en noir et blanc.
 import { jsPDF } from "jspdf";
 import type { Balance, OptimizeResult, SheetResult } from "../optimizer/types";
-import type { Material, Piece, ProjectInfo } from "../types";
+import type { Material, MaterialStatus, Piece, ProjectInfo } from "../types";
+import { indicators, lowerBound, materialLines, pct1, splitLine, statusSuffix, statusTitle } from "../indicators";
 import { cutSequence, groupSheets, type Cut, type SheetGroup } from "../cutplan";
 import { PLAN_COLORS } from "../palette";
 import { cleanName, download, pieceOrder } from "./common";
@@ -26,9 +27,7 @@ function resolveColor(cssVar: string): RGB {
 }
 
 const m2 = (mm2: number) => (mm2 / 1e6).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\u202f|\u00a0/g, " ");
-const pct = (r: number) => `${(r * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`;
 const eur = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("fr-FR", { maximumFractionDigits: 2 }).replace(/\u202f|\u00a0/g, " ")} €`);
-const ratio = (a: number, b: number) => (b > 0 ? a / b : 0);
 const fmtDate = (iso: string) => iso.split("-").reverse().join("/");
 
 type TableColumn = { h: string; w: number; right?: boolean };
@@ -110,29 +109,47 @@ export class Writer {
   }
 }
 
-function kpis(w: Writer, b: Balance, sheets: number, price: number | null) {
-  const items: [string, string, string?][] = [
-    ["Panneaux", String(sheets), `${m2(b.purchased)} m² achetés`],
-    ["Rendement brut", pct(ratio(b.pieces, b.purchased)), `${m2(b.pieces)} m² de pièces`],
-    ["Rendement hors chutes réutil.", pct(ratio(b.pieces, b.purchased - b.reusable))],
-    ["Chutes réutilisables", `${m2(b.reusable)} m²`],
-    ...(price != null ? [["Prix total", eur(price)] as [string, string]] : []),
+function kpis(w: Writer, b: Balance, sheets: number, mat?: Material, pieces: Piece[] = [], unplaced = 0) {
+  const i = indicators(b);
+  const lb = mat && !unplaced ? lowerBound(mat, pieces) : null;
+  const badge = lb == null ? "" : sheets <= lb ? " · Résultat optimal" : ` · Meilleur résultat trouvé (borne minimale théorique : ${lb} panneaux)`;
+  w.text(`${sheets} panneau(x) · Rendement ${pct1(i.yieldPct)}${badge}`, 9, true, INK, 1);
+  splitBar(w, b);
+  cards(w, i);
+}
+
+function splitBar(w: Writer, b: Balance) {
+  const i = indicators(b);
+  w.ensure(10);
+  const bw = w.W - 2 * M, h = 3.5;
+  const x1 = M + bw * i.yieldPct / 100, x2 = x1 + bw * i.reusablePct / 100;
+  w.doc.setFillColor(...resolveColor("var(--primary)")); w.doc.rect(M, w.y, x1 - M, h, "F");
+  w.doc.setFillColor(...resolveColor("var(--offcut-reuse-bg)")); w.doc.rect(x1, w.y, x2 - x1, h, "F");
+  hatch(w.doc, x1, w.y, x2 - x1, h, 2.4, resolveColor("var(--offcut-reuse)"), true, 0.2);
+  w.doc.setFillColor(...resolveColor("var(--offcut-waste-bg)")); w.doc.rect(x2, w.y, M + bw - x2, h, "F");
+  hatch(w.doc, x2, w.y, M + bw - x2, h, 2.4, resolveColor("var(--offcut-waste)"), false, 0.2);
+  w.doc.setDrawColor(...INK); w.doc.setLineWidth(0.25); w.doc.rect(M, w.y, bw, h);
+  w.y += h + 1.5;
+  w.text(splitLine(i), 7.5, false, GREY, 1.5);
+}
+
+function cards(w: Writer, i: ReturnType<typeof indicators>) {
+  const items: [string, string, string][] = [
+    ["Chutes réutilisables", `${m2(i.reusable)} m² · ${pct1(i.reusablePct)}`, "À conserver pour d'autres travaux"],
+    ["Perte définitive", `${m2(i.loss)} m² · ${pct1(i.lossPct)}`, "Matière réellement jetée"],
   ];
-  const gap = 2.5, h = 18;
-  const bw = (w.W - 2 * M - gap * (items.length - 1)) / items.length;
+  const gap = 2.5, h = 16;
+  const bw = (w.W - 2 * M - gap) / 2;
   w.ensure(h + 2);
-  items.forEach(([l, v, sub], i) => {
-    const x = M + i * (bw + gap);
+  items.forEach(([l, v, sub], k) => {
+    const x = M + k * (bw + gap);
     w.doc.setDrawColor(...INK); w.doc.setLineWidth(0.25); w.doc.rect(x, w.y, bw, h);
-    w.font(items.length > 4 ? 6 : 7, false, GREY); w.doc.text(w.doc.splitTextToSize(l, bw - 4) as string[], x + 2, w.y + 3.8);
-    w.font(12, true); w.doc.text(v, x + 2, w.y + 12.2);
-    if (sub) { w.font(6.5, false, GREY); w.doc.text(sub, x + 2, w.y + 15.8); }
+    w.font(7, false, GREY); w.doc.text(l, x + 2, w.y + 3.8);
+    w.font(12, true); w.doc.text(v, x + 2, w.y + 10.5);
+    w.font(6.5, false, GREY); w.doc.text(sub, x + 2, w.y + 14);
   });
   w.y += h + 3;
 }
-
-const balanceLine = (b: Balance) =>
-  `Surface achetée ${m2(b.purchased)} m² = pièces ${m2(b.pieces)} + délignage ${m2(b.trim)} + chutes réutilisables ${m2(b.reusable)} + pertes ${m2(b.losses)} m² (traits de coupe et petites chutes)`;
 
 function supplyText(m: Material) {
   const s = m.supply;
@@ -307,7 +324,7 @@ function sheetPage(w: Writer, g: SheetGroup, mat: Material, r: { name: string; t
   else { w.ensure(13); w.text(`Chutes — Panneau ${g.indexes.join(", ")}`, 9, true); w.text("Aucune chute.", 8, false, GREY); }
 }
 
-export function exportWorkshopPdf(result: OptimizeResult, materials: Material[], pieces: Piece[], info: ProjectInfo, linears: LinearRecap[] = []) {
+export function exportWorkshopPdf(result: OptimizeResult, materials: Material[], pieces: Piece[], info: ProjectInfo, linears: LinearRecap[] = [], status?: MaterialStatus) {
   const w = new Writer();
   const order = pieceOrder(result);
   const palette = PLAN_COLORS.map(resolveColor);
@@ -327,6 +344,16 @@ export function exportWorkshopPdf(result: OptimizeResult, materials: Material[],
   w.doc.setDrawColor(...INK); w.doc.setLineWidth(0.5); w.doc.line(M, w.y, w.W - M, w.y);
   w.y += 5;
 
+  // Bandeau principal
+  const ti = indicators(result.total.balance);
+  w.text(`${statusTitle(status)}${statusSuffix(status)}`, 8, true, GREY, 0.5);
+  for (const l of materialLines(result.materials)) w.text(`${l.text} — ${l.name}`, 14, true, INK, 0.5);
+  w.text(`Rendement : ${pct1(ti.yieldPct)}`, 14, true, INK, 0.5);
+  w.text(`Surface achetée ${m2(ti.purchased)} m² · pièces ${m2(ti.pieces)} m²${result.total.totalPrice != null ? ` · prix ${eur(result.total.totalPrice)}` : ""}`, 7.5, false, GREY, 1.5);
+  splitBar(w, result.total.balance);
+  cards(w, ti);
+  w.y += 2;
+
   for (const r of result.materials) {
     const mat = materials.find((m) => m.id === r.materialId);
     w.ensure(60);
@@ -335,10 +362,9 @@ export function exportWorkshopPdf(result: OptimizeResult, materials: Material[],
       w.text(`Format(s) : ${supplyText(mat)}`, 8.5, false, INK, 0);
       w.text(`Trait de coupe : ${mat.kerf} mm · Délignage : ${mat.trim} mm par bord · Type de découpe : ${mat.cutType === "guillotine" ? "guillotine (scie à panneaux)" : "libre (CNC)"} · Sens imposé : ${mat.grainLocked ? "oui" : "non"}`, 8.5, false, INK, 2);
     }
-    kpis(w, r.balance, r.sheets.length, r.totalPrice);
-    w.text(balanceLine(r.balance), 7.5, false, GREY, 1);
+    kpis(w, r.balance, r.sheets.length, mat, pieces, r.unplaced.length);
     if (r.formats.length)
-      w.text(`À commander : ${r.formats.map((f) => `${f.count} × ${f.width} × ${f.length} mm${f.price != null ? ` (${eur(f.count * f.price)})` : ""}`).join(" · ")}`, 8.5, true, INK, 2);
+      w.text(`${statusTitle(status)} : ${r.formats.map((f) => `${f.count} × ${f.width} × ${f.length} mm${f.price != null ? ` (${eur(f.count * f.price)})` : ""}`).join(" · ")}${statusSuffix(status)}`, 8.5, true, INK, 2);
     if (r.unplaced.length) w.text(`Pièces impossibles à placer : ${r.unplaced.map((u) => `${u.label} × ${u.quantity} (${u.reason})`).join(" ; ")}`, 8.5, true, INK, 2);
     const list = pieces.filter((p) => p.materialId === r.materialId);
     const qty = list.reduce((a, p) => a + p.quantity, 0);

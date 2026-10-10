@@ -1,6 +1,8 @@
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 import type { Balance, OptimizeResult, SolutionSummary } from "@/lib/optimizer";
-import type { Material } from "@/lib/types";
+import type { Material, MaterialStatus, Piece } from "@/lib/types";
+import type { MaterialResult } from "@/lib/optimizer";
+import { indicators, lowerBound, materialLines, pct1, splitLine, statusSuffix, statusTitle } from "@/lib/indicators";
 import { planColor } from "@/lib/palette";
 import { groupSheets } from "@/lib/cutplan";
 import { SheetPlan } from "./SheetPlan";
@@ -9,35 +11,84 @@ import type { LinearRecap } from "@/lib/linear";
 const m2 = (mm2: number) => (mm2 / 1e6).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const pct = (r: number) => `${(r * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`;
 const eur = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €`);
-const ratio = (a: number, b: number) => (b > 0 ? a / b : 0);
 
-function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Card({ label, value, sub, tone }: { label: string; value: string; sub: string; tone: string }) {
   return (
     <div className="rounded-sm border border-border p-3">
-      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground"><span className={`inline-block h-3 w-4 rounded-[1px] border border-foreground ${tone}`} />{label}</div>
       <div className="mono mt-1 text-xl font-semibold">{value}</div>
-      {sub && <div className="mono text-xs text-muted-foreground">{sub}</div>}
+      <div className="text-xs text-muted-foreground">{sub}</div>
     </div>
   );
 }
 
-function BalanceLine({ b }: { b: Balance }) {
+function Split({ b }: { b: Balance }) {
+  const i = indicators(b);
   return (
-    <p className="mono text-xs text-muted-foreground">
-      Surface achetée {m2(b.purchased)} m² = pièces {m2(b.pieces)} + délignage {m2(b.trim)} + chutes réutilisables {m2(b.reusable)} + pertes {m2(b.losses)} m²
-      <span className="font-sans"> (traits de coupe et petites chutes)</span>
-    </p>
+    <div className="space-y-1.5">
+      <div className="flex h-3 w-full overflow-hidden rounded-sm border border-foreground">
+        <div className="bg-primary" style={{ width: `${i.yieldPct}%` }} />
+        <div className="hatch-reuse" style={{ width: `${i.reusablePct}%` }} />
+        <div className="hatch-waste" style={{ width: `${i.lossPct}%` }} />
+      </div>
+      <p className="mono text-xs text-muted-foreground">{splitLine(i)}</p>
+    </div>
   );
 }
 
-function Kpis({ b, sheets, price }: { b: Balance; sheets: number; price: number | null }) {
+function Kpis({ b }: { b: Balance }) {
+  const i = indicators(b);
   return (
-    <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-      <Kpi label="Panneaux" value={String(sheets)} sub={`${m2(b.purchased)} m² achetés`} />
-      <Kpi label="Rendement brut" value={pct(ratio(b.pieces, b.purchased))} sub={`${m2(b.pieces)} m² de pièces`} />
-      <Kpi label="Rendement hors chutes réutil." value={pct(ratio(b.pieces, b.purchased - b.reusable))} />
-      <Kpi label="Chutes réutilisables" value={`${m2(b.reusable)} m²`} />
-      <Kpi label="Prix total" value={eur(price)} />
+    <div className="grid gap-3 sm:grid-cols-2">
+      <Card label="Chutes réutilisables" value={`${m2(i.reusable)} m² · ${pct1(i.reusablePct)}`} sub="À conserver pour d'autres travaux" tone="hatch-reuse" />
+      <Card label="Perte définitive" value={`${m2(i.loss)} m² · ${pct1(i.lossPct)}`} sub="Matière réellement jetée" tone="hatch-waste" />
+    </div>
+  );
+}
+
+function Badge({ r, mat, pieces }: { r: MaterialResult; mat?: Material | undefined; pieces: Piece[] }) {
+  const lb = mat ? lowerBound(mat, pieces) : null;
+  if (lb == null || r.unplaced.length) return null;
+  const opt = r.sheets.length <= lb;
+  return (
+    <span title={opt ? undefined : `Borne minimale théorique : ${lb} panneaux`}
+      className={`ml-2 rounded-sm border px-1.5 py-0.5 align-middle text-[11px] font-medium ${opt ? "border-primary/40 bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}>
+      {opt ? "Résultat optimal" : "Meilleur résultat trouvé"}
+    </span>
+  );
+}
+
+function Banner({ result, status, onStatus }: { result: OptimizeResult; status?: MaterialStatus | undefined; onStatus: (s: MaterialStatus) => void }) {
+  const i = indicators(result.total.balance);
+  const s = status ?? { status: "toOrder" as const };
+  return (
+    <div className="space-y-3 rounded-sm border border-primary/40 bg-primary/5 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{statusTitle(s)}{statusSuffix(s)}</div>
+          {materialLines(result.materials).map((l, k) => (
+            <div key={k} className="mt-1 text-2xl font-semibold"><span className="mono">{l.text}</span> <span className="text-sm font-normal text-muted-foreground">{l.name}</span></div>
+          ))}
+        </div>
+        <div className="text-right">
+          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Rendement</div>
+          <div className="mono text-3xl font-semibold text-primary">{pct1(i.yieldPct)}</div>
+        </div>
+      </div>
+      <p className="mono text-xs text-muted-foreground">Surface achetée {m2(i.purchased)} m² · pièces {m2(i.pieces)} m²{result.total.totalPrice != null ? ` · prix ${eur(result.total.totalPrice)}` : ""}</p>
+      <Split b={result.total.balance} />
+      <div className="flex flex-wrap items-end gap-3 border-t border-border pt-3 text-sm">
+        <label className="block"><span className="field-label">Statut de la matière</span>
+          <select className="input-tech w-56" value={s.status} onChange={(e) => onStatus({ ...s, status: e.target.value as MaterialStatus["status"] })}>
+            <option value="toOrder">À commander</option><option value="ordered">Commandée</option><option value="stock">Matière déjà disponible</option>
+          </select>
+        </label>
+        {s.status === "ordered" && (<>
+          <label className="block"><span className="field-label">Date de commande</span><input type="date" className="input-tech mono" value={s.orderDate ?? ""} onChange={(e) => onStatus({ ...s, orderDate: e.target.value })} /></label>
+          <label className="block"><span className="field-label">Fournisseur</span><input className="input-tech" value={s.supplier ?? ""} onChange={(e) => onStatus({ ...s, supplier: e.target.value })} /></label>
+          <label className="block"><span className="field-label">N° de commande</span><input className="input-tech" value={s.orderNumber ?? ""} onChange={(e) => onStatus({ ...s, orderNumber: e.target.value })} /></label>
+        </>)}
+      </div>
     </div>
   );
 }
@@ -85,7 +136,9 @@ function Solutions({ list }: { list: SolutionSummary[] }) {
   );
 }
 
-export function ResultsPanel({ result, materials, linears = [] }: { result: OptimizeResult; materials: Material[]; linears?: LinearRecap[] }) {
+export function ResultsPanel({ result, materials, linears = [], pieces = [], status, onStatus = () => {} }: {
+  result: OptimizeResult; materials: Material[]; linears?: LinearRecap[]; pieces?: Piece[]; status?: MaterialStatus | undefined; onStatus?: (s: MaterialStatus) => void;
+}) {
   const ok = result.errors.length === 0;
   const ids: { id: string; label: string; color: string }[] = [];
   for (const r of result.materials) for (const s of r.sheets) for (const p of s.placements)
@@ -104,11 +157,8 @@ export function ResultsPanel({ result, materials, linears = [] }: { result: Opti
       </div>
       {!ok && <ul className="list-disc pl-5 text-xs text-destructive">{result.errors.map((e, i) => <li key={i}>{e}</li>)}</ul>}
 
-      <div className="space-y-2">
-        <h3 className="text-xs font-semibold uppercase tracking-[0.14em]">Total</h3>
-        <Kpis b={result.total.balance} sheets={result.total.sheets} price={result.total.totalPrice} />
-        <BalanceLine b={result.total.balance} />
-      </div>
+      <Banner result={result} status={status} onStatus={onStatus} />
+      <Kpis b={result.total.balance} />
 
       {linears.length > 0 && (
         <div className="space-y-2">
@@ -137,9 +187,10 @@ export function ResultsPanel({ result, materials, linears = [] }: { result: Opti
 
       {result.materials.map((r) => (
         <div key={r.materialId} className="space-y-3 border-t border-border pt-5">
-          <h3 className="text-sm font-semibold">{r.name} <span className="mono font-normal text-muted-foreground">{r.thickness} mm</span></h3>
-          <Kpis b={r.balance} sheets={r.sheets.length} price={r.totalPrice} />
-          <BalanceLine b={r.balance} />
+          <h3 className="text-sm font-semibold">{r.name} <span className="mono font-normal text-muted-foreground">{r.thickness} mm</span><Badge r={r} mat={mat(r.materialId)} pieces={pieces} />
+            <span className="mono ml-3 text-xs font-normal text-muted-foreground">{r.sheets.length} panneau(x) · rendement {pct1(indicators(r.balance).yieldPct)}</span></h3>
+          <Split b={r.balance} />
+          <Kpis b={r.balance} />
           <p className="mono text-xs">
             {r.formats.map((f) => `${f.count} × ${f.width} × ${f.length}${f.price != null ? ` (${eur(f.count * f.price)})` : ""}`).join(" · ") || "Aucun panneau"}
           </p>
