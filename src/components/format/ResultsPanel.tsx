@@ -8,15 +8,16 @@ import { groupSheets } from "@/lib/cutplan";
 import { SheetPlan } from "./SheetPlan";
 import type { LinearRecap } from "@/lib/linear";
 
-const m2 = (mm2: number) => (mm2 / 1e6).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const pct = (r: number) => `${(r * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`;
-const eur = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €`);
+import { dims, eur, m2, num } from "@/lib/format";
+import type { OffcutSettings } from "@/lib/types";
+import { DEFAULT_OFFCUT_SETTINGS, offcutKey } from "@/lib/offcuts";
+const pct = (r: number) => `${num(r * 100, 1)} %`;
 
 function Card({ label, value, sub, tone }: { label: string; value: string; sub: string; tone: string }) {
   return (
     <div className="rounded-sm border border-border p-3">
       <div className="flex items-center gap-2 text-xs text-muted-foreground"><span className={`inline-block h-3 w-4 rounded-[1px] border border-foreground ${tone}`} />{label}</div>
-      <div className="mono mt-1 text-xl font-semibold">{value}</div>
+      <div className="tabular-nums mt-1 text-xl font-semibold">{value}</div>
       <div className="text-xs text-muted-foreground">{sub}</div>
     </div>
   );
@@ -31,7 +32,7 @@ function Split({ b }: { b: Balance }) {
         <div className="hatch-reuse" style={{ width: `${i.reusablePct}%` }} />
         <div className="hatch-waste" style={{ width: `${i.lossPct}%` }} />
       </div>
-      <p className="mono text-xs text-muted-foreground">{splitLine(i)}</p>
+      <p className="tabular-nums text-xs text-muted-foreground">{splitLine(i)}</p>
     </div>
   );
 }
@@ -67,15 +68,15 @@ function Banner({ result, status, onStatus }: { result: OptimizeResult; status?:
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{statusTitle(s)}{statusSuffix(s)}</div>
           {materialLines(result.materials).map((l, k) => (
-            <div key={k} className="mt-1 text-2xl font-semibold"><span className="mono">{l.text}</span> <span className="text-sm font-normal text-muted-foreground">{l.name}</span></div>
+            <div key={k} className="mt-1 text-2xl font-semibold"><span className="tabular-nums">{l.text}</span> <span className="text-sm font-normal text-muted-foreground">{l.name}</span></div>
           ))}
         </div>
         <div className="text-right">
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Rendement</div>
-          <div className="mono text-3xl font-semibold text-primary">{pct1(i.yieldPct)}</div>
+          <div className="tabular-nums text-3xl font-semibold text-primary">{pct1(i.yieldPct)}</div>
         </div>
       </div>
-      <p className="mono text-xs text-muted-foreground">Surface achetée {m2(i.purchased)} m² · pièces {m2(i.pieces)} m²{result.total.totalPrice != null ? ` · prix ${eur(result.total.totalPrice)}` : ""}</p>
+      <p className="tabular-nums text-xs text-muted-foreground">Surface achetée {m2(i.purchased)} m² · pièces {m2(i.pieces)} m²{result.total.totalPrice != null ? ` · prix ${eur(result.total.totalPrice)}` : ""}</p>
       <Split b={result.total.balance} />
       <div className="flex flex-wrap items-end gap-3 border-t border-border pt-3 text-sm">
         <label className="block"><span className="field-label">Statut de la matière</span>
@@ -124,10 +125,10 @@ function Solutions({ list }: { list: SolutionSummary[] }) {
           {list.map((s) => (
             <tr key={s.label} className={s.chosen ? "bg-primary/10 font-semibold" : "border-b border-border last:border-0"}>
               <td className="px-3 py-1.5">{s.label}{s.chosen && <span className="ml-2 rounded-sm bg-primary px-1.5 py-0.5 text-[10px] text-primary-foreground">Retenue</span>}</td>
-              <td className="mono px-3 py-1.5">{s.formats.map((f) => `${f.count} × ${f.width} × ${f.length}`).join(" · ")}</td>
-              <td className="mono px-3 py-1.5 text-right">{s.sheets}</td>
-              <td className="mono px-3 py-1.5 text-right">{m2(s.purchased)}</td>
-              <td className="mono px-3 py-1.5 text-right">{eur(s.price)}</td>
+              <td className="tabular-nums px-3 py-1.5">{s.formats.map((f) => `${f.count} × ${dims(f.width, f.length)}`).join(" · ")}</td>
+              <td className="tabular-nums px-3 py-1.5 text-right">{s.sheets}</td>
+              <td className="tabular-nums px-3 py-1.5 text-right">{m2(s.purchased)}</td>
+              <td className="tabular-nums px-3 py-1.5 text-right">{eur(s.price)}</td>
             </tr>
           ))}
         </tbody>
@@ -136,9 +137,11 @@ function Solutions({ list }: { list: SolutionSummary[] }) {
   );
 }
 
-export function ResultsPanel({ result, materials, linears = [], pieces = [], status, onStatus = () => {} }: {
+export function ResultsPanel({ result, materials, linears = [], pieces = [], status, onStatus = () => {}, offcuts, onOffcuts = () => {} }: {
   result: OptimizeResult; materials: Material[]; linears?: LinearRecap[]; pieces?: Piece[]; status?: MaterialStatus | undefined; onStatus?: (s: MaterialStatus) => void;
+  offcuts?: OffcutSettings | undefined; onOffcuts?: (o: OffcutSettings) => void;
 }) {
+  const oc = offcuts ?? DEFAULT_OFFCUT_SETTINGS;
   const ok = result.errors.length === 0;
   const ids: { id: string; label: string; color: string }[] = [];
   for (const r of result.materials) for (const s of r.sheets) for (const p of s.placements)
@@ -153,7 +156,21 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
         ) : (
           <span className="inline-flex items-center gap-1.5 rounded-sm bg-destructive-soft px-2 py-1 text-xs font-medium text-destructive"><AlertTriangle size={14} /> {result.errors.length} erreur(s) de vérification</span>
         )}
-        <span className="mono text-xs text-muted-foreground">Calcul en {result.durationMs} ms</span>
+        <span className="tabular-nums text-xs text-muted-foreground">Calcul en {num(result.durationMs)} ms</span>
+        <label className="ml-auto flex items-center gap-2 text-sm">
+          <span className="text-muted-foreground">Chutes dans le PDF atelier</span>
+          <select className="input-tech w-64" value={oc.mode} onChange={(e) => onOffcuts({ ...oc, mode: e.target.value as OffcutSettings["mode"] })}>
+            <option value="hide">Ne pas afficher</option>
+            <option value="indicative">Chutes conservables (indicatif)</option>
+            <option value="retain">Chutes à conserver (consigne)</option>
+          </select>
+        </label>
+        {oc.mode === "retain" && (
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" className="accent-primary" checked={oc.labelsPage} onChange={(e) => onOffcuts({ ...oc, labelsPage: e.target.checked })} />
+            Ajouter une page d'étiquettes
+          </label>
+        )}
       </div>
       {!ok && <ul className="list-disc pl-5 text-xs text-destructive">{result.errors.map((e, i) => <li key={i}>{e}</li>)}</ul>}
 
@@ -171,13 +188,13 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
                 <th className="px-2 py-1.5 font-medium">Tronçons obtenus (mm)</th><th className="px-2 py-1.5 text-right font-medium">Produit (mm)</th>
               </tr>
             </thead>
-            <tbody className="mono">
+            <tbody className="tabular-nums">
               {linears.map((l) => (
                 <tr key={l.id} className={`border-b border-border ${l.ok ? "" : "bg-destructive-soft text-destructive"}`}>
                   <td className="py-1.5 pr-2 font-sans">{l.label}</td><td className="px-2 py-1.5 font-sans">{l.material}</td>
-                  <td className="px-2 py-1.5 text-right">{l.band}</td><td className="px-2 py-1.5 text-right">{l.requested}</td>
-                  <td className="px-2 py-1.5">{l.segments.map((x) => `${x.count} × ${x.length}`).join(" + ") || "—"}</td>
-                  <td className="px-2 py-1.5 text-right">{l.produced} {l.ok ? "✓" : "≠"}</td>
+                  <td className="px-2 py-1.5 text-right">{num(l.band, 1)}</td><td className="px-2 py-1.5 text-right">{num(l.requested)}</td>
+                  <td className="px-2 py-1.5">{l.segments.map((x) => `${x.count} × ${num(x.length)}`).join(" + ") || "—"}</td>
+                  <td className="px-2 py-1.5 text-right">{num(l.produced)} {l.ok ? "✓" : "≠"}</td>
                 </tr>
               ))}
             </tbody>
@@ -187,12 +204,12 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
 
       {result.materials.map((r) => (
         <div key={r.materialId} className="space-y-3 border-t border-border pt-5">
-          <h3 className="text-sm font-semibold">{r.name} <span className="mono font-normal text-muted-foreground">{r.thickness} mm</span><Badge r={r} mat={mat(r.materialId)} pieces={pieces} />
-            <span className="mono ml-3 text-xs font-normal text-muted-foreground">{r.sheets.length} panneau(x) · rendement {pct1(indicators(r.balance).yieldPct)}</span></h3>
+          <h3 className="text-sm font-semibold">{r.name} <span className="tabular-nums font-normal text-muted-foreground">{num(r.thickness, 1)} mm</span><Badge r={r} mat={mat(r.materialId)} pieces={pieces} />
+            <span className="tabular-nums ml-3 text-xs font-normal text-muted-foreground">{r.sheets.length} panneau(x) · rendement {pct1(indicators(r.balance).yieldPct)}</span></h3>
           <Split b={r.balance} />
           <Kpis b={r.balance} />
-          <p className="mono text-xs">
-            {r.formats.map((f) => `${f.count} × ${f.width} × ${f.length}${f.price != null ? ` (${eur(f.count * f.price)})` : ""}`).join(" · ") || "Aucun panneau"}
+          <p className="tabular-nums text-xs">
+            {r.formats.map((f) => `${f.count} × ${dims(f.width, f.length)}${f.price != null ? ` (${eur(f.count * f.price)})` : ""}`).join(" · ") || "Aucun panneau"}
           </p>
           <Solutions list={r.solutions ?? []} />
           {r.unplaced.length > 0 && (
@@ -212,11 +229,11 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
                   <th className="px-2 py-1.5 text-right font-medium">Rendement</th>
                 </tr>
               </thead>
-              <tbody className="mono">
+              <tbody className="tabular-nums">
                 {r.sheets.map((s) => (
                   <tr key={s.index} className="border-b border-border">
                     <td className="py-1.5 pr-2">{s.index}</td>
-                    <td className="px-2 py-1.5">{s.width} × {s.length}</td>
+                    <td className="px-2 py-1.5">{dims(s.width, s.length)}</td>
                     <td className="px-2 py-1.5 text-right">{s.placements.length}</td>
                     <td className="px-2 py-1.5 text-right">{m2(s.offcuts.filter((o) => o.reusable).reduce((a, o) => a + o.w * o.h, 0))}</td>
                     <td className="px-2 py-1.5 text-right">{pct(s.efficiency)}</td>
@@ -230,7 +247,12 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
               <h4 className="text-xs font-semibold uppercase tracking-[0.14em]">Plans de découpe</h4>
               <Legend entries={ids.filter((e) => r.sheets.some((s) => s.placements.some((p) => p.pieceId === e.id)))} />
               <div className="grid gap-4 xl:grid-cols-2">
-                {groupSheets(r.sheets).map((g) => <SheetPlan key={g.sheet.index} group={g} material={mat(r.materialId)!} colorOf={colorOf} />)}
+                {groupSheets(r.sheets).map((g) => {
+                  const key = (label: string) => offcutKey(r.materialId, g.indexes[0]!, label);
+                  return <SheetPlan key={g.sheet.index} group={g} material={mat(r.materialId)!} colorOf={colorOf} mode={oc.mode}
+                    markOf={(label) => ({ keep: oc.marks[key(label)]?.keep ?? true, note: oc.marks[key(label)]?.note ?? "" })}
+                    onMark={(label, patch) => onOffcuts({ ...oc, marks: { ...oc.marks, [key(label)]: { ...oc.marks[key(label)], ...patch } } })} />;
+                })}
               </div>
             </div>
           )}

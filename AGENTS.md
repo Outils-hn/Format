@@ -20,3 +20,4 @@
 - PDF tables are measured before rendering and placed atomically with their titles; shared measurement also sizes sheet drawings so wrapped cells cannot trigger mid-table page breaks.
 - Linear (metre lineaire) rows are converted to rectangular pieces in src/lib/linear.ts before calling the unchanged optimizer; the produced-length check is appended to result errors there — keeps verify.ts untouched.
 - Result indicators (yield/reusable/definitive-loss split, theoretical lower bound, material status texts) are derived in src/lib/indicators.ts and shared by screen and PDF — presentation only, the optimizer stays untouched.
+- Number formatting (src/lib/format.ts) and piece-label fitting (src/lib/pieceLabels.ts) are shared by screen and PDF; the PDF embeds a frozen-tabular Inter subset (src/lib/export/interFont.ts) so text is measured with the real font.

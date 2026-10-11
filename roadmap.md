@@ -9,3 +9,4 @@
 - [x] Ajouter le récapitulatif Chutes à conserver à la synthèse PDF et vérifier les dessins et les quantités.
 - [x] Garder les tableaux PDF entiers avec leur titre et vérifier les changements de page.
 - [x] Retoucher la présentation des pièces, linéaires, matériaux et de la barre de lancement sans changer le fonctionnement, puis vérifier.
+- [x] Harmonisation : chutes dans le PDF (3 modes, étiquettes), champs numériques, étiquettes ajustées, format français, Inter, cartes sur mobile.
