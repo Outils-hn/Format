@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { sampleMaterials, newPiece } from "./defaults";
+import { newPiece } from "./defaults";
+import { sampleMaterials } from "@/test/fixtures";
 import { mergeDuplicates, rowsToPieces } from "./excel";
 import { allowRotation, rotationCandidates, rotationSavings } from "./rotation";
 import { optimize } from "./optimizer/engine";

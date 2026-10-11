@@ -1,6 +1,5 @@
 // Persistance locale (localStorage) — aucune donnee ne quitte le navigateur.
 import type { Material, Project, ProjectFile } from "./types";
-import { sampleMaterials } from "./defaults";
 import { uid } from "./ids";
 
 const K = {
@@ -20,13 +19,7 @@ function read<T>(key: string, fallback: T): T {
 }
 const write = (key: string, v: unknown) => localStorage.setItem(key, JSON.stringify(v));
 
-export function loadMaterials(): Material[] {
-  const m = read<Material[] | null>(K.materials, null);
-  if (m) return m;
-  const s = sampleMaterials();
-  write(K.materials, s);
-  return s;
-}
+export const loadMaterials = (): Material[] => read<Material[]>(K.materials, []);
 export const saveMaterials = (m: Material[]) => write(K.materials, m);
 
 export const listProjects = (): Project[] =>
@@ -68,4 +61,14 @@ export function importProject(
   const known = new Set(materials.map((m) => m.id));
   const merged = [...materials, ...(f.materials ?? []).filter((m) => !known.has(m.id))];
   return { project: { ...f.project, id: f.project.id || uid() }, materials: merged };
+}
+
+export const exportLibrary = (materials: Material[]) =>
+  JSON.stringify({ app: "format", kind: "library", version: 1, materials }, null, 2);
+
+/** Lit un fichier de bibliotheque (ou de projet) et renvoie ses materiaux. */
+export function parseLibrary(json: string): Material[] {
+  const f = JSON.parse(json) as { app?: string; materials?: Material[] };
+  if (f?.app !== "format" || !Array.isArray(f.materials)) throw new Error("Fichier non reconnu");
+  return f.materials;
 }

@@ -56,7 +56,11 @@ export function MaterialsCard({
             ><Trash2 size={14} /></Button>
           </li>
         ))}
-        {materials.length === 0 && <li className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun matériau</li>}
+        {materials.length === 0 && <li className="card-tech col-span-full flex flex-col items-center gap-3 px-4 py-14 text-center">
+          <p className="text-base font-semibold">Aucun matériau pour l'instant</p>
+          <p className="text-sm text-muted-foreground">Créez vos matériaux une fois, ils seront disponibles dans tous vos projets.</p>
+          <Button className="btn-primary mt-1" onClick={() => setEditing(newMaterial())}><Plus size={14} /> Créer un matériau</Button>
+        </li>}
       </ul>
       {editing && <MaterialForm initial={editing} onCancel={() => setEditing(null)} onSave={save} />}
     </section>
