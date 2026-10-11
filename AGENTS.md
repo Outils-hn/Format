@@ -27,3 +27,4 @@
 - ProjectSettings presents existing project controls inside PiecesCard; disclosure state is transient, and SheetPlan splits drawings from detail tables through presentation props so PDF and optimization inputs remain unchanged.
 - Brand is shared by the project and library headers to keep the visual identity identical across pages.
 - Screen panel groups use PanelGroupLabel and PDF headings use Writer badges with count-free panelGroup labels — quantities stay visually separate without changing export data or sheet grouping.
+- Order mode is derived in src/lib/order.ts (supplier sections, order lines) and shared by screen, order PDF (export/orderPdf.ts) and Excel; per-project order-type overrides live on Project.orderTypes so the library default stays untouched.

@@ -20,3 +20,4 @@
 - [x] Harmoniser la grille bibliothèque, le résumé intégré et la colonne rotation ; vérifier sans modifier calculs ni PDF.
 - [x] Harmoniser tous les menus, séparer les badges de groupes écran/PDF, dégager le bouton de lancement et ajuster les colonnes linéaires ; vérifier sans changer le fonctionnement.
 - [x] Présenter les pièces et linéaires en cellules éditables de 40 px, vérifier les états et préserver les champs encadrés hors tableau.
+- [x] Mode commande par défaut (fournisseur, type de commande, miniatures, PDF commande, Excel par fournisseur, interrupteur Mode atelier)
