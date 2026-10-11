@@ -16,3 +16,5 @@
 - [x] Déplacer la bibliothèque sur sa page, sans changer la sauvegarde ni la fenêtre matériau.
 - [x] Organiser pièces, linéaires et résultats par onglet matériau, avec synthèse globale et pastilles d’erreur.
 - [x] Vérifier le collage multi-matériaux, le calcul global et les exports inchangés.
+- [ ] Replier les réglages et détails des résultats, ouvrir les détails lors d’une erreur et garder le lancement visible avec la quantité totale.
+- [ ] Harmoniser la grille bibliothèque, le résumé intégré et la colonne rotation ; vérifier sans modifier calculs ni PDF.
