@@ -3,6 +3,7 @@ import type { Linear, Material, Piece } from "./types";
 import type { OptimizeResult } from "./optimizer";
 import { usableSizes } from "./validation";
 import { uid } from "./ids";
+import { num } from "./format";
 
 export interface Segment { length: number; count: number }
 
@@ -64,7 +65,7 @@ export function linearSegments(l: Linear, materials: Material[]): Segment[] | st
 }
 
 export const segmentsText = (l: Linear, s: Segment[]) =>
-  `${(l.totalLength ?? 0).toLocaleString("fr-FR")} ml → ${s.map((x) => `${x.count} × ${x.length}`).join(" + ")}`;
+  `${num(l.totalLength ?? 0, 3)} ml → ${s.map((x) => `${x.count} × ${num(x.length)}`).join(" + ")}`;
 
 /** Pieces rectangulaires issues des lineaires valides. */
 export function linearPieces(linears: Linear[], materials: Material[]): Piece[] {

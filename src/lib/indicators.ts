@@ -1,6 +1,7 @@
 // Indicateurs de présentation dérivés des résultats (aucun impact sur le moteur).
 import type { Balance, FormatCount, MaterialResult } from "./optimizer/types";
 import type { Material, MaterialStatus, Piece } from "./types";
+import { dims, pct1 } from "./format";
 
 export interface Indicators {
   purchased: number; pieces: number; reusable: number; loss: number;
@@ -17,8 +18,7 @@ export function indicators(b: Balance): Indicators {
   return { purchased: b.purchased, pieces: b.pieces, reusable: b.reusable, loss, yieldPct, reusablePct, lossPct };
 }
 
-export const pct1 = (n: number) => `${n.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
-export const m2 = (mm2: number) => (mm2 / 1e6).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export { pct1, m2 } from "./format";
 
 export const splitLine = (i: Indicators) =>
   `${pct1(i.yieldPct)} pièces + ${pct1(i.reusablePct)} chutes réutilisables + ${pct1(i.lossPct)} perte définitive = 100 %`;
@@ -38,7 +38,7 @@ export function lowerBound(mat: Material, pieces: Piece[]): number | null {
   return Math.max(Math.ceil(area / (uw * ul) - 1e-9), big);
 }
 
-export const formatsText = (f: FormatCount[]) => f.map((x) => `${x.count} × ${x.width} × ${x.length} mm`).join(" · ");
+export const formatsText = (f: FormatCount[]) => f.map((x) => `${x.count} × ${dims(x.width, x.length)} mm`).join(" · ");
 
 export function statusTitle(s?: MaterialStatus): string {
   if (s?.status === "ordered") return "Panneaux commandés";
@@ -54,4 +54,4 @@ export function statusSuffix(s?: MaterialStatus): string {
 }
 
 export const materialLines = (r: MaterialResult[]) =>
-  r.flatMap((m) => m.formats.map((f) => ({ name: `${m.name} ${m.thickness} mm`, text: `${f.count} × ${f.width} × ${f.length} mm` })));
+  r.flatMap((m) => m.formats.map((f) => ({ name: `${m.name} ${m.thickness} mm`, text: `${f.count} × ${dims(f.width, f.length)} mm` })));

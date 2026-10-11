@@ -1,4 +1,5 @@
 // Analyse d'un panneau calcule pour l'affichage : panneaux identiques et sequence de coupe.
+import { num } from "./format";
 // Ne modifie pas le moteur : tout est deduit des placements.
 import type { Placement, SheetResult } from "./optimizer/types";
 
@@ -46,7 +47,7 @@ export function cutSequence(placements: Placement[], W: number, L: number, kerf:
     let c = find("h");
     if (c === undefined) { dir = "v"; c = find("v"); }
     if (c === undefined) return; // une seule piece aux dimensions de la region, ou disposition non guillotine
-    const where = dir === "h" ? `Coupe horizontale à ${Math.round(c + trim)} mm du bord haut` : `Coupe verticale à ${Math.round(c + trim)} mm du bord gauche`;
+    const where = dir === "h" ? `Coupe horizontale à ${num(Math.round(c + trim))} mm du bord haut` : `Coupe verticale à ${num(Math.round(c + trim))} mm du bord gauche`;
     cuts.push({
       n: cuts.length + 1, dir, pos: c,
       from: dir === "h" ? r.x0 : r.y0, to: dir === "h" ? r.x1 : r.y1,
@@ -54,7 +55,7 @@ export function cutSequence(placements: Placement[], W: number, L: number, kerf:
     });
     const a = ps.filter((p) => (dir === "h" ? p.y + p.h <= c! : p.x + p.w <= c!));
     const b = ps.filter((p) => !a.includes(p));
-    const t = (v: number) => Math.round(v + trim);
+    const t = (v: number) => num(Math.round(v + trim));
     if (dir === "h") {
       walk({ ...r, y1: c, label: `Sur la bande ${t(r.y0)}–${t(c)} mm (depuis le haut)` }, a);
       walk({ ...r, y0: c + kerf, label: `Sur la bande ${t(c + kerf)}–${t(Math.min(r.y1, L))} mm (depuis le haut)` }, b);
