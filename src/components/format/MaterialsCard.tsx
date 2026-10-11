@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
-import type { Material, Supply } from "@/lib/types";
+import type { Material, OrderType, Supply } from "@/lib/types";
 import { newMaterial } from "@/lib/defaults";
 import { uid } from "@/lib/ids";
 import { Modal } from "./Modal";
