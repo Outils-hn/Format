@@ -19,4 +19,4 @@
 - [x] Replier les réglages et détails des résultats, ouvrir les détails lors d’une erreur et garder le lancement visible avec la quantité totale.
 - [x] Harmoniser la grille bibliothèque, le résumé intégré et la colonne rotation ; vérifier sans modifier calculs ni PDF.
 - [x] Harmoniser tous les menus, séparer les badges de groupes écran/PDF, dégager le bouton de lancement et ajuster les colonnes linéaires ; vérifier sans changer le fonctionnement.
-- [ ] Présenter les pièces et linéaires en cellules éditables de 40 px, vérifier les états et préserver les champs encadrés hors tableau.
+- [x] Présenter les pièces et linéaires en cellules éditables de 40 px, vérifier les états et préserver les champs encadrés hors tableau.
