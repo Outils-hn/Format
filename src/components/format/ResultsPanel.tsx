@@ -7,9 +7,10 @@ import { indicators, lowerBound, materialLines, pct1, splitLine, statusSuffix, s
 import { planColor } from "@/lib/palette";
 import { groupSheets } from "@/lib/cutplan";
 import { SheetPlan } from "./SheetPlan";
+import { PanelGroupLabel } from "./PanelGroupLabel";
 import type { LinearRecap } from "@/lib/linear";
 
-import { dims, eur, m2, num, panelGroup, panelOrder, reuseCaption } from "@/lib/format";
+import { dims, eur, m2, num, panelOrder, reuseCaption } from "@/lib/format";
 import type { OffcutSettings } from "@/lib/types";
 import { DEFAULT_OFFCUT_SETTINGS, offcutKey } from "@/lib/offcuts";
 const pct = (r: number) => `${num(r * 100, 1)} %`;
@@ -223,7 +224,7 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
               <tbody className="tabular-nums">
                 {groupSheets(r.sheets).map((g) => (
                   <tr key={g.sheet.index} className="border-b border-border">
-                    <td className="py-1.5 pr-2">{panelGroup(g.indexes)}</td>
+                    <td className="py-1.5 pr-2"><PanelGroupLabel indexes={g.indexes} /></td>
                     <td className="px-2 py-1.5">{dims(g.sheet.width, g.sheet.length)}</td>
                     <td className="px-2 py-1.5 text-right">{num(g.sheet.placements.length * g.count)}</td>
                     <td className="px-2 py-1.5 text-right">{m2(g.sheet.offcuts.filter((o) => o.reusable).reduce((a, o) => a + o.w * o.h, 0) * g.count)}</td>
