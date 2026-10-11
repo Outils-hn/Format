@@ -6,7 +6,12 @@ import { indicators, lowerBound, materialLines, pct1, splitLine, statusSuffix, s
 import { cutSequence, groupSheets, type Cut, type SheetGroup } from "../cutplan";
 import { PLAN_COLORS } from "../palette";
 import { cleanName, download, pieceOrder } from "./common";
-import { labeledOffcuts, retainedOffcuts } from "../offcuts";
+import { DEFAULT_OFFCUT_SETTINGS, labeledOffcuts, markResolver, retainedOffcuts, reusableOffcutItems, type MarkOf } from "../offcuts";
+import type { OffcutSettings } from "../types";
+import { DEFAULT_REUSE_MIN } from "../optimizer/engine";
+import { dims, eur, m2, num } from "../format";
+import { fitPieceLabel, pieceRowKey } from "../pieceLabels";
+import { INTER_BOLD, INTER_REGULAR } from "./interFont";
 import type { LinearRecap } from "../linear";
 
 type RGB = [number, number, number];
@@ -26,14 +31,18 @@ function resolveColor(cssVar: string): RGB {
   return [d[0]!, d[1]!, d[2]!];
 }
 
-const m2 = (mm2: number) => (mm2 / 1e6).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\u202f|\u00a0/g, " ");
-const eur = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("fr-FR", { maximumFractionDigits: 2 }).replace(/\u202f|\u00a0/g, " ")} €`);
 const fmtDate = (iso: string) => iso.split("-").reverse().join("/");
 
 type TableColumn = { h: string; w: number; right?: boolean };
 
 export class Writer {
-  doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  doc = (() => {
+    const d = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+    d.addFileToVFS("Inter-Regular.ttf", INTER_REGULAR); d.addFont("Inter-Regular.ttf", "Inter", "normal");
+    d.addFileToVFS("Inter-Bold.ttf", INTER_BOLD); d.addFont("Inter-Bold.ttf", "Inter", "bold");
+    d.setFont("Inter", "normal");
+    return d;
+  })();
   y = M;
   get W() { return this.doc.internal.pageSize.getWidth(); }
   get H() { return this.doc.internal.pageSize.getHeight(); }
@@ -41,7 +50,7 @@ export class Writer {
   ensure(h: number) { if (this.y + h > this.bottom) this.newPage(this.W > this.H ? "landscape" : "portrait"); }
   newPage(o: "portrait" | "landscape") { this.doc.addPage("a4", o); this.y = M; }
   font(size: number, bold = false, color: RGB = INK) {
-    this.doc.setFont("helvetica", bold ? "bold" : "normal");
+    this.doc.setFont("Inter", bold ? "bold" : "normal");
     this.doc.setFontSize(size);
     this.doc.setTextColor(...color);
   }
@@ -69,7 +78,7 @@ export class Writer {
     });
     return { k, header, headerHeight, body, lineHeight, height: headerHeight + body.reduce((sum, r) => sum + r.height, 0) + 3 };
   }
-  table(cols: TableColumn[], rows: string[][], boldLast = false, title?: string) {
+  table(cols: TableColumn[], rows: string[][], boldLast = false, title?: string, boldRow?: (i: number) => boolean) {
     let size = 8;
     let layout = this.measureTable(cols, rows, size);
     const titleHeight = title ? 7 : 0;
@@ -101,7 +110,7 @@ export class Writer {
     this.doc.rect(M, this.y, this.W - 2 * M, layout.headerHeight * fit, "F");
     drawCells(layout.header, layout.headerHeight, true);
     layout.body.forEach((r, i) => {
-      drawCells(r.cells, r.height, boldLast && i === rows.length - 1);
+      drawCells(r.cells, r.height, (boldLast && i === rows.length - 1) || !!boldRow?.(i));
       this.doc.setDrawColor(200, 203, 210); this.doc.setLineWidth(0.15);
       this.doc.line(M, this.y, this.W - M, this.y);
     });
@@ -153,9 +162,9 @@ function cards(w: Writer, i: ReturnType<typeof indicators>) {
 
 function supplyText(m: Material) {
   const s = m.supply;
-  if (s.mode === "single") return `${s.width} × ${s.length} mm`;
-  if (s.mode === "catalog") return s.formats.map((f) => `${f.width} × ${f.length}${f.price != null ? ` (${eur(f.price)})` : ""}`).join(", ");
-  return `largeur ${s.width} mm, longueur ${s.minLength} à ${s.maxLength} mm par pas de ${s.step} mm`;
+  if (s.mode === "single") return `${dims(s.width, s.length)} mm`;
+  if (s.mode === "catalog") return s.formats.map((f) => `${dims(f.width, f.length)}${f.price != null ? ` (${eur(f.price)})` : ""}`).join(", ");
+  return `largeur ${num(s.width)} mm, longueur ${num(s.minLength)} à ${num(s.maxLength)} mm par pas de ${num(s.step)} mm`;
 }
 
 function hatch(doc: jsPDF, x: number, y: number, w: number, h: number, step: number, color: RGB, reusable: boolean, lw: number) {
@@ -194,7 +203,7 @@ function drawPlan(doc: jsPDF, s: SheetResult, mat: Material, cuts: Cut[], color:
     hatch(doc, x, y, w, h, hatchSpacing, o.reusable ? reuse : waste, o.reusable, hatchWidth);
     doc.setDrawColor(...GREY); doc.setLineWidth(0.15); doc.rect(x, y, w, h);
     if (Math.min(w, h) > 7 && w > 22) {
-      doc.setFont("helvetica", "normal"); doc.setFontSize(6.5); doc.setTextColor(...INK);
+      doc.setFont("Inter", "normal"); doc.setFontSize(6.5); doc.setTextColor(...INK);
       const label = `${o.label} · ${Math.round(o.w)} × ${Math.round(o.h)}`;
       const tw = doc.getTextWidth(label) + 2;
       doc.setFontSize(Math.min(6.5, 6.5 * (w - 1) / tw));
@@ -202,7 +211,7 @@ function drawPlan(doc: jsPDF, s: SheetResult, mat: Material, cuts: Cut[], color:
       doc.setFillColor(255, 255, 255); doc.rect(x + w / 2 - fittedWidth / 2, y + h / 2 - 1.8, fittedWidth, 3.6, "F");
       doc.text(label, x + w / 2, y + h / 2, { align: "center", baseline: "middle" });
     } else {
-      doc.setFont("helvetica", "bold"); doc.setTextColor(...INK);
+      doc.setFont("Inter", "bold"); doc.setTextColor(...INK);
       const size = Math.min(6.5, Math.min(w, h) * PT / 1.5, w * PT / (o.label.length * 0.65));
       if (size >= 2) {
         doc.setFontSize(size);
@@ -217,16 +226,16 @@ function drawPlan(doc: jsPDF, s: SheetResult, mat: Material, cuts: Cut[], color:
     doc.setTextColor(...INK);
     const f = Math.min(3.6, h / 3.2, w / 7); // hauteur texte mm
     if (f >= 1.2) {
-      doc.setFont("helvetica", "bold"); doc.setFontSize(f * 1.15 * PT);
+      doc.setFont("Inter", "bold"); doc.setFontSize(f * 1.15 * PT);
       doc.text(p.label, x + w / 2, y + h / 2 - f * 0.6, { align: "center", baseline: "middle" });
-      doc.setFont("helvetica", "normal"); doc.setFontSize(f * PT);
+      doc.setFont("Inter", "normal"); doc.setFontSize(f * PT);
       doc.text(`${p.w} × ${p.h}`, x + w / 2, y + h / 2 + f * 0.75, { align: "center", baseline: "middle" });
     } else {
       const fl = Math.min(3.6, h / 1.6, w / Math.max(2, p.label.length * 0.75));
-      if (fl >= 0.9) { doc.setFont("helvetica", "bold"); doc.setFontSize(fl * PT); doc.text(p.label, x + w / 2, y + h / 2, { align: "center", baseline: "middle" }); }
+      if (fl >= 0.9) { doc.setFont("Inter", "bold"); doc.setFontSize(fl * PT); doc.text(p.label, x + w / 2, y + h / 2, { align: "center", baseline: "middle" }); }
     }
     if (p.rotated && Math.min(w, h) > 6) {
-      doc.setFont("helvetica", "bold"); doc.setFontSize(6.5);
+      doc.setFont("Inter", "bold"); doc.setFontSize(6.5);
       doc.text("T", x + w - 1, y + 1, { align: "right", baseline: "top" });
     }
   }
@@ -241,11 +250,11 @@ function drawPlan(doc: jsPDF, s: SheetResult, mat: Material, cuts: Cut[], color:
     const r = 2.1;
     const cx = c.dir === "h" ? x1 + r * 1.2 : x1, cy = c.dir === "h" ? y1 : y1 + r * 1.2;
     doc.setFillColor(255, 255, 255); doc.setLineWidth(0.25); doc.circle(cx, cy, r, "FD");
-    doc.setFont("helvetica", "bold"); doc.setFontSize(6.5); doc.setTextColor(...INK);
+    doc.setFont("Inter", "bold"); doc.setFontSize(6.5); doc.setTextColor(...INK);
     doc.text(String(c.n), cx, cy, { align: "center", baseline: "middle" });
   }
   // cotes exterieures
-  doc.setDrawColor(...INK); doc.setLineWidth(0.2); doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+  doc.setDrawColor(...INK); doc.setLineWidth(0.2); doc.setFont("Inter", "normal"); doc.setFontSize(8);
   const a = 4;
   doc.line(X(0), oy - a, X(s.width), oy - a);
   doc.line(X(0), oy - a - 1.5, X(0), oy - 1); doc.line(X(s.width), oy - a - 1.5, X(s.width), oy - 1);
