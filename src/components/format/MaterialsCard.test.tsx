@@ -31,7 +31,7 @@ describe("Material editor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
     expect(save.mock.calls[0]?.[0][0]).toMatchObject({
       supply: { mode: "single", width: 1000, length: 2000 },
-      supplyValues: { catalogue: undefined, catalog: { formats: [{ width: 1000, length: 2000, price: 42.5 }] }, fixedWidth: { minLength: 777 } },
+      supplyValues: { catalog: { formats: [{ width: 1000, length: 2000, price: 42.5 }] }, fixedWidth: { minLength: 777 } },
     });
   });
 });
