@@ -33,7 +33,7 @@ function resolveColor(cssVar: string): RGB {
 
 const fmtDate = (iso: string) => iso.split("-").reverse().join("/");
 
-type TableColumn = { h: string; w: number; right?: boolean; positionPairs?: boolean };
+export type TableColumn = { h: string; w: number; right?: boolean; positionPairs?: boolean };
 
 /** X/Y pairs are indivisible, even when jsPDF would split a long word. */
 function wrapPositions(doc: jsPDF, text: string, width: number): string[] {
