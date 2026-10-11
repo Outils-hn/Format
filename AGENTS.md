@@ -26,3 +26,4 @@
 - PiecesCard receives the complete project lists and an optional material filter; scoped edits preserve other materials and paste receives the active material as its default.
 - ProjectSettings presents existing project controls inside PiecesCard; disclosure state is transient, and SheetPlan splits drawings from detail tables through presentation props so PDF and optimization inputs remain unchanged.
 - Brand is shared by the project and library headers to keep the visual identity identical across pages.
+- Screen panel groups use PanelGroupLabel and PDF headings use Writer badges with count-free panelGroup labels — quantities stay visually separate without changing export data or sheet grouping.

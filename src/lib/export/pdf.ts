@@ -92,7 +92,18 @@ export class Writer {
     });
     return { k, header, headerHeight, body, lineHeight, height: headerHeight + body.reduce((sum, r) => sum + r.height, 0) + 3 };
   }
-  table(cols: TableColumn[], rows: string[][], boldLast = false, title?: string, boldRow?: (i: number) => boolean) {
+  badge(count: number, x: number, baseline: number) {
+    if (count <= 1) return;
+    this.font(8, true);
+    const label = `x ${num(count)}`;
+    const width = this.doc.getTextWidth(label) + 4;
+    this.doc.setFillColor(232, 234, 238);
+    this.doc.setDrawColor(200, 203, 210);
+    this.doc.setLineWidth(0.15);
+    this.doc.roundedRect(x, baseline - 3.4, width, 5, 0.7, 0.7, "FD");
+    this.doc.text(label, x + 2, baseline);
+  }
+  table(cols: TableColumn[], rows: string[][], boldLast = false, title?: string, boldRow?: (i: number) => boolean, badgeCount = 1) {
     let size = 8;
     let layout = this.measureTable(cols, rows, size);
     const titleHeight = title ? 7 : 0;
@@ -126,6 +137,7 @@ export class Writer {
     };
     if (title) {
       this.font(9, true); this.doc.text(title, M, this.y + 4);
+      this.badge(badgeCount, M + this.doc.getTextWidth(title) + 3, this.y + 4);
       this.y += titleHeight;
     }
     this.doc.setFillColor(232, 234, 238);
@@ -313,7 +325,12 @@ function sheetPage(w: Writer, g: SheetGroup, mat: Material, r: { name: string; t
   const lead = g.indexes[0];
   if (lead === undefined) return;
   w.newPage(s.width > s.length ? "landscape" : "portrait");
-  w.text(panelGroup(g.indexes), 12, true, INK, 1);
+  const groupTitle = panelGroup(g.indexes, false);
+  w.font(12, true);
+  const titleWidth = w.doc.getTextWidth(groupTitle);
+  const titleY = w.y + 12 / PT * 1.3 * 0.8;
+  w.text(groupTitle, 12, true, INK, 1);
+  w.badge(g.count, M + titleWidth + 3, titleY);
   w.text(`${r.name} ${num(r.thickness, 1)} mm · ${dims(s.width, s.length)} mm`, 9, false, GREY, 3);
   const cuts = mat.cutType === "guillotine" ? cutSequence(s.placements, s.usableW, s.usableL, mat.kerf, mat.trim) : [];
   const map = new Map<string, { label: string; w: number; h: number; rot: boolean; qty: number; pos: string[] }>();
@@ -378,9 +395,18 @@ function sheetPage(w: Writer, g: SheetGroup, mat: Material, r: { name: string; t
     for (const c of cuts) w.text(`${c.n}. ${c.text}`, 8, false, INK, 0);
     w.y += 2;
   }
-  w.table(pieceCols, pieceRows, false, `Pièces — ${panelGroup(g.indexes)}`);
-  if (offcuts.length) w.table(offcutCols, offcutRows, false, `Chutes — ${panelGroup(g.indexes)}`, (i) => !!marks[i]?.keep);
-  else { w.ensure(13); w.text(`Chutes — ${panelGroup(g.indexes)}`, 9, true); w.text("Aucune chute.", 8, false, GREY); }
+  w.table(pieceCols, pieceRows, false, `Pièces — ${groupTitle}`, undefined, g.count);
+  if (offcuts.length) w.table(offcutCols, offcutRows, false, `Chutes — ${groupTitle}`, (i) => !!marks[i]?.keep, g.count);
+  else {
+    w.ensure(13);
+    const title = `Chutes — ${groupTitle}`;
+    w.font(9, true);
+    const width = w.doc.getTextWidth(title);
+    const baseline = w.y + 9 / PT * 1.3 * 0.8;
+    w.text(title, 9, true);
+    w.badge(g.count, M + width + 3, baseline);
+    w.text("Aucune chute.", 8, false, GREY);
+  }
 }
 
 function labelsPage(w: Writer, result: OptimizeResult, mark: MarkOf, info: ProjectInfo) {

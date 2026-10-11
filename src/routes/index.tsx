@@ -255,9 +255,9 @@ function Index() {
       </main>
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur print:hidden">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-end gap-4 px-8 py-3">
+        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-end gap-x-4 gap-y-2 pl-4 pr-[140px] py-3 sm:pl-8">
           <span className="tabular-nums text-sm text-muted-foreground">{num(allPieces.reduce((n, p) => n + p.quantity, 0))} pièces</span>
-          <Button className="btn-primary h-10 px-4" disabled={running} onClick={run}>
+          <Button className="btn-primary h-10 max-w-full whitespace-normal px-4" disabled={running} onClick={run}>
             {running ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}{running ? "Calcul en cours…" : "Lancer l'optimisation"}
           </Button>
         </div>

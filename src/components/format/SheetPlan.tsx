@@ -4,7 +4,8 @@ import type { Material, OffcutSettings } from "@/lib/types";
 import type { Placement } from "@/lib/optimizer/types";
 import { cutSequence, type Cut, type SheetGroup } from "@/lib/cutplan";
 import { labeledOffcuts, type Mark } from "@/lib/offcuts";
-import { dims, m2, num, panelGroup, positionPair } from "@/lib/format";
+import { dims, m2, num, positionPair } from "@/lib/format";
+import { PanelGroupLabel } from "./PanelGroupLabel";
 import { fitPieceLabel, pieceRowKey, type Measure } from "@/lib/pieceLabels";
 
 const INK = "var(--foreground)";
@@ -151,7 +152,7 @@ export function SheetPlan(props: Props) {
     <div className="space-y-3 rounded-sm border border-border p-3 break-inside-avoid">
       {presentation !== "tables" && <>
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="font-semibold">{panelGroup(group.indexes)}</span>
+        <span className="font-semibold"><PanelGroupLabel indexes={group.indexes} /></span>
         <span className="tabular-nums text-muted-foreground">{dims(s.width, s.length)} mm</span>
         <button className="btn-ghost ml-auto h-7 px-2 text-xs print:hidden" onClick={() => setFull(true)}><Maximize2 size={13} /> Agrandir</button>
       </div>
@@ -169,7 +170,7 @@ export function SheetPlan(props: Props) {
 
       </>}
       {presentation !== "plan" && <>
-      <h4 className="text-xs font-semibold">Pièces — {panelGroup(group.indexes)}</h4>
+      <h4 className="flex flex-wrap items-center gap-2 text-xs font-semibold">Pièces — <PanelGroupLabel indexes={group.indexes} /></h4>
       <table className="w-full text-xs tabular-nums">
         <thead className="text-muted-foreground">
           <tr className="border-b border-border">
@@ -196,7 +197,7 @@ export function SheetPlan(props: Props) {
       </table>
 
       <div>
-        <h4 className="mb-1 text-xs font-semibold">Chutes — {panelGroup(group.indexes)}</h4>
+        <h4 className="mb-1 flex flex-wrap items-center gap-2 text-xs font-semibold">Chutes — <PanelGroupLabel indexes={group.indexes} /></h4>
         <div className="overflow-x-auto">
           <table className="w-full text-xs tabular-nums">
             <thead className="text-muted-foreground"><tr className="border-b border-border">
@@ -246,7 +247,7 @@ export function SheetPlan(props: Props) {
       {full && (
         <div className="fixed inset-0 z-50 flex flex-col bg-background">
           <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-sm">
-            <span className="font-semibold">{material.name} — {panelGroup(group.indexes)}</span>
+            <span className="font-semibold">{material.name} — <PanelGroupLabel indexes={group.indexes} /></span>
             <span className="tabular-nums text-muted-foreground">{dims(s.width, s.length)} mm</span>
             <div className="ml-auto flex items-center gap-1">
               <button className="btn-ghost h-8 px-2" onClick={() => setZoom((z) => Math.max(0.5, z / 1.25))} aria-label="Dézoomer"><Minus size={15} /></button>

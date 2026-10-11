@@ -153,13 +153,14 @@ export function PiecesCard({
           <div className={visiblePieces.length ? "border-t border-border" : ""}>
           <h3 className="px-4 pb-2 pt-4 text-sm font-semibold">Linéaires</h3>
           <table aria-label="Linéaires" className="entry-table w-full min-w-[780px] table-fixed text-sm">
-            <colgroup>{materialId ? <><col className="w-[25%]" /><col className="w-[30%]" /><col className="w-[40%]" /><col className="w-[5%]" /></> : <><col className="w-[15%]" /><col className="w-[30%]" /><col className="w-[20%]" /><col className="w-[30%]" /><col className="w-[5%]" /></>}</colgroup>
+            <colgroup>{materialId ? <><col className="w-[20%]" /><col className="w-[20%]" /><col className="w-[20%]" /><col className="w-[35%]" /><col className="w-[5%]" /></> : <><col className="w-[20%]" /><col className="w-[20%]" /><col className="w-[20%]" /><col className="w-[20%]" /><col className="w-[15%]" /><col className="w-[5%]" /></>}</colgroup>
             <thead className="text-left font-sans text-xs font-semibold text-foreground">
               <tr className="border-b border-border">
                 <th className="px-3 py-2 font-semibold">Repère</th>
                 {!materialId && <th className="px-3 py-2 font-semibold">Matériau</th>}
                 <th className="px-3 py-2 text-right font-semibold">Bande (mm)</th>
                 <th className="px-3 py-2 text-right font-semibold">Longueur (m)</th>
+                <th aria-label="Espace libre" />
                 <th aria-label="Actions" />
               </tr>
             </thead>
@@ -180,12 +181,13 @@ export function PiecesCard({
                     </td>}
                     <td className="py-1.5"><NumInput aria-label="Largeur de bande" invalid={bad(l.bandWidth)} className="input-num w-full px-3" value={l.bandWidth} onChange={(n) => updL(l.id, { bandWidth: n })} /></td>
                     <td className="py-1.5"><NumInput aria-label="Longueur totale" invalid={bad(l.totalLength)} className="input-num w-full px-3" value={l.totalLength} onChange={(n) => updL(l.id, { totalLength: n })} /></td>
-                    <td className="text-center">
+                    <td />
+                    <td className="pr-3 text-right">
                       <Button variant="ghost" size="sm" className="btn-danger h-7 w-7 justify-center px-0" aria-label="Supprimer le linéaire" onClick={() => onLinearsChange?.(linears.filter((x) => x.id !== l.id))}><Trash2 size={14} /></Button>
                     </td>
                   </tr>
                   <tr className="border-b border-border">
-                    <td colSpan={materialId ? 4 : 5} className="pb-4 pl-6 pr-3 pt-1">
+                    <td colSpan={materialId ? 5 : 6} className="pb-4 pl-6 pr-3 pt-1">
                       <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
                         <label className="block">
                           <span className="field-label">Mode de tronçons</span>
