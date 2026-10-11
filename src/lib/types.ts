@@ -1,6 +1,7 @@
 // Types metier de Format — toutes les dimensions sont en millimetres.
 
 export type CutType = "guillotine" | "free"; // scie a panneaux | CNC
+export type OrderType = "panels" | "cut"; // panneaux entiers | pieces debitees par le fournisseur
 
 export interface SheetFormat {
   id: string;
@@ -24,6 +25,8 @@ export interface Material {
   cutType: CutType;
   reuseMin?: number | undefined; // seuil de chute reutilisable (mm), defaut 300
   supply: Supply;
+  supplier?: string | undefined;
+  orderType?: OrderType | undefined;
 }
 
 export interface Piece {
@@ -77,6 +80,9 @@ export interface Project {
   linears?: Linear[] | undefined;
   materialStatus?: MaterialStatus | undefined;
   offcuts?: OffcutSettings | undefined;
+  orderTypes?: Record<string, OrderType> | undefined; // surcharge par materiau pour ce projet
+  showEstimate?: boolean | undefined; // estimation de panneaux dans le PDF commande
+  workshopMode?: boolean | undefined;
   updatedAt: string;
 }
 
