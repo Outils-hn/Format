@@ -21,6 +21,7 @@ const measure: Measure = (text, size, bold) => {
 interface Props {
   group: SheetGroup; material: Material; colorOf: (pieceId: string) => string;
   mode?: OffcutSettings["mode"];
+  presentation?: "all" | "plan" | "tables";
   markOf?: (label: string) => Mark;
   onMark?: (label: string, patch: Partial<Mark>) => void;
 }
@@ -122,7 +123,7 @@ function PlanSvg({ group, material, colorOf, cuts, onHover, hovered, refOf, mode
 }
 
 export function SheetPlan(props: Props) {
-  const { group, material, mode = "indicative", markOf, onMark } = props;
+  const { group, material, mode = "indicative", markOf, onMark, presentation = "all" } = props;
   const s = group.sheet;
   const [hover, setHover] = useState<{ p: Placement; x: number; y: number } | null>(null);
   const [full, setFull] = useState(false);
@@ -148,6 +149,7 @@ export function SheetPlan(props: Props) {
 
   return (
     <div className="space-y-3 rounded-sm border border-border p-3 break-inside-avoid">
+      {presentation !== "tables" && <>
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="font-semibold">{panelGroup(group.indexes)}</span>
         <span className="tabular-nums text-muted-foreground">{dims(s.width, s.length)} mm</span>
@@ -165,6 +167,8 @@ export function SheetPlan(props: Props) {
         </div>
       )}
 
+      </>}
+      {presentation !== "plan" && <>
       <h4 className="text-xs font-semibold">Pièces — {panelGroup(group.indexes)}</h4>
       <table className="w-full text-xs tabular-nums">
         <thead className="text-muted-foreground">
@@ -230,6 +234,7 @@ export function SheetPlan(props: Props) {
         {s.offcuts.length === 0 && <p className="text-xs text-muted-foreground">Aucune chute.</p>}
       </div>
 
+      </>}
       {hover && (
         <div className="pointer-events-none fixed z-[60] rounded-sm border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow" style={{ left: hover.x + 14, top: hover.y + 14 }}>
           <div className="font-semibold">N° {refOf(hover.p)} · {hover.p.label}{hover.p.rotated ? " ↻ tournée" : ""}</div>

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 import type { Balance, OptimizeResult, SolutionSummary } from "@/lib/optimizer";
 import type { Material, MaterialStatus, Piece } from "@/lib/types";
@@ -59,39 +60,20 @@ function Badge({ r, mat, pieces }: { r: MaterialResult; mat?: Material | undefin
   );
 }
 
-function Banner({ result, status, onStatus }: { result: OptimizeResult; status?: MaterialStatus | undefined; onStatus: (s: MaterialStatus) => void }) {
+function Banner({ result, status, simple = false }: { result: OptimizeResult; status?: MaterialStatus | undefined; simple?: boolean }) {
   const i = indicators(result.total.balance);
   const s = status ?? { status: "toOrder" as const };
-  return (
-    <div className="space-y-3 rounded-sm border border-primary/40 bg-primary/5 p-4">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{statusTitle(s)}{statusSuffix(s)}</div>
-          {materialLines(result.materials).map((l, k) => (
-            <div key={k} className="mt-1 text-2xl font-semibold"><span className="tabular-nums">{l.text}</span></div>
-          ))}
-        </div>
-        <div className="text-right">
-          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Rendement</div>
-          <div className="tabular-nums text-3xl font-semibold text-primary">{pct1(i.yieldPct)}</div>
-        </div>
+  const title = s.status === "toOrder" ? "À commander" : s.status === "ordered" ? "Commandés" : "À prendre en stock";
+  return <div className="space-y-3 rounded-sm border border-primary/40 bg-primary/5 p-4">
+    <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-muted-foreground">{simple ? `${title} :` : statusTitle(s)}{statusSuffix(s)}</p>
+        {materialLines(result.materials).map((l, k) => <p key={k} className="mt-1 text-xl font-semibold tabular-nums">{l.text}</p>)}
       </div>
-      <p className="tabular-nums text-xs text-muted-foreground">Surface achetée {m2(i.purchased)} m² · pièces {m2(i.pieces)} m²{result.total.totalPrice != null ? ` · prix ${eur(result.total.totalPrice)}` : ""}</p>
-      <Split b={result.total.balance} />
-      <div className="flex flex-wrap items-end gap-3 border-t border-border pt-3 text-sm">
-        <label className="block"><span className="field-label">Statut de la matière</span>
-          <select className="input-tech w-56" value={s.status} onChange={(e) => onStatus({ ...s, status: e.target.value as MaterialStatus["status"] })}>
-            <option value="toOrder">À commander</option><option value="ordered">Commandée</option><option value="stock">Matière déjà disponible</option>
-          </select>
-        </label>
-        {s.status === "ordered" && (<>
-          <label className="block"><span className="field-label">Date de commande</span><input type="date" className="input-tech mono" value={s.orderDate ?? ""} onChange={(e) => onStatus({ ...s, orderDate: e.target.value })} /></label>
-          <label className="block"><span className="field-label">Fournisseur</span><input className="input-tech" value={s.supplier ?? ""} onChange={(e) => onStatus({ ...s, supplier: e.target.value })} /></label>
-          <label className="block"><span className="field-label">N° de commande</span><input className="input-tech" value={s.orderNumber ?? ""} onChange={(e) => onStatus({ ...s, orderNumber: e.target.value })} /></label>
-        </>)}
-      </div>
+      <div><p className="text-xs font-semibold text-muted-foreground">Rendement</p><p className="tabular-nums text-3xl font-semibold text-primary">{pct1(i.yieldPct)}</p></div>
     </div>
-  );
+    {!simple && <><p className="tabular-nums text-xs text-muted-foreground">Surface achetée {m2(i.purchased)} m² · pièces {m2(i.pieces)} m²{result.total.totalPrice != null ? ` · prix ${eur(result.total.totalPrice)}` : ""}</p><Split b={result.total.balance} /></>}
+  </div>;
 }
 
 function Legend({ entries }: { entries: { id: string; label: string; color: string }[] }) {
@@ -142,15 +124,38 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
   result: OptimizeResult; materials: Material[]; linears?: LinearRecap[]; pieces?: Piece[]; status?: MaterialStatus | undefined; onStatus?: (s: MaterialStatus) => void;
   offcuts?: OffcutSettings | undefined; onOffcuts?: (o: OffcutSettings) => void;
 }) {
+  const [detailsOpen, setDetailsOpen] = useState(result.errors.length > 0);
+  useEffect(() => { setDetailsOpen(result.errors.length > 0); }, [result, materialId, summaryOnly]);
+  const visibleMaterials = result.materials.filter((r) => !materialId || r.materialId === materialId);
+  const scoped = visibleMaterials[0];
+  const displayResult = materialId && scoped ? { ...result, materials: visibleMaterials, total: { sheets: scoped.sheets.length, totalPrice: scoped.totalPrice, balance: scoped.balance } } : result;
   const oc = offcuts ?? DEFAULT_OFFCUT_SETTINGS;
   const ok = result.errors.length === 0;
   const ids: { id: string; label: string; color: string }[] = [];
   for (const r of result.materials) for (const s of r.sheets) for (const p of s.placements)
-    if (!ids.some((e) => e.id === p.pieceId)) ids.push({ id: p.pieceId, label: p.label, color: planColor(ids.length)! });
+    if (!ids.some((e) => e.id === p.pieceId)) ids.push({ id: p.pieceId, label: p.label, color: planColor(ids.length) ?? "var(--card)" });
   const mat = (id: string) => materials.find((m) => m.id === id);
   const colorOf = (id: string) => ids.find((e) => e.id === id)?.color ?? "var(--card)";
+  const renderSheets = (r: MaterialResult, presentation: "plan" | "tables") => {
+    const material = mat(r.materialId);
+    if (!material || !r.sheets.length) return null;
+    return <div className="grid gap-4 xl:grid-cols-2">{groupSheets(r.sheets).map((g) => {
+      const sheetIndex = g.indexes[0];
+      if (sheetIndex == null) return null;
+      const key = (label: string) => offcutKey(r.materialId, sheetIndex, label);
+      return <SheetPlan key={g.sheet.index} group={g} material={material} colorOf={colorOf} mode={oc.mode} presentation={presentation}
+        markOf={(label) => ({ keep: oc.marks[key(label)]?.keep ?? true, note: oc.marks[key(label)]?.note ?? "" })}
+        onMark={(label, patch) => onOffcuts({ ...oc, marks: { ...oc.marks, [key(label)]: { ...oc.marks[key(label)], ...patch } } })} />;
+    })}</div>;
+  };
   return (
     <div className="space-y-6 p-4">
+      {!ok && <div role="alert" className="flex items-center gap-2 rounded-sm border border-destructive bg-destructive-soft p-3 text-sm font-semibold text-destructive"><AlertTriangle size={18} />La vérification a échoué : consultez les détails avant de découper.</div>}
+      <Banner result={displayResult} status={status} simple={!summaryOnly} />
+      {summaryOnly && <Kpis b={result.total.balance} mode={oc.mode} />}
+      <details open={detailsOpen} onToggle={(e) => setDetailsOpen(e.currentTarget.open)} className="border-y border-border">
+        <summary className="cursor-pointer py-3 text-sm font-semibold">Détails</summary>
+        <div className="space-y-5 pb-4">
       <div className="flex flex-wrap items-center gap-3">
         {ok ? (
           <span className="inline-flex items-center gap-1.5 rounded-sm border border-primary/40 bg-primary/10 px-2 py-1 text-xs font-medium text-primary"><CheckCircle2 size={14} /> Vérification OK</span>
@@ -158,25 +163,8 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
           <span className="inline-flex items-center gap-1.5 rounded-sm bg-destructive-soft px-2 py-1 text-xs font-medium text-destructive"><AlertTriangle size={14} /> {result.errors.length} erreur(s) de vérification</span>
         )}
         <span className="tabular-nums text-xs text-muted-foreground">Calcul en {num(result.durationMs)} ms</span>
-        <label className="ml-auto flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Chutes dans le PDF atelier</span>
-          <select className="input-tech w-64" value={oc.mode} onChange={(e) => onOffcuts({ ...oc, mode: e.target.value as OffcutSettings["mode"] })}>
-            <option value="hide">Ne pas afficher</option>
-            <option value="indicative">Chutes conservables (indicatif)</option>
-            <option value="retain">Chutes à conserver (consigne)</option>
-          </select>
-        </label>
-        {oc.mode === "retain" && (
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" className="accent-primary" checked={oc.labelsPage} onChange={(e) => onOffcuts({ ...oc, labelsPage: e.target.checked })} />
-            Ajouter une page d'étiquettes
-          </label>
-        )}
       </div>
       {!ok && <ul className="list-disc pl-5 text-xs text-destructive">{result.errors.map((e, i) => <li key={i}>{e}</li>)}</ul>}
-
-      {!materialId && <><Banner result={result} status={status} onStatus={onStatus} />
-      <Kpis b={result.total.balance} mode={oc.mode} /></>}
 
       {!summaryOnly && linears.length > 0 && (
         <div className="space-y-2">
@@ -208,11 +196,13 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
           <h3 className="text-sm font-semibold">{r.name} <span className="tabular-nums font-normal text-muted-foreground">{num(r.thickness, 1)} mm</span><Badge r={r} mat={mat(r.materialId)} pieces={pieces} />
             <span className="tabular-nums ml-3 text-xs font-normal text-muted-foreground">{r.sheets.length} panneau(x) · rendement {pct1(indicators(r.balance).yieldPct)}</span></h3>
           <Split b={r.balance} />
+          <p className="tabular-nums text-xs text-muted-foreground">Surface achetée {m2(r.balance.purchased)} m² · pièces {m2(r.balance.pieces)} m²</p>
           <Kpis b={r.balance} mode={oc.mode} />
           <p className="tabular-nums text-xs">
             {r.formats.map((f) => `${panelOrder(f.count, f.width, f.length, r.name, r.thickness)}${f.price != null ? ` (${eur(f.count * f.price)})` : ""}`).join(" · ") || "Aucun panneau"}
           </p>
           <Solutions list={r.solutions ?? []} />
+          <Legend entries={ids.filter((e) => r.sheets.some((sheet) => sheet.placements.some((p) => p.pieceId === e.id)))} />
           {r.unplaced.length > 0 && (
             <div className="rounded-sm bg-destructive-soft p-3 text-xs text-destructive">
               <div className="mb-1 font-medium">Pièces impossibles à placer</div>
@@ -243,22 +233,16 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
               </tbody>
             </table>
           )}
-          {mat(r.materialId) && r.sheets.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="text-xs font-semibold uppercase tracking-[0.14em]">Plans de découpe</h4>
-              <Legend entries={ids.filter((e) => r.sheets.some((s) => s.placements.some((p) => p.pieceId === e.id)))} />
-              <div className="grid gap-4 xl:grid-cols-2">
-                {groupSheets(r.sheets).map((g) => {
-                  const key = (label: string) => offcutKey(r.materialId, g.indexes[0]!, label);
-                  return <SheetPlan key={g.sheet.index} group={g} material={mat(r.materialId)!} colorOf={colorOf} mode={oc.mode}
-                    markOf={(label) => ({ keep: oc.marks[key(label)]?.keep ?? true, note: oc.marks[key(label)]?.note ?? "" })}
-                    onMark={(label, patch) => onOffcuts({ ...oc, marks: { ...oc.marks, [key(label)]: { ...oc.marks[key(label)], ...patch } } })} />;
-                })}
-              </div>
-            </div>
-          )}
+          {renderSheets(r, "tables")}
+
         </div>
       ))}
+        </div>
+      </details>
+      {!summaryOnly && visibleMaterials.map((r) => <div key={r.materialId} className="space-y-3">
+        <h4 className="text-xs font-semibold uppercase">Plans de découpe</h4>
+        {renderSheets(r, "plan")}
+      </div>)}
     </div>
   );
 }

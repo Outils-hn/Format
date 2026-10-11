@@ -24,18 +24,24 @@ describe("Bulk rotation", () => {
     fireEvent.click(all);
     expect(all).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Autoriser la rotation de P2" })).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "Autoriser la rotation de P3" })).toBeDisabled();
-    expect(screen.getByRole("checkbox", { name: "Autoriser la rotation de P3" })).not.toBeChecked();
+    expect(screen.queryByRole("checkbox", { name: "Autoriser la rotation de P3" })).not.toBeInTheDocument();
+    expect(screen.getByText("Sens imposé")).toBeInTheDocument();
     fireEvent.click(all);
     expect(screen.getByRole("checkbox", { name: "Autoriser la rotation de P1" })).not.toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Autoriser la rotation de P2" })).not.toBeChecked();
     fireEvent.click(screen.getByRole("button", { name: /^Ajouter$/ }));
-    expect(screen.getByRole("checkbox", { name: "Autoriser la rotation de P4" })).not.toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "Autoriser la rotation de P4" })).toBeDisabled();
+    expect(screen.queryByRole("checkbox", { name: "Autoriser la rotation de P4" })).not.toBeInTheDocument();
   });
 });
 
 describe("Entry sections", () => {
+  it("integrates the subtitle and hides settings by default", () => {
+    render(<PiecesCard pieces={[]} materials={materials} onChange={() => {}} subtitle="2 070 × 2 800 · scie" settings={<label>Objectif<input /></label>} />);
+    expect(screen.getByText("2 070 × 2 800 · scie")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Objectif")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Réglages" }));
+    expect(screen.getByLabelText("Objectif")).toBeInTheDocument();
+  });
   it("filters material rows and preserves the other material when editing or adding", () => {
     function FilteredExample() {
       const [rows, setRows] = useState<Piece[]>([
