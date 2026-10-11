@@ -237,7 +237,8 @@ function Index() {
           </>}
             settings={<ProjectSettings status={project.materialStatus} onStatus={(materialStatus) => setProject({ ...project, materialStatus })} offcuts={project.offcuts} onOffcuts={(offcuts) => setProject({ ...project, offcuts })}
               workshop={workshop} orderType={typeOf(selectedTab)} onOrderType={(t) => setProject({ ...project, orderTypes: { ...project.orderTypes, [selectedTab]: t } })}
-              showEstimate={project.showEstimate} onShowEstimate={(showEstimate) => setProject({ ...project, showEstimate })}>
+              showEstimate={project.showEstimate} onShowEstimate={(showEstimate) => setProject({ ...project, showEstimate })}
+              supplierRemarks={project.supplierRemarks?.[selectedTab] ?? ""} onSupplierRemarks={(remarks) => setProject({ ...project, supplierRemarks: { ...project.supplierRemarks, [selectedTab]: remarks } })}>
               {optimizationControls}
             </ProjectSettings>}
             highlightEmpty={checkInputs} linears={linears} onLinearsChange={(l) => setProject({ ...project, linears: l })} />

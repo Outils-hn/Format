@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { MaterialStatus, OffcutSettings, OrderType } from "@/lib/types";
 import { DEFAULT_OFFCUT_SETTINGS } from "@/lib/offcuts";
 
-export function ProjectSettings({ children, status, onStatus, offcuts, onOffcuts, workshop = true, orderType, onOrderType, showEstimate, onShowEstimate }: {
+export function ProjectSettings({ children, status, onStatus, offcuts, onOffcuts, workshop = true, orderType, onOrderType, showEstimate, onShowEstimate, supplierRemarks = "", onSupplierRemarks }: {
   children?: ReactNode;
   status?: MaterialStatus | undefined;
   onStatus: (s: MaterialStatus) => void;
@@ -13,6 +13,8 @@ export function ProjectSettings({ children, status, onStatus, offcuts, onOffcuts
   onOrderType?: (t: OrderType) => void;
   showEstimate?: boolean | undefined;
   onShowEstimate?: (v: boolean) => void;
+  supplierRemarks?: string;
+  onSupplierRemarks?: (v: string) => void;
 }) {
   const s = status ?? { status: "toOrder" as const };
   const oc = offcuts ?? DEFAULT_OFFCUT_SETTINGS;
@@ -24,6 +26,9 @@ export function ProjectSettings({ children, status, onStatus, offcuts, onOffcuts
       </select>
     </label>}
     {orderType === "cut" && onShowEstimate && <label className="flex items-center gap-2 py-2"><input type="checkbox" className="accent-primary" checked={!!showEstimate} onChange={(e) => onShowEstimate(e.target.checked)} />Afficher l'estimation de panneaux</label>}
+    {onSupplierRemarks && <label className="w-full"><span className="field-label">Remarques pour le fournisseur</span>
+      <textarea className="input-tech h-auto min-h-20 py-2" value={supplierRemarks} onChange={(e) => onSupplierRemarks(e.target.value)} />
+    </label>}
     <label><span className="field-label">Statut de la matière</span>
       <select className="input-tech w-56 max-w-full" value={s.status} onChange={(e) => onStatus({ ...s, status: e.target.value as MaterialStatus["status"] })}>
         <option value="toOrder">À commander</option><option value="ordered">Commandée</option><option value="stock">Matière déjà disponible</option>

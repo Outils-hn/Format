@@ -160,10 +160,10 @@ select.input-tech {
   color: var(--foreground);
   padding-right: 2rem;
   background-image:
-    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
-    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+    linear-gradient(45deg, transparent 42%, var(--muted-foreground) 42%, var(--muted-foreground) 58%, transparent 58%),
+    linear-gradient(135deg, transparent 42%, var(--muted-foreground) 42%, var(--muted-foreground) 58%, transparent 58%);
   background-position: calc(100% - 14px) 50%, calc(100% - 10px) 50%;
-  background-size: 4px 4px;
+  background-size: 4px 5px;
   background-repeat: no-repeat;
 }
 select.input-tech option { text-decoration: none; font-style: normal; font-weight: 400; }
