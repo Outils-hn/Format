@@ -102,6 +102,17 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
             <option value="free">Placement libre (CNC)</option>
           </select>
         </label>
+        <label className="col-span-2 block sm:col-span-1">
+          <span className="field-label">Fournisseur</span>
+          <input className="input-tech" value={m.supplier ?? ""} onChange={(e) => set({ supplier: e.target.value })} />
+        </label>
+        <label className="col-span-2 block">
+          <span className="field-label">Type de commande</span>
+          <select className="input-tech" value={m.orderType ?? "panels"} onChange={(e) => set({ orderType: e.target.value as OrderType })}>
+            <option value="panels">Panneaux entiers</option>
+            <option value="cut">Pièces débitées par le fournisseur</option>
+          </select>
+        </label>
         <label className="col-span-2 flex items-center gap-2 text-sm sm:col-span-3">
           <input type="checkbox" className="accent-primary" checked={m.grainLocked} onChange={(e) => set({ grainLocked: e.target.checked })} />
           Sens imposé <span className="text-muted-foreground">— les pièces ne tournent pas (décor, fil du bois, laquage)</span>
