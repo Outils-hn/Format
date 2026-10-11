@@ -3,7 +3,7 @@ import { CheckCircle2, AlertTriangle } from "lucide-react";
 import type { Balance, OptimizeResult, SolutionSummary } from "@/lib/optimizer";
 import type { Material, MaterialStatus, Piece } from "@/lib/types";
 import type { MaterialResult } from "@/lib/optimizer";
-import { indicators, lowerBound, materialLines, pct1, splitLine, statusSuffix, statusTitle } from "@/lib/indicators";
+import { indicators, lowerBound, pct1, splitLine, statusSuffix, statusTitle } from "@/lib/indicators";
 import { planColor } from "@/lib/palette";
 import { groupSheets } from "@/lib/cutplan";
 import { SheetPlan } from "./SheetPlan";
