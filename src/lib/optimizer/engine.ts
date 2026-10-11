@@ -7,6 +7,7 @@ import type {
   Objective, Placement, Rect, SheetResult, SolutionSummary, Unplaced,
 } from "./types";
 import { verifyMaterial } from "./verify";
+import { lowerBound } from "../indicators";
 
 export const DEFAULT_REUSE_MIN = 300;
 const INTENSIVE_MS = 2000;
@@ -339,7 +340,11 @@ function optimizeMaterial(m: Material, pieces: Piece[], opt: OptimizeOptions, bu
       for (const cfg of cfgs)
         for (const v of variants)
           for (const sort of SORTS) consider(keyOf(s, cfg), s.fmts, [...v].sort(sort), cfg);
-    if (opt.intensive && strategies.length) {
+    // Recherche approfondie automatique, sauf si le resultat atteint deja la borne theorique
+    // (impossible de faire moins de panneaux en format unique).
+    const lb = lowerBound(m, own);
+    const alreadyOptimal = lb != null && best != null && (best as RawSheet[]).length <= lb;
+    if (opt.intensive && strategies.length && !alreadyOptimal) {
       // Budget de travail fixe + graine fixe : le meme projet donne toujours le meme resultat.
       // Le delai ne sert que de garde-fou sur une machine tres lente.
       const rnd = seededRandom(seedOf(m, items));
