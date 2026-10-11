@@ -9,16 +9,17 @@ import { Modal } from "./Modal";
 const DEFAULT_ROLES: ColumnRole[] = ["label", "material", "width", "height", "quantity"];
 
 export function PasteDialog({
-  materials, onClose, onApply,
+  materials, onClose, onApply, defaultMaterialId,
 }: {
   materials: Material[];
+  defaultMaterialId?: string;
   onClose: () => void;
   onApply: (pieces: Piece[], mode: "replace" | "append") => void;
 }) {
   const [text, setText] = useState("");
   const [roles, setRoles] = useState<ColumnRole[] | null>(null);
   const [overrides, setOverrides] = useState<Record<string, string>>({});
-  const [fallback, setFallback] = useState(materials[0]?.id ?? "");
+  const [fallback, setFallback] = useState(defaultMaterialId ?? materials[0]?.id ?? "");
 
   const table = useMemo(() => parseTable(text), [text]);
   const header = useMemo(() => (table[0] ? detectHeader(table[0]) : null), [table]);
