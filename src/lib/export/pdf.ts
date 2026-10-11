@@ -9,7 +9,7 @@ import { cleanName, download, pieceOrder } from "./common";
 import { DEFAULT_OFFCUT_SETTINGS, labeledOffcuts, markResolver, retainedOffcuts, reusableOffcutItems, type MarkOf } from "../offcuts";
 import type { OffcutSettings } from "../types";
 import { DEFAULT_REUSE_MIN } from "../optimizer/engine";
-import { dims, eur, m2, num } from "../format";
+import { dims, eur, m2, num, panelGroup, panelOrder, positionPair, reuseCaption } from "../format";
 import { fitPieceLabel, pieceRowKey } from "../pieceLabels";
 import { INTER_BOLD, INTER_REGULAR } from "./interFont";
 import type { LinearRecap } from "../linear";
@@ -33,7 +33,20 @@ function resolveColor(cssVar: string): RGB {
 
 const fmtDate = (iso: string) => iso.split("-").reverse().join("/");
 
-type TableColumn = { h: string; w: number; right?: boolean };
+type TableColumn = { h: string; w: number; right?: boolean; positionPairs?: boolean };
+
+/** X/Y pairs are indivisible, even when jsPDF would split a long word. */
+function wrapPositions(doc: jsPDF, text: string, width: number): string[] {
+  const lines: string[] = [];
+  let line = "";
+  for (const pair of text.split(" · ")) {
+    const next = line ? `${line} · ${pair}` : pair;
+    if (line && doc.getTextWidth(next) > width) { lines.push(line); line = pair; }
+    else line = next;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
 
 export class Writer {
   doc = (() => {
@@ -73,7 +86,8 @@ export class Writer {
     const headerHeight = heightOf(header);
     const body = rows.map((r) => {
       // Bold measurement is conservative, including the optional total row.
-      const cells = cols.map((c, j) => this.doc.splitTextToSize(r[j] ?? "", c.w * k - 3) as string[]);
+      const cells = cols.map((c, j) => c.positionPairs ? wrapPositions(this.doc, r[j] ?? "", c.w * k - 3)
+        : this.doc.splitTextToSize(r[j] ?? "", c.w * k - 3) as string[]);
       return { cells, height: heightOf(cells) };
     });
     return { k, header, headerHeight, body, lineHeight, height: headerHeight + body.reduce((sum, r) => sum + r.height, 0) + 3 };
@@ -96,8 +110,16 @@ export class Writer {
       this.font(size * fit, bold);
       let x = M;
       cols.forEach((c, j) => {
-        (cells[j] ?? []).forEach((line, n) => this.doc.text(line, c.right ? x + c.w * layout.k - 1.5 : x + 1.5,
-          this.y + (3.6 * size / 8 + n * layout.lineHeight) * fit, { align: c.right ? "right" : "left" }));
+        (cells[j] ?? []).forEach((line, n) => {
+          this.font(size * fit, bold);
+          if (c.positionPairs) {
+            const width = this.doc.getTextWidth(line);
+            const available = c.w * layout.k - 3;
+            if (width > available) this.font(size * fit * available / width, bold);
+          }
+          this.doc.text(line, c.right ? x + c.w * layout.k - 1.5 : x + 1.5,
+            this.y + (3.6 * size / 8 + n * layout.lineHeight) * fit, { align: c.right ? "right" : "left" });
+        });
         x += c.w * layout.k;
       });
       this.y += height * fit;
@@ -118,13 +140,13 @@ export class Writer {
   }
 }
 
-function kpis(w: Writer, b: Balance, sheets: number, mat?: Material, pieces: Piece[] = [], unplaced = 0) {
+function kpis(w: Writer, b: Balance, sheets: number, mode: OffcutSettings["mode"], mat?: Material, pieces: Piece[] = [], unplaced = 0) {
   const i = indicators(b);
   const lb = mat && !unplaced ? lowerBound(mat, pieces) : null;
   const badge = lb == null ? "" : sheets <= lb ? " · Résultat optimal" : ` · Meilleur résultat trouvé (borne minimale théorique : ${lb} panneaux)`;
   w.text(`${sheets} panneau(x) · Rendement ${pct1(i.yieldPct)}${badge}`, 9, true, INK, 1);
   splitBar(w, b);
-  cards(w, i);
+  cards(w, i, mode);
 }
 
 function splitBar(w: Writer, b: Balance) {
@@ -142,9 +164,9 @@ function splitBar(w: Writer, b: Balance) {
   w.text(splitLine(i), 7.5, false, GREY, 1.5);
 }
 
-function cards(w: Writer, i: ReturnType<typeof indicators>) {
+function cards(w: Writer, i: ReturnType<typeof indicators>, mode: OffcutSettings["mode"]) {
   const items: [string, string, string][] = [
-    ["Chutes réutilisables", `${m2(i.reusable)} m² · ${pct1(i.reusablePct)}`, "À conserver pour d'autres travaux"],
+    ["Chutes réutilisables", `${m2(i.reusable)} m² · ${pct1(i.reusablePct)}`, reuseCaption(mode)],
     ["Perte définitive", `${m2(i.loss)} m² · ${pct1(i.lossPct)}`, "Matière réellement jetée"],
   ];
   const gap = 2.5, h = 16;
@@ -288,36 +310,28 @@ function drawPlan(doc: jsPDF, s: SheetResult, mat: Material, cuts: Cut[], color:
 
 function sheetPage(w: Writer, g: SheetGroup, mat: Material, r: { name: string; thickness: number }, color: (id: string) => RGB, mode: OffcutSettings["mode"], mark: MarkOf) {
   const s = g.sheet;
-  const lead = g.indexes[0]!;
+  const lead = g.indexes[0];
+  if (lead === undefined) return;
   w.newPage(s.width > s.length ? "landscape" : "portrait");
-  w.font(12, true);
-  w.doc.text(`Panneau ${g.indexes.join(", ")}`, M, w.y + 5);
-  const tx = M + w.doc.getTextWidth(`Panneau ${g.indexes.join(", ")}`) + 4;
-  w.font(9, false, GREY);
-  w.doc.text(`${r.name} ${num(r.thickness, 1)} mm · ${dims(s.width, s.length)} mm`, tx, w.y + 5);
-  if (g.count > 1) {
-    const bx = w.W - M - 14;
-    w.doc.setFillColor(...INK); w.doc.rect(bx, w.y, 14, 7, "F");
-    w.font(11, true, [255, 255, 255]); w.doc.text(`× ${g.count}`, bx + 7, w.y + 3.5, { align: "center", baseline: "middle" });
-  }
-  w.y += 12;
+  w.text(panelGroup(g.indexes), 12, true, INK, 1);
+  w.text(`${r.name} ${num(r.thickness, 1)} mm · ${dims(s.width, s.length)} mm`, 9, false, GREY, 3);
   const cuts = mat.cutType === "guillotine" ? cutSequence(s.placements, s.usableW, s.usableL, mat.kerf, mat.trim) : [];
   const map = new Map<string, { label: string; w: number; h: number; rot: boolean; qty: number; pos: string[] }>();
   for (const p of s.placements) {
     const key = pieceRowKey(p);
     const e = map.get(key) ?? { label: p.label, w: p.w, h: p.h, rot: p.rotated, qty: 0, pos: [] };
-    e.qty++; e.pos.push(`${num(p.x + mat.trim, 1)} / ${num(p.y + mat.trim, 1)}`); map.set(key, e);
+    e.qty++; e.pos.push(positionPair(p.x + mat.trim, p.y + mat.trim)); map.set(key, e);
   }
   const keys = [...map.keys()];
   const refOf = (key: string) => keys.indexOf(key) + 1;
-  const pieceCols: TableColumn[] = [{ h: "N°", w: 7, right: true }, { h: "Repère", w: 16 }, { h: "Dimensions (mm)", w: 22 }, { h: "Qté", w: 8, right: true }, { h: "Tournée", w: 12 }, { h: "Position X / Y (mm)", w: 55 }];
+  const pieceCols: TableColumn[] = [{ h: "N°", w: 7, right: true }, { h: "Repère", w: 16 }, { h: "Dimensions (mm)", w: 22 }, { h: "Qté", w: 8, right: true }, { h: "Tournée", w: 12 }, { h: "Position X / Y (mm)", w: 55, positionPairs: true }];
   const pieceRows = [...map.values()].map((e, i) => [String(i + 1), e.label, dims(e.w, e.h), String(e.qty), e.rot ? "oui" : "non", e.pos.join(" · ")]);
   const offcuts = labeledOffcuts(s);
-  const offcutCols: TableColumn[] = [{ h: "Repère", w: 14 }, { h: "Dimensions (mm)", w: 30 }, { h: "Surface (m²)", w: 22, right: true }, { h: "Position X / Y (mm)", w: 30 }];
+  const offcutCols: TableColumn[] = [{ h: "Repère", w: 14 }, { h: "Dimensions (mm)", w: 30 }, { h: "Surface (m²)", w: 22, right: true }, { h: "Position X / Y (mm)", w: 30, positionPairs: true }];
   if (mode !== "hide") offcutCols.push({ h: mode === "retain" ? "Consigne" : "Destination", w: mode === "retain" ? 50 : 25 });
   const marks = offcuts.map((o) => mode === "retain" && o.reusable ? mark(mat.id, lead, o.label) : null);
   const offcutRows = offcuts.map((o, i) => {
-    const row = [o.label, dims(o.w, o.h), m2(o.w * o.h), `${num(o.x + mat.trim, 1)} / ${num(o.y + mat.trim, 1)}`];
+    const row = [o.label, dims(o.w, o.h), m2(o.w * o.h), positionPair(o.x + mat.trim, o.y + mat.trim)];
     const mk = marks[i];
     if (mode === "indicative") row.push(o.reusable ? "Conservable" : "—");
     if (mode === "retain") row.push(mk?.keep ? `À CONSERVER - NE PAS JETER${mk.note.trim() ? ` — ${mk.note.trim()}` : ""}` : "—");
@@ -364,9 +378,9 @@ function sheetPage(w: Writer, g: SheetGroup, mat: Material, r: { name: string; t
     for (const c of cuts) w.text(`${c.n}. ${c.text}`, 8, false, INK, 0);
     w.y += 2;
   }
-  w.table(pieceCols, pieceRows, false, `Pièces — Panneau ${g.indexes.join(", ")}`);
-  if (offcuts.length) w.table(offcutCols, offcutRows, false, `Chutes — Panneau ${g.indexes.join(", ")}`, (i) => !!marks[i]?.keep);
-  else { w.ensure(13); w.text(`Chutes — Panneau ${g.indexes.join(", ")}`, 9, true); w.text("Aucune chute.", 8, false, GREY); }
+  w.table(pieceCols, pieceRows, false, `Pièces — ${panelGroup(g.indexes)}`);
+  if (offcuts.length) w.table(offcutCols, offcutRows, false, `Chutes — ${panelGroup(g.indexes)}`, (i) => !!marks[i]?.keep);
+  else { w.ensure(13); w.text(`Chutes — ${panelGroup(g.indexes)}`, 9, true); w.text("Aucune chute.", 8, false, GREY); }
 }
 
 function labelsPage(w: Writer, result: OptimizeResult, mark: MarkOf, info: ProjectInfo) {
@@ -419,11 +433,11 @@ export function exportWorkshopPdf(result: OptimizeResult, materials: Material[],
   // Bandeau principal
   const ti = indicators(result.total.balance);
   w.text(`${statusTitle(status)}${statusSuffix(status)}`, 8, true, GREY, 0.5);
-  for (const l of materialLines(result.materials)) w.text(`${l.text} — ${l.name}`, 14, true, INK, 0.5);
+  for (const l of materialLines(result.materials)) w.text(l.text, 14, true, INK, 0.5);
   w.text(`Rendement : ${pct1(ti.yieldPct)}`, 14, true, INK, 0.5);
   w.text(`Surface achetée ${m2(ti.purchased)} m² · pièces ${m2(ti.pieces)} m²${result.total.totalPrice != null ? ` · prix ${eur(result.total.totalPrice)}` : ""}`, 7.5, false, GREY, 1.5);
   splitBar(w, result.total.balance);
-  cards(w, ti);
+  cards(w, ti, oc.mode);
   w.y += 2;
 
   for (const r of result.materials) {
@@ -434,9 +448,9 @@ export function exportWorkshopPdf(result: OptimizeResult, materials: Material[],
       w.text(`Format(s) : ${supplyText(mat)}`, 8.5, false, INK, 0);
       w.text(`Trait de coupe : ${num(mat.kerf, 1)} mm · Délignage : ${num(mat.trim, 1)} mm par bord · Chute réutilisable à partir de : ${num(mat.reuseMin ?? DEFAULT_REUSE_MIN)} mm · Type de découpe : ${mat.cutType === "guillotine" ? "guillotine (scie à panneaux)" : "libre (CNC)"} · Sens imposé : ${mat.grainLocked ? "oui" : "non"}`, 8.5, false, INK, 2);
     }
-    kpis(w, r.balance, r.sheets.length, mat, pieces, r.unplaced.length);
+    kpis(w, r.balance, r.sheets.length, oc.mode, mat, pieces, r.unplaced.length);
     if (r.formats.length)
-      w.text(`${statusTitle(status)} : ${r.formats.map((f) => `${f.count} × ${dims(f.width, f.length)} mm${f.price != null ? ` (${eur(f.count * f.price)})` : ""}`).join(" · ")}${statusSuffix(status)}`, 8.5, true, INK, 2);
+      w.text(`${statusTitle(status)} : ${r.formats.map((f) => `${panelOrder(f.count, f.width, f.length, r.name, r.thickness)}${f.price != null ? ` (${eur(f.count * f.price)})` : ""}`).join(" · ")}${statusSuffix(status)}`, 8.5, true, INK, 2);
     if (r.unplaced.length) w.text(`Pièces impossibles à placer : ${r.unplaced.map((u) => `${u.label} × ${u.quantity} (${u.reason})`).join(" ; ")}`, 8.5, true, INK, 2);
     const list = pieces.filter((p) => p.materialId === r.materialId);
     const qty = list.reduce((a, p) => a + p.quantity, 0);
