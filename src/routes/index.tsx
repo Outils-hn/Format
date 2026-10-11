@@ -287,9 +287,9 @@ function Index() {
             <span>{m.name} <span className="tabular-nums text-muted-foreground">{num(m.thickness, 1)} mm</span></span>
             <Plus size={16} />
           </Button>)}
-          {materials.length === 0 && <p className="py-4 text-sm text-muted-foreground">Aucun matériau dans la bibliothèque.</p>}
+          {materials.length === 0 && <p className="py-4 text-sm font-medium">Créez d'abord un matériau</p>}
         </div>
-        <Button asChild variant="outline" className="btn-outline mt-4"><Link to="/bibliotheque"><Library size={15} /> Bibliothèque</Link></Button>
+        <Button asChild variant="outline" className="btn-outline mt-4"><Link to="/bibliotheque"><Library size={15} /> {materials.length ? "Bibliothèque" : "Aller à la Bibliothèque"}</Link></Button>
       </Modal>}
 
       {showProjects && (
