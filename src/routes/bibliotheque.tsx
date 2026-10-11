@@ -1,11 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ArrowLeft, Library } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, Download, Library, Upload } from "lucide-react";
+import { toast } from "sonner";
 import type { Material } from "@/lib/types";
-import { loadMaterials, saveMaterials } from "@/lib/storage";
+import { exportLibrary, loadMaterials, parseLibrary, saveMaterials } from "@/lib/storage";
+import { uid } from "@/lib/ids";
 import { MaterialsCard } from "@/components/format/MaterialsCard";
 import { Brand } from "@/components/format/Brand";
+import { Modal } from "@/components/format/Modal";
 import { Button } from "@/components/ui/button";
+import { download } from "@/lib/export/common";
 
 export const Route = createFileRoute("/bibliotheque")({
   head: () => ({ meta: [
@@ -19,10 +23,43 @@ export const Route = createFileRoute("/bibliotheque")({
   component: LibraryPage,
 });
 
+const sameName = (a: Material, b: Material) => a.name.trim().toLowerCase() === b.name.trim().toLowerCase();
+
 function LibraryPage() {
   const [materials, setMaterials] = useState<Material[]>([]);
+  // Import en cours : bibliothèque en construction + matériaux restant à traiter.
+  const [pending, setPending] = useState<{ lib: Material[]; queue: Material[]; added: number } | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   useEffect(() => { setMaterials(loadMaterials()); }, []);
   const change = (next: Material[]) => { saveMaterials(next); setMaterials(next); };
+
+  // Ajoute sans conflit jusqu'au prochain doublon de nom, qui attend une réponse.
+  const advance = (lib: Material[], queue: Material[], added: number) => {
+    let next = [...lib]; let rest = [...queue]; let n = added;
+    while (rest.length) {
+      const m = rest[0]!;
+      if (next.some((x) => sameName(x, m))) { setPending({ lib: next, queue: rest, added: n }); return; }
+      next.push(next.some((x) => x.id === m.id) ? { ...m, id: uid() } : m); rest = rest.slice(1); n++;
+    }
+    setPending(null); change(next); toast.success(`${n} matériau(x) importé(s)`);
+  };
+  const resolve = (replace: boolean) => {
+    if (!pending) return;
+    const [m, ...rest] = pending.queue;
+    if (!m) return;
+    const lib = replace
+      ? pending.lib.map((x) => (sameName(x, m) ? { ...m, id: x.id } : x))
+      : [...pending.lib, { ...m, id: uid() }];
+    advance(lib, rest, pending.added + 1);
+  };
+  const onFile = async (f: File | undefined) => {
+    if (!f) return;
+    try { advance(materials, parseLibrary(await f.text()), 0); }
+    catch { toast.error("Fichier invalide"); }
+    if (fileRef.current) fileRef.current.value = "";
+  };
+  const conflict = pending?.queue[0];
+
   return <div className="min-h-screen">
     <header className="border-b border-border bg-card/90 backdrop-blur">
       <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-4 px-8 py-3">
@@ -31,8 +68,22 @@ function LibraryPage() {
       </div>
     </header>
     <main className="mx-auto max-w-[1600px] space-y-5 px-8 py-6">
-      <h2 className="flex items-center gap-2 text-xl font-semibold"><Library size={20} /> Bibliothèque</h2>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="mr-auto flex items-center gap-2 text-xl font-semibold"><Library size={20} /> Bibliothèque</h2>
+        <Button variant="outline" className="btn-outline" disabled={!materials.length}
+          onClick={() => download(new Blob([exportLibrary(materials)], { type: "application/json" }), "format-bibliotheque.json")}>
+          <Download size={14} /> Exporter la bibliothèque (.json)</Button>
+        <Button variant="outline" className="btn-outline" onClick={() => fileRef.current?.click()}><Upload size={14} /> Importer une bibliothèque (.json)</Button>
+        <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
+      </div>
       <MaterialsCard materials={materials} onChange={change} />
     </main>
+    {conflict && <Modal title="Matériau déjà présent" onClose={() => setPending(null)}>
+      <p className="text-sm">Un matériau nommé « {conflict.name} » existe déjà dans la bibliothèque.</p>
+      <div className="mt-5 flex justify-end gap-2">
+        <Button variant="outline" className="btn-outline" onClick={() => resolve(false)}>Garder les deux</Button>
+        <Button className="btn-primary" onClick={() => resolve(true)}>Remplacer</Button>
+      </div>
+    </Modal>}
   </div>;
 }
