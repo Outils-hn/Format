@@ -2,7 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import { PiecesCard } from "./PiecesCard";
-import { sampleMaterials, newPiece } from "@/lib/defaults";
+import { newPiece } from "@/lib/defaults";
+import { sampleMaterials } from "@/test/fixtures";
 import { newLinear } from "@/lib/linear";
 import type { Piece } from "@/lib/types";
 
