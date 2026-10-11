@@ -35,6 +35,18 @@ describe("Bulk rotation", () => {
 });
 
 describe("Entry sections", () => {
+  it("marks only invalid editable cells and leaves linear settings framed", () => {
+    render(<PiecesCard materialId="mat-mdf19" materials={materials}
+      pieces={[{ ...newPiece("mat-mdf19", 1), width: null, height: 400, quantity: 0 }]}
+      onChange={() => {}} linears={[{ ...newLinear("mat-mdf19", 1), bandWidth: 366, totalLength: 400 }]}
+      onLinearsChange={() => {}} />);
+    expect(screen.getByLabelText("Largeur de P1")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("Quantité de P1")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("Hauteur de P1")).not.toHaveAttribute("aria-invalid");
+    expect(screen.getByLabelText("Largeur de P1").closest("tr")).toHaveClass("entry-cell-row");
+    expect(screen.getByLabelText("Largeur de bande").closest("tr")).toHaveClass("entry-cell-row");
+    expect(screen.getByLabelText("Tronçon (mm)").closest("tr")).not.toHaveClass("entry-cell-row");
+  });
   it("integrates the subtitle and hides settings by default", () => {
     render(<PiecesCard pieces={[]} materials={materials} onChange={() => {}} subtitle="2 070 × 2 800 · scie" settings={<label>Objectif<input /></label>} />);
     expect(screen.getByText("2 070 × 2 800 · scie")).toBeInTheDocument();
