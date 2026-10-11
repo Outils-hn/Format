@@ -39,6 +39,7 @@ function Index() {
   const [objective, setObjective] = useState<Objective>("waste");
   const [intensive, setIntensive] = useState(false);
   const [running, setRunning] = useState(false);
+  const [checkInputs, setCheckInputs] = useState(false);
   const [result, setResult] = useState<OptimizeResult | null>(null);
   const [suggestion, setSuggestion] = useState<{
     key: string; ids: string[]; saved: number; result: OptimizeResult;
@@ -55,6 +56,10 @@ function Index() {
   const usedMats = materials.filter((m) => project.pieces.some((p) => p.materialId === m.id));
   const priceAvailable = usedMats.length > 0 && usedMats.every((m) => m.supply.mode === "catalog" && m.supply.formats.every((f) => f.price != null));
   const run = async () => {
+    const emptyField = project.pieces.some((p) => !p.width || !p.height || !p.quantity)
+      || linears.some((l) => !l.bandWidth || !l.totalLength || (l.mode === "fixed" ? !l.segment : !l.min));
+    if (emptyField) { setCheckInputs(true); toast.error("Complétez les champs entourés en rouge"); return; }
+    setCheckInputs(false);
     if (!allPieces.length) { toast.error("Ajoutez des pièces avant de lancer l'optimisation"); return; }
     if (linears.some((l) => typeof linearSegments(l, materials) === "string")) { toast.error("Un linéaire est incomplet ou impossible"); return; }
     const withLinearCheck = (r: OptimizeResult) => ({ ...r, errors: [...r.errors, ...linearErrors(linearRecap(linears, materials, allPieces, r))] });
@@ -131,7 +136,7 @@ function Index() {
             <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"} onClick={async () => {
               if (!result) return;
               if ((!info.site.trim() || !info.taskNumber.trim()) && !confirm("Le chantier ou le numéro de tâche est vide. Générer le PDF quand même ?")) return;
-              try { const { exportWorkshopPdf } = await import("@/lib/export/pdf"); exportWorkshopPdf(result, materials, allPieces, info, recap, project.materialStatus); }
+              try { const { exportWorkshopPdf } = await import("@/lib/export/pdf"); exportWorkshopPdf(result, materials, allPieces, info, recap, project.materialStatus, project.offcuts); }
               catch (e) { console.error(e); toast.error("Échec de la génération du PDF"); }
             }}><FileText size={15} /> PDF atelier</button>
             <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"} onClick={async () => {
@@ -167,7 +172,7 @@ function Index() {
         <div className="grid gap-5 lg:grid-cols-[minmax(300px,380px)_1fr]">
           <MaterialsCard materials={materials} onChange={setMaterials} />
           <PiecesCard pieces={project.pieces} materials={materials} onChange={(pieces) => setProject({ ...project, pieces })}
-            linears={linears} onLinearsChange={(l) => setProject({ ...project, linears: l })} />
+            highlightEmpty={checkInputs} linears={linears} onLinearsChange={(l) => setProject({ ...project, linears: l })} />
         </div>
 
         <div className="card-tech flex flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -207,7 +212,7 @@ function Index() {
               }}>Appliquer</button>
             </div>
           )}
-          {result ? <ResultsPanel result={result} materials={materials} linears={recap} pieces={allPieces} status={project.materialStatus} onStatus={(materialStatus) => setProject({ ...project, materialStatus })} /> : (
+          {result ? <ResultsPanel result={result} materials={materials} linears={recap} pieces={allPieces} status={project.materialStatus} onStatus={(materialStatus) => setProject({ ...project, materialStatus })} offcuts={project.offcuts} onOffcuts={(offcuts) => setProject({ ...project, offcuts })} /> : (
             <div className="flex flex-col items-center gap-4 px-4 py-12 text-sm text-muted-foreground">
               <div className="flex gap-2">
                 <span className="h-8 w-12 rounded-sm border border-border hatch-waste" />
