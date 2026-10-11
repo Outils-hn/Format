@@ -9,7 +9,7 @@ import { groupSheets } from "@/lib/cutplan";
 import { SheetPlan } from "./SheetPlan";
 import { PanelGroupLabel } from "./PanelGroupLabel";
 import type { LinearRecap } from "@/lib/linear";
-import { orderLines } from "@/lib/order";
+import { orderEntries } from "@/lib/order";
 import type { OrderType } from "@/lib/types";
 
 import { dims, eur, m2, num, panelOrder, reuseCaption } from "@/lib/format";
@@ -71,7 +71,10 @@ function Banner({ result, status, simple = false, typeOf }: { result: OptimizeRe
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-muted-foreground">{simple ? `${title} :` : statusTitle(s)}{statusSuffix(s)}</p>
-        {orderLines(result.materials, typeOf).map((l, k) => <p key={k} className="mt-1 text-xl font-semibold tabular-nums">{l}</p>)}
+        {orderEntries(result.materials, typeOf).map((entry, k) => <div key={k} className="mt-1">
+          <p className="text-xl font-semibold tabular-nums">{entry.title}</p>
+          {entry.estimate && <p className="mt-1 text-xs text-muted-foreground tabular-nums">{entry.estimate}</p>}
+        </div>)}
       </div>
       <div><p className="text-xs font-semibold text-muted-foreground">Rendement</p><p className="tabular-nums text-3xl font-semibold text-primary">{pct1(i.yieldPct)}</p></div>
     </div>
@@ -134,9 +137,15 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
   const displayResult = materialId && scoped ? { ...result, materials: visibleMaterials, total: { sheets: scoped.sheets.length, totalPrice: scoped.totalPrice, balance: scoped.balance } } : result;
   const oc = offcuts ?? DEFAULT_OFFCUT_SETTINGS;
   const ok = result.errors.length === 0;
-  const ids: { id: string; label: string; color: string }[] = [];
+  const ids: { id: string; label: string; color: string; materialId: string; width: number; height: number }[] = [];
   for (const r of result.materials) for (const s of r.sheets) for (const p of s.placements)
-    if (!ids.some((e) => e.id === p.pieceId)) ids.push({ id: p.pieceId, label: p.label, color: planColor(ids.length) ?? "var(--card)" });
+    if (!ids.some((e) => e.id === p.pieceId)) ids.push({ id: p.pieceId, label: p.label, color: planColor(ids.length) ?? "var(--card)", materialId: r.materialId, width: p.rotated ? p.h : p.w, height: p.rotated ? p.w : p.h });
+  const legendEntries = ids.map((e) => {
+    const siblings = ids.filter((other) => other.materialId === e.materialId && other.label === e.label);
+    const multipleSizes = siblings.some((other) => other.width !== e.width || other.height !== e.height);
+    const sameWidth = siblings.every((other) => other.width === e.width);
+    return { ...e, label: multipleSizes ? `${e.label} · ${sameWidth ? num(e.height) : dims(e.width, e.height)}` : e.label };
+  });
   const mat = (id: string) => materials.find((m) => m.id === id);
   const colorOf = (id: string) => ids.find((e) => e.id === id)?.color ?? "var(--card)";
   const renderSheets = (r: MaterialResult, presentation: "plan" | "tables" | "thumb") => {
@@ -206,7 +215,7 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
             {r.formats.map((f) => `${panelOrder(f.count, f.width, f.length, r.name, r.thickness)}${f.price != null ? ` (${eur(f.count * f.price)})` : ""}`).join(" · ") || "Aucun panneau"}
           </p>
           <Solutions list={r.solutions ?? []} />
-          <Legend entries={ids.filter((e) => r.sheets.some((sheet) => sheet.placements.some((p) => p.pieceId === e.id)))} />
+           <Legend entries={legendEntries.filter((e) => e.materialId === r.materialId)} />
           {r.unplaced.length > 0 && (
             <div className="rounded-sm bg-destructive-soft p-3 text-xs text-destructive">
               <div className="mb-1 font-medium">Pièces impossibles à placer</div>

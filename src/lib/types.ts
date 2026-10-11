@@ -81,6 +81,7 @@ export interface Project {
   materialStatus?: MaterialStatus | undefined;
   offcuts?: OffcutSettings | undefined;
   orderTypes?: Record<string, OrderType> | undefined; // surcharge par materiau pour ce projet
+  supplierRemarks?: Record<string, string> | undefined; // remarques par materiau pour ce projet
   showEstimate?: boolean | undefined; // estimation de panneaux dans le PDF commande
   workshopMode?: boolean | undefined;
   updatedAt: string;
