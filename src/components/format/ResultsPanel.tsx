@@ -60,14 +60,14 @@ function Badge({ r, mat, pieces }: { r: MaterialResult; mat?: Material | undefin
   );
 }
 
-function Banner({ result, status, simple = false }: { result: OptimizeResult; status?: MaterialStatus; simple?: boolean }) {
+function Banner({ result, status, simple = false }: { result: OptimizeResult; status?: MaterialStatus | undefined; simple?: boolean }) {
   const i = indicators(result.total.balance);
   const s = status ?? { status: "toOrder" as const };
   const title = s.status === "toOrder" ? "À commander" : s.status === "ordered" ? "Commandés" : "À prendre en stock";
   return <div className="space-y-3 rounded-sm border border-primary/40 bg-primary/5 p-4">
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-muted-foreground">{simple ? title : statusTitle(s)}{statusSuffix(s)}</p>
+        <p className="text-sm font-semibold text-muted-foreground">{simple ? `${title} :` : statusTitle(s)}{statusSuffix(s)}</p>
         {materialLines(result.materials).map((l, k) => <p key={k} className="mt-1 text-xl font-semibold tabular-nums">{l.text}</p>)}
       </div>
       <div><p className="text-xs font-semibold text-muted-foreground">Rendement</p><p className="tabular-nums text-3xl font-semibold text-primary">{pct1(i.yieldPct)}</p></div>
@@ -124,8 +124,8 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
   result: OptimizeResult; materials: Material[]; linears?: LinearRecap[]; pieces?: Piece[]; status?: MaterialStatus | undefined; onStatus?: (s: MaterialStatus) => void;
   offcuts?: OffcutSettings | undefined; onOffcuts?: (o: OffcutSettings) => void;
 }) {
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  useEffect(() => { setDetailsOpen(result.errors.length > 0); }, [result]);
+  const [detailsOpen, setDetailsOpen] = useState(result.errors.length > 0);
+  useEffect(() => { setDetailsOpen(result.errors.length > 0); }, [result, materialId, summaryOnly]);
   const visibleMaterials = result.materials.filter((r) => !materialId || r.materialId === materialId);
   const scoped = visibleMaterials[0];
   const displayResult = materialId && scoped ? { ...result, materials: visibleMaterials, total: { sheets: scoped.sheets.length, totalPrice: scoped.totalPrice, balance: scoped.balance } } : result;
@@ -196,11 +196,13 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
           <h3 className="text-sm font-semibold">{r.name} <span className="tabular-nums font-normal text-muted-foreground">{num(r.thickness, 1)} mm</span><Badge r={r} mat={mat(r.materialId)} pieces={pieces} />
             <span className="tabular-nums ml-3 text-xs font-normal text-muted-foreground">{r.sheets.length} panneau(x) · rendement {pct1(indicators(r.balance).yieldPct)}</span></h3>
           <Split b={r.balance} />
+          <p className="tabular-nums text-xs text-muted-foreground">Surface achetée {m2(r.balance.purchased)} m² · pièces {m2(r.balance.pieces)} m²</p>
           <Kpis b={r.balance} mode={oc.mode} />
           <p className="tabular-nums text-xs">
             {r.formats.map((f) => `${panelOrder(f.count, f.width, f.length, r.name, r.thickness)}${f.price != null ? ` (${eur(f.count * f.price)})` : ""}`).join(" · ") || "Aucun panneau"}
           </p>
           <Solutions list={r.solutions ?? []} />
+          <Legend entries={ids.filter((e) => r.sheets.some((sheet) => sheet.placements.some((p) => p.pieceId === e.id)))} />
           {r.unplaced.length > 0 && (
             <div className="rounded-sm bg-destructive-soft p-3 text-xs text-destructive">
               <div className="mb-1 font-medium">Pièces impossibles à placer</div>

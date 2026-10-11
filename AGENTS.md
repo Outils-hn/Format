@@ -24,3 +24,5 @@
 - Order lines, sheet-group labels, unbreakable X/Y pairs and offcut captions use shared format helpers across presentation and exports to keep terminology and traceability consistent.
 - The library uses its own client-only route and existing material storage; project tabs are derived from piece/linear material IDs with transient empty selections, leaving the project/JSON schema and optimization/export inputs unchanged.
 - PiecesCard receives the complete project lists and an optional material filter; scoped edits preserve other materials and paste receives the active material as its default.
+- ProjectSettings presents existing project controls inside PiecesCard; disclosure state is transient, and SheetPlan splits drawings from detail tables through presentation props so PDF and optimization inputs remain unchanged.
+- Brand is shared by the project and library headers to keep the visual identity identical across pages.

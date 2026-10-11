@@ -4,9 +4,9 @@ import { DEFAULT_OFFCUT_SETTINGS } from "@/lib/offcuts";
 
 export function ProjectSettings({ children, status, onStatus, offcuts, onOffcuts }: {
   children?: ReactNode;
-  status?: MaterialStatus;
+  status?: MaterialStatus | undefined;
   onStatus: (s: MaterialStatus) => void;
-  offcuts?: OffcutSettings;
+  offcuts?: OffcutSettings | undefined;
   onOffcuts: (o: OffcutSettings) => void;
 }) {
   const s = status ?? { status: "toOrder" as const };
