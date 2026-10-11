@@ -22,3 +22,5 @@
 - Result indicators (yield/reusable/definitive-loss split, theoretical lower bound, material status texts) are derived in src/lib/indicators.ts and shared by screen and PDF — presentation only, the optimizer stays untouched.
 - Number formatting (src/lib/format.ts) and piece-label fitting (src/lib/pieceLabels.ts) are shared by screen and PDF; the PDF embeds a frozen-tabular Inter subset (src/lib/export/interFont.ts) so text is measured with the real font.
 - Order lines, sheet-group labels, unbreakable X/Y pairs and offcut captions use shared format helpers across presentation and exports to keep terminology and traceability consistent.
+- The library uses its own client-only route and existing material storage; project tabs are derived from piece/linear material IDs with transient empty selections, leaving the project/JSON schema and optimization/export inputs unchanged.
+- PiecesCard receives the complete project lists and an optional material filter; scoped edits preserve other materials and paste receives the active material as its default.

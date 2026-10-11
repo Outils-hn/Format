@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { FilePlus2, FileSpreadsheet, FileText, FolderOpen, Loader2, Play, Save } from "lucide-react";
+import { FilePlus2, FileSpreadsheet, FileText, FolderOpen, Library, Loader2, Play, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
 import type { Material, Project } from "@/lib/types";
 import { newProject } from "@/lib/defaults";
@@ -9,13 +9,15 @@ import {
 } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/format/Logo";
-import { MaterialsCard } from "@/components/format/MaterialsCard";
+import { Modal } from "@/components/format/Modal";
 import { PiecesCard } from "@/components/format/PiecesCard";
 import { ProjectsDialog } from "@/components/format/ProjectsDialog";
 import { ResultsPanel } from "@/components/format/ResultsPanel";
 import { runOptimization, type Objective, type OptimizeResult } from "@/lib/optimizer";
 import { linearErrors, linearPieces, linearRecap, linearSegments } from "@/lib/linear";
 import { allowRotation, rotationCandidates, rotationSavings } from "@/lib/rotation";
+import { validatePiece } from "@/lib/validation";
+import { dims, num } from "@/lib/format";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -36,6 +38,9 @@ function Index() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [project, setProject] = useState<Project>(newProject);
   const [showProjects, setShowProjects] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("");
+  const [addedMaterials, setAddedMaterials] = useState<string[]>([]);
+  const [choosingMaterial, setChoosingMaterial] = useState(false);
   const [objective, setObjective] = useState<Objective>("waste");
   const [intensive, setIntensive] = useState(false);
   const [running, setRunning] = useState(false);
@@ -52,6 +57,12 @@ function Index() {
   const latestInput = useRef(inputKey);
   latestInput.current = inputKey;
   const visibleSuggestion = suggestion?.key === inputKey ? suggestion : null;
+  const tabIds = [...new Set([...project.pieces.map((p) => p.materialId), ...linears.map((l) => l.materialId), ...addedMaterials])];
+  const selectedTab = activeTab === "summary" || tabIds.includes(activeTab) ? activeTab : tabIds[0] ?? "summary";
+  const activeMaterial = materials.find((m) => m.id === selectedTab);
+  const invalidTab = (id: string) => project.pieces.some((p) => p.materialId === id && validatePiece(p, materials))
+    || linears.some((l) => l.materialId === id && (!l.bandWidth || !l.totalLength || (l.mode === "fixed" ? !l.segment : !l.min) || typeof linearSegments(l, materials) === "string"));
+  useEffect(() => { setAddedMaterials([]); setActiveTab(""); }, [project.id]);
 
   const usedMats = materials.filter((m) => project.pieces.some((p) => p.materialId === m.id));
   const priceAvailable = usedMats.length > 0 && usedMats.every((m) => m.supply.mode === "catalog" && m.supply.formats.every((f) => f.price != null));
@@ -133,6 +144,7 @@ function Index() {
             </div>
           </div>
           <nav className="ml-auto flex flex-wrap gap-2">
+            <Button asChild variant="ghost" className="btn-ghost"><Link to="/bibliotheque"><Library size={15} /> Bibliothèque</Link></Button>
             <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"} onClick={async () => {
               if (!result) return;
               if ((!info.site.trim() || !info.taskNumber.trim()) && !confirm("Le chantier ou le numéro de tâche est vide. Générer le PDF quand même ?")) return;
@@ -169,11 +181,33 @@ function Index() {
           </div>
         </section>
 
-        <div className="grid gap-5 lg:grid-cols-[minmax(300px,380px)_1fr]">
-          <MaterialsCard materials={materials} onChange={setMaterials} />
-          <PiecesCard pieces={project.pieces} materials={materials} onChange={(pieces) => setProject({ ...project, pieces })}
-            highlightEmpty={checkInputs} linears={linears} onLinearsChange={(l) => setProject({ ...project, linears: l })} />
+        <div className="flex items-end gap-2 border-b border-border">
+          <div role="tablist" aria-label="Matériaux du projet" className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+            {tabIds.map((id) => {
+              const m = materials.find((row) => row.id === id);
+              const invalid = invalidTab(id);
+              return <Button key={id} id={`tab-${id}`} role="tab" aria-selected={selectedTab === id} aria-controls="project-tab-panel" variant="ghost"
+                className={`h-11 rounded-none border-b-2 px-4 ${selectedTab === id ? "border-primary bg-primary/5 text-primary" : "border-transparent text-muted-foreground"}`} onClick={() => setActiveTab(id)}>
+                {m ? `${m.name} ${num(m.thickness, 1)} mm` : "Matériau inconnu"}
+                {invalid && <span role="img" aria-label="Saisie invalide" title="Saisie invalide" className="h-2 w-2 shrink-0 rounded-full bg-destructive" />}
+              </Button>;
+            })}
+            <Button variant="ghost" size="icon" aria-label="Ajouter un matériau" title="Ajouter un matériau" className="h-10 w-10 text-primary" onClick={() => setChoosingMaterial(true)}><Plus size={18} /></Button>
+            <Button id="tab-summary" role="tab" aria-selected={selectedTab === "summary"} aria-controls="project-tab-panel" variant="ghost"
+              className={`ml-auto h-11 rounded-none border-b-2 px-4 ${selectedTab === "summary" ? "border-primary bg-primary/5 text-primary" : "border-transparent text-muted-foreground"}`} onClick={() => setActiveTab("summary")}>Synthèse</Button>
+          </div>
         </div>
+
+        {selectedTab !== "summary" && <div className="space-y-4">
+          {activeMaterial && <p className="tabular-nums text-sm text-muted-foreground">
+            {activeMaterial.supply.mode === "single" ? dims(activeMaterial.supply.width, activeMaterial.supply.length)
+              : activeMaterial.supply.mode === "catalog" ? activeMaterial.supply.formats.map((f) => dims(f.width, f.length)).join(" · ")
+              : `${num(activeMaterial.supply.width)} × ${num(activeMaterial.supply.minLength)}–${num(activeMaterial.supply.maxLength)}`}
+            {` · ${activeMaterial.cutType === "free" ? "CNC" : "scie"} · trait ${num(activeMaterial.kerf, 1)} · délign. ${num(activeMaterial.trim, 1)}${activeMaterial.grainLocked ? " · sens imposé" : ""}`}
+          </p>}
+          <PiecesCard key={selectedTab} materialId={selectedTab} pieces={project.pieces} materials={materials} onChange={(pieces) => setProject({ ...project, pieces })}
+            highlightEmpty={checkInputs} linears={linears} onLinearsChange={(l) => setProject({ ...project, linears: l })} />
+        </div>}
 
         <div className="card-tech flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="flex flex-wrap items-center gap-4">
@@ -198,8 +232,8 @@ function Index() {
           </Button>
         </div>
 
-        <section className="card-tech">
-          <div className="card-tech-head"><h2 className="card-title">Résultats</h2></div>
+        <section id="project-tab-panel" role="tabpanel" aria-labelledby={selectedTab === "summary" ? "tab-summary" : `tab-${selectedTab}`} className="card-tech">
+          <div className="card-tech-head"><h2 className="card-title">{selectedTab === "summary" ? "Synthèse" : "Résultats"}</h2></div>
           {visibleSuggestion && (
             <div role="status" className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-accent px-4 py-3 text-sm text-accent-foreground">
               <p>Autoriser la rotation de ces pièces économiserait {visibleSuggestion.saved} panneau(x)</p>
@@ -212,7 +246,9 @@ function Index() {
               }}>Appliquer</button>
             </div>
           )}
-          {result ? <ResultsPanel result={result} materials={materials} linears={recap} pieces={allPieces} status={project.materialStatus} onStatus={(materialStatus) => setProject({ ...project, materialStatus })} offcuts={project.offcuts} onOffcuts={(offcuts) => setProject({ ...project, offcuts })} /> : (
+          {result ? <ResultsPanel result={result} materials={materials} materialId={selectedTab === "summary" ? undefined : selectedTab} summaryOnly={selectedTab === "summary"}
+            linears={selectedTab === "summary" ? recap : recap.filter((r) => linears.some((l) => l.id === r.id && l.materialId === selectedTab))}
+            pieces={allPieces} status={project.materialStatus} onStatus={(materialStatus) => setProject({ ...project, materialStatus })} offcuts={project.offcuts} onOffcuts={(offcuts) => setProject({ ...project, offcuts })} /> : (
             <div className="flex flex-col items-center gap-4 px-4 py-12 text-sm text-muted-foreground">
               <div className="flex gap-2">
                 <span className="h-8 w-12 rounded-sm border border-border hatch-waste" />
@@ -223,6 +259,18 @@ function Index() {
           )}
         </section>
       </main>
+
+      {choosingMaterial && <Modal title="Ajouter un matériau" onClose={() => setChoosingMaterial(false)}>
+        <div className="divide-y divide-border">
+          {materials.map((m) => <Button key={m.id} variant="ghost" className="flex h-auto w-full justify-between rounded-none px-2 py-3 text-left"
+            onClick={() => { setAddedMaterials((ids) => [...new Set([...ids, m.id])]); setActiveTab(m.id); setChoosingMaterial(false); }}>
+            <span>{m.name} <span className="tabular-nums text-muted-foreground">{num(m.thickness, 1)} mm</span></span>
+            <Plus size={16} />
+          </Button>)}
+          {materials.length === 0 && <p className="py-4 text-sm text-muted-foreground">Aucun matériau dans la bibliothèque.</p>}
+        </div>
+        <Button asChild variant="outline" className="btn-outline mt-4"><Link to="/bibliotheque"><Library size={15} /> Bibliothèque</Link></Button>
+      </Modal>}
 
       {showProjects && (
         <ProjectsDialog onClose={() => setShowProjects(false)} onExport={doExport} onImport={doImport}
