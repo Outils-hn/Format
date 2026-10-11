@@ -150,6 +150,24 @@
 @utility btn-danger { @apply btn text-muted-foreground hover:bg-destructive-soft hover:text-destructive; }
 @utility mono { @apply font-mono tabular-nums; }
 
+/* Même cadre que les champs, sans les ornements natifs des menus. */
+select.input-tech {
+  appearance: none;
+  -webkit-appearance: none;
+  text-decoration: none;
+  font-style: normal;
+  font-weight: 400;
+  color: var(--foreground);
+  padding-right: 2rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position: calc(100% - 14px) 50%, calc(100% - 10px) 50%;
+  background-size: 4px 4px;
+  background-repeat: no-repeat;
+}
+select.input-tech option { text-decoration: none; font-style: normal; font-weight: 400; }
+
 /* Chutes : fond pale + hachures */
 @utility hatch-waste {
   background-color: var(--offcut-waste-bg);

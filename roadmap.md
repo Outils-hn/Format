@@ -18,3 +18,4 @@
 - [x] Vérifier le collage multi-matériaux, le calcul global et les exports inchangés.
 - [x] Replier les réglages et détails des résultats, ouvrir les détails lors d’une erreur et garder le lancement visible avec la quantité totale.
 - [x] Harmoniser la grille bibliothèque, le résumé intégré et la colonne rotation ; vérifier sans modifier calculs ni PDF.
+- [ ] Harmoniser tous les menus, séparer les badges de groupes écran/PDF, dégager le bouton de lancement et ajuster les colonnes linéaires ; vérifier sans changer le fonctionnement.
