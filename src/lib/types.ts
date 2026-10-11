@@ -15,6 +15,8 @@ export type Supply =
   | { mode: "catalog"; formats: SheetFormat[] }
   | { mode: "fixedWidth"; width: number; minLength: number; maxLength: number; step: number };
 
+export type SupplyValues = { [Mode in Supply["mode"]]?: Extract<Supply, { mode: Mode }> };
+
 export interface Material {
   id: string;
   name: string;
@@ -25,6 +27,7 @@ export interface Material {
   cutType: CutType;
   reuseMin?: number | undefined; // seuil de chute reutilisable (mm), defaut 300
   supply: Supply;
+  supplyValues?: SupplyValues | undefined; // valeurs conservées des modes inactifs
   supplier?: string | undefined;
   orderType?: OrderType | undefined;
 }
