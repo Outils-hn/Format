@@ -1,9 +1,9 @@
 // Export "Commande Excel" (SheetJS avec styles).
 import XLSX from "xlsx-js-style";
 import type { OptimizeResult } from "../optimizer/types";
-import type { Material, ProjectInfo } from "../types";
+import type { Material, Piece, Project, ProjectInfo } from "../types";
+import { supplierSections } from "../order";
 import { cleanName, download } from "./common";
-import { panelOrder } from "../format";
 
 type Cell = string | number | null | { f: string; v?: number };
 
@@ -23,37 +23,60 @@ function sheet(rows: Cell[][]) {
   return ws;
 }
 
-export function exportOrderXlsx(result: OptimizeResult, materials: Material[], info: ProjectInfo) {
-  const order: Cell[][] = [["Matériau", "Épaisseur (mm)", "Format (L x H mm)", "Quantité panneaux", "Prix unitaire (€)", "Prix total (€)", "Commande"]];
-  const pieces: Cell[][] = [["Panneau n°", "Repère", "Matériau", "Largeur (mm)", "Hauteur (mm)", "Tournée", "Position X (mm)", "Position Y (mm)"]];
-  const offcuts: Cell[][] = [["Matériau", "Épaisseur (mm)", "Largeur (mm)", "Hauteur (mm)", "Panneau d'origine"]];
-  let hasPrice = false;
-  for (const r of result.materials) {
-    const trim = materials.find((m) => m.id === r.materialId)?.trim ?? 0;
-    for (const f of r.formats) {
-      const row = order.length + 1;
-      const priced = f.price != null;
-      if (priced) hasPrice = true;
-      const price = f.price;
-      order.push([r.name, r.thickness, `${f.width} x ${f.length}`, f.count, price ?? null, price != null ? { f: `D${row}*E${row}`, v: f.count * price } : null, panelOrder(f.count, f.width, f.length, r.name, r.thickness)]);
-    }
-    for (const s of r.sheets) {
-      for (const p of s.placements)
-        pieces.push([s.index, p.label, r.name, p.w, p.h, p.rotated ? "oui" : "non", p.x + trim, p.y + trim]);
-      for (const o of s.offcuts) if (o.reusable) offcuts.push([r.name, r.thickness, Math.round(o.w), Math.round(o.h), s.index]);
-    }
-  }
-  const n = order.length;
-  order.push(["Total", null, null, { f: `SUM(D2:D${n})`, v: result.total.sheets }, null,
-    hasPrice ? { f: `SUM(F2:F${n})`, v: result.total.totalPrice ?? 0 } : null]);
+export function exportOrderXlsx(result: OptimizeResult, materials: Material[], info: ProjectInfo, pieceList: Piece[] = [], project: Pick<Project, "orderTypes" | "showEstimate"> = {}, workshop = false) {
   const wb = XLSX.utils.book_new();
-  const wsO = sheet(order);
-  if (wsO["!cols"]) wsO["!cols"][6] = { wch: 70 };
-  const last = XLSX.utils.encode_cell({ r: n, c: 0 });
-  wsO[last].s = { font: { bold: true } };
-  XLSX.utils.book_append_sheet(wb, wsO, "Commande");
-  XLSX.utils.book_append_sheet(wb, sheet(pieces), "Pièces");
-  XLSX.utils.book_append_sheet(wb, sheet(offcuts), "Chutes réutilisables");
+  const used = new Set<string>();
+  const sheetName = (raw: string) => {
+    const base = raw.replace(/[[\]:*?/\\]/g, " ").slice(0, 28).trim() || "Fournisseur";
+    let n = base, i = 2;
+    while (used.has(n.toLowerCase())) n = `${base} ${i++}`;
+    used.add(n.toLowerCase());
+    return n;
+  };
+  for (const sec of supplierSections(result, materials, pieceList, project)) {
+    const rows: Cell[][] = [];
+    const bold: number[] = [];
+    if (sec.panels.length) {
+      bold.push(rows.length);
+      rows.push(["Matériau", "Épaisseur (mm)", "Format (L x H mm)", "Quantité panneaux"]);
+      const first = rows.length + 1;
+      for (const p of sec.panels) rows.push([p.material, p.thickness, `${p.width} x ${p.length}`, p.count]);
+      bold.push(rows.length);
+      rows.push(["Total", null, null, { f: `SUM(D${first}:D${rows.length})`, v: sec.panels.reduce((n, p) => n + p.count, 0) }]);
+      rows.push([]);
+    }
+    for (const b of sec.cuts) {
+      bold.push(rows.length);
+      rows.push(["Repère", "Matériau", "Épaisseur (mm)", "Largeur (mm)", "Hauteur (mm)", "Quantité", "Sens du décor"]);
+      const first = rows.length + 1;
+      for (const r of b.rows) rows.push([r.label, r.material, r.thickness, r.width, r.height, r.quantity, r.grain ? "↑ hauteur" : "libre"]);
+      bold.push(rows.length);
+      rows.push(["Total", null, null, null, null, { f: `SUM(F${first}:F${rows.length})`, v: b.total }]);
+      if (project.showEstimate) rows.push([`Estimation : environ ${b.estimate}`]);
+      rows.push([]);
+    }
+    const ws = sheet([["Fournisseur", sec.supplier], [], ...rows]);
+    if (ws["B1"]) ws["B1"].s = undefined;
+    for (const r of bold) for (let c = 0; c < 7; c++) {
+      const ref = XLSX.utils.encode_cell({ r: r + 2, c });
+      if (ws[ref]) ws[ref].s = { font: { bold: true }, fill: rows[r]?.[0] === "Total" ? undefined : { fgColor: { rgb: "E5E7EB" } } };
+    }
+    ws["A1"].s = { font: { bold: true } };
+    XLSX.utils.book_append_sheet(wb, ws, sheetName(sec.supplier));
+  }
+  if (workshop) {
+    const pieces: Cell[][] = [["Panneau n°", "Repère", "Matériau", "Largeur (mm)", "Hauteur (mm)", "Tournée", "Position X (mm)", "Position Y (mm)"]];
+    const offcuts: Cell[][] = [["Matériau", "Épaisseur (mm)", "Largeur (mm)", "Hauteur (mm)", "Panneau d'origine"]];
+    for (const r of result.materials) {
+      const trim = materials.find((m) => m.id === r.materialId)?.trim ?? 0;
+      for (const s of r.sheets) {
+        for (const p of s.placements) pieces.push([s.index, p.label, r.name, p.w, p.h, p.rotated ? "oui" : "non", p.x + trim, p.y + trim]);
+        for (const o of s.offcuts) if (o.reusable) offcuts.push([r.name, r.thickness, Math.round(o.w), Math.round(o.h), s.index]);
+      }
+    }
+    XLSX.utils.book_append_sheet(wb, sheet(pieces), sheetName("Pièces placées"));
+    XLSX.utils.book_append_sheet(wb, sheet(offcuts), sheetName("Chutes réutilisables"));
+  }
   const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
   const site = cleanName(info.site);
   download(new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),

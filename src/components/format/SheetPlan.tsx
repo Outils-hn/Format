@@ -22,7 +22,7 @@ const measure: Measure = (text, size, bold) => {
 interface Props {
   group: SheetGroup; material: Material; colorOf: (pieceId: string) => string;
   mode?: OffcutSettings["mode"];
-  presentation?: "all" | "plan" | "tables";
+  presentation?: "all" | "plan" | "tables" | "thumb";
   markOf?: (label: string) => Mark;
   onMark?: (label: string, patch: Partial<Mark>) => void;
 }
@@ -130,7 +130,7 @@ export function SheetPlan(props: Props) {
   const [full, setFull] = useState(false);
   const [zoom, setZoom] = useState(1);
   const cuts = useMemo(
-    () => (material.cutType === "guillotine" ? cutSequence(s.placements, s.usableW, s.usableL, material.kerf, material.trim) : []),
+    () => (material.cutType === "guillotine" && presentation !== "thumb" ? cutSequence(s.placements, s.usableW, s.usableL, material.kerf, material.trim) : []),
     [s, material],
   );
   const onHover = (p: Placement | null, e?: MouseEvent) => setHover(p && e ? { p, x: e.clientX, y: e.clientY } : null);
@@ -147,6 +147,35 @@ export function SheetPlan(props: Props) {
   const refOf = (p: Placement) => rows.findIndex(([k]) => k === pieceRowKey(p)) + 1;
   const svg = <PlanSvg {...props} cuts={cuts} hovered={hover?.p ?? null} onHover={onHover} refOf={refOf} />;
   const th = "px-2 py-1 font-medium";
+  const fullView = (
+        <div className="fixed inset-0 z-50 flex flex-col bg-background">
+          <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-sm">
+            <span className="font-semibold">{material.name} — <PanelGroupLabel indexes={group.indexes} /></span>
+            <span className="tabular-nums text-muted-foreground">{dims(s.width, s.length)} mm</span>
+            <div className="ml-auto flex items-center gap-1">
+              <button className="btn-ghost h-8 px-2" onClick={() => setZoom((z) => Math.max(0.5, z / 1.25))} aria-label="Dézoomer"><Minus size={15} /></button>
+              <span className="tabular-nums w-14 text-center text-xs">{Math.round(zoom * 100)} %</span>
+              <button className="btn-ghost h-8 px-2" onClick={() => setZoom((z) => Math.min(8, z * 1.25))} aria-label="Zoomer"><Plus size={15} /></button>
+              <button className="btn-ghost h-8 px-2" onClick={() => { setFull(false); setZoom(1); }} aria-label="Fermer"><X size={16} /></button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto p-6"
+            onWheel={(e) => { if (e.ctrlKey || e.metaKey) { e.preventDefault(); setZoom((z) => Math.min(8, Math.max(0.5, z * (e.deltaY < 0 ? 1.1 : 0.9)))); } }}>
+            <div className="mx-auto" style={{ width: `min(${90 * zoom}vw, ${85 * zoom}vh * ${(s.width / s.length).toFixed(4)})` }}>{svg}</div>
+          </div>
+        </div>
+);
+
+  if (presentation === "thumb") return (
+    <div className="space-y-1.5 rounded-sm border border-border p-2">
+      <div className="flex flex-wrap items-center gap-1.5 text-xs">
+        <span className="font-semibold"><PanelGroupLabel indexes={group.indexes} /></span>
+        <span className="tabular-nums text-muted-foreground">{dims(s.width, s.length)}</span>
+      </div>
+      <button type="button" aria-label="Agrandir le plan" className="block w-full cursor-zoom-in" onClick={() => setFull(true)}>{svg}</button>
+      {full && fullView}
+    </div>
+  );
 
   return (
     <div className="space-y-3 rounded-sm border border-border p-3 break-inside-avoid">
@@ -244,24 +273,7 @@ export function SheetPlan(props: Props) {
         </div>
       )}
 
-      {full && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-background">
-          <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-sm">
-            <span className="font-semibold">{material.name} — <PanelGroupLabel indexes={group.indexes} /></span>
-            <span className="tabular-nums text-muted-foreground">{dims(s.width, s.length)} mm</span>
-            <div className="ml-auto flex items-center gap-1">
-              <button className="btn-ghost h-8 px-2" onClick={() => setZoom((z) => Math.max(0.5, z / 1.25))} aria-label="Dézoomer"><Minus size={15} /></button>
-              <span className="tabular-nums w-14 text-center text-xs">{Math.round(zoom * 100)} %</span>
-              <button className="btn-ghost h-8 px-2" onClick={() => setZoom((z) => Math.min(8, z * 1.25))} aria-label="Zoomer"><Plus size={15} /></button>
-              <button className="btn-ghost h-8 px-2" onClick={() => { setFull(false); setZoom(1); }} aria-label="Fermer"><X size={16} /></button>
-            </div>
-          </div>
-          <div className="flex-1 overflow-auto p-6"
-            onWheel={(e) => { if (e.ctrlKey || e.metaKey) { e.preventDefault(); setZoom((z) => Math.min(8, Math.max(0.5, z * (e.deltaY < 0 ? 1.1 : 0.9)))); } }}>
-            <div className="mx-auto" style={{ width: `min(${90 * zoom}vw, ${85 * zoom}vh * ${(s.width / s.length).toFixed(4)})` }}>{svg}</div>
-          </div>
-        </div>
-      )}
+      {full && fullView}
     </div>
   );
 }

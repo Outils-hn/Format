@@ -3,12 +3,14 @@ import { CheckCircle2, AlertTriangle } from "lucide-react";
 import type { Balance, OptimizeResult, SolutionSummary } from "@/lib/optimizer";
 import type { Material, MaterialStatus, Piece } from "@/lib/types";
 import type { MaterialResult } from "@/lib/optimizer";
-import { indicators, lowerBound, materialLines, pct1, splitLine, statusSuffix, statusTitle } from "@/lib/indicators";
+import { indicators, lowerBound, pct1, splitLine, statusSuffix, statusTitle } from "@/lib/indicators";
 import { planColor } from "@/lib/palette";
 import { groupSheets } from "@/lib/cutplan";
 import { SheetPlan } from "./SheetPlan";
 import { PanelGroupLabel } from "./PanelGroupLabel";
 import type { LinearRecap } from "@/lib/linear";
+import { orderLines } from "@/lib/order";
+import type { OrderType } from "@/lib/types";
 
 import { dims, eur, m2, num, panelOrder, reuseCaption } from "@/lib/format";
 import type { OffcutSettings } from "@/lib/types";
@@ -61,7 +63,7 @@ function Badge({ r, mat, pieces }: { r: MaterialResult; mat?: Material | undefin
   );
 }
 
-function Banner({ result, status, simple = false }: { result: OptimizeResult; status?: MaterialStatus | undefined; simple?: boolean }) {
+function Banner({ result, status, simple = false, typeOf }: { result: OptimizeResult; status?: MaterialStatus | undefined; simple?: boolean; typeOf: (id: string) => OrderType }) {
   const i = indicators(result.total.balance);
   const s = status ?? { status: "toOrder" as const };
   const title = s.status === "toOrder" ? "À commander" : s.status === "ordered" ? "Commandés" : "À prendre en stock";
@@ -69,7 +71,7 @@ function Banner({ result, status, simple = false }: { result: OptimizeResult; st
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-muted-foreground">{simple ? `${title} :` : statusTitle(s)}{statusSuffix(s)}</p>
-        {materialLines(result.materials).map((l, k) => <p key={k} className="mt-1 text-xl font-semibold tabular-nums">{l.text}</p>)}
+        {orderLines(result.materials, typeOf).map((l, k) => <p key={k} className="mt-1 text-xl font-semibold tabular-nums">{l}</p>)}
       </div>
       <div><p className="text-xs font-semibold text-muted-foreground">Rendement</p><p className="tabular-nums text-3xl font-semibold text-primary">{pct1(i.yieldPct)}</p></div>
     </div>
@@ -120,8 +122,8 @@ function Solutions({ list }: { list: SolutionSummary[] }) {
   );
 }
 
-export function ResultsPanel({ result, materials, linears = [], pieces = [], status, onStatus = () => {}, offcuts, onOffcuts = () => {}, materialId, summaryOnly = false }: {
-  materialId?: string | undefined; summaryOnly?: boolean;
+export function ResultsPanel({ result, materials, linears = [], pieces = [], status, onStatus = () => {}, offcuts, onOffcuts = () => {}, materialId, summaryOnly = false, workshop = true, orderTypeOf = () => "panels" }: {
+  materialId?: string | undefined; summaryOnly?: boolean; workshop?: boolean; orderTypeOf?: (id: string) => OrderType;
   result: OptimizeResult; materials: Material[]; linears?: LinearRecap[]; pieces?: Piece[]; status?: MaterialStatus | undefined; onStatus?: (s: MaterialStatus) => void;
   offcuts?: OffcutSettings | undefined; onOffcuts?: (o: OffcutSettings) => void;
 }) {
@@ -137,14 +139,14 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
     if (!ids.some((e) => e.id === p.pieceId)) ids.push({ id: p.pieceId, label: p.label, color: planColor(ids.length) ?? "var(--card)" });
   const mat = (id: string) => materials.find((m) => m.id === id);
   const colorOf = (id: string) => ids.find((e) => e.id === id)?.color ?? "var(--card)";
-  const renderSheets = (r: MaterialResult, presentation: "plan" | "tables") => {
+  const renderSheets = (r: MaterialResult, presentation: "plan" | "tables" | "thumb") => {
     const material = mat(r.materialId);
     if (!material || !r.sheets.length) return null;
-    return <div className="grid gap-4 xl:grid-cols-2">{groupSheets(r.sheets).map((g) => {
+    return <div className={presentation === "thumb" ? "grid grid-cols-2 gap-3 md:grid-cols-4" : "grid gap-4 xl:grid-cols-2"}>{groupSheets(r.sheets).map((g) => {
       const sheetIndex = g.indexes[0];
       if (sheetIndex == null) return null;
       const key = (label: string) => offcutKey(r.materialId, sheetIndex, label);
-      return <SheetPlan key={g.sheet.index} group={g} material={material} colorOf={colorOf} mode={oc.mode} presentation={presentation}
+      return <SheetPlan key={g.sheet.index} group={g} material={material} colorOf={colorOf} mode={presentation === "thumb" ? "hide" : oc.mode} presentation={presentation}
         markOf={(label) => ({ keep: oc.marks[key(label)]?.keep ?? true, note: oc.marks[key(label)]?.note ?? "" })}
         onMark={(label, patch) => onOffcuts({ ...oc, marks: { ...oc.marks, [key(label)]: { ...oc.marks[key(label)], ...patch } } })} />;
     })}</div>;
@@ -152,9 +154,10 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
   return (
     <div className="space-y-6 p-4">
       {!ok && <div role="alert" className="flex items-center gap-2 rounded-sm border border-destructive bg-destructive-soft p-3 text-sm font-semibold text-destructive"><AlertTriangle size={18} />La vérification a échoué : consultez les détails avant de découper.</div>}
-      <Banner result={displayResult} status={status} simple={!summaryOnly} />
+      <Banner result={displayResult} status={status} simple={!summaryOnly} typeOf={orderTypeOf} />
       {summaryOnly && <Kpis b={result.total.balance} mode={oc.mode} />}
-      <details open={detailsOpen} onToggle={(e) => setDetailsOpen(e.currentTarget.open)} className="border-y border-border">
+      {!workshop && !ok && <ul className="list-disc pl-5 text-xs text-destructive">{result.errors.map((e, i) => <li key={i}>{e}</li>)}</ul>}
+      {workshop && <details open={detailsOpen} onToggle={(e) => setDetailsOpen(e.currentTarget.open)} className="border-y border-border">
         <summary className="cursor-pointer py-3 text-sm font-semibold">Détails</summary>
         <div className="space-y-5 pb-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -239,10 +242,10 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
         </div>
       ))}
         </div>
-      </details>
+      </details>}
       {!summaryOnly && visibleMaterials.map((r) => <div key={r.materialId} className="space-y-3">
         <h4 className="text-xs font-semibold uppercase">Plans de découpe</h4>
-        {renderSheets(r, "plan")}
+        {renderSheets(r, workshop ? "plan" : "thumb")}
       </div>)}
     </div>
   );
