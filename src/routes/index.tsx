@@ -19,6 +19,7 @@ import { linearErrors, linearPieces, linearRecap, linearSegments } from "@/lib/l
 import { allowRotation, rotationCandidates, rotationSavings } from "@/lib/rotation";
 import { validatePiece } from "@/lib/validation";
 import { dims, num } from "@/lib/format";
+import { orderTypeLabel, orderTypeOf } from "@/lib/order";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -67,6 +68,9 @@ function Index() {
 
   const usedMats = materials.filter((m) => project.pieces.some((p) => p.materialId === m.id));
   const priceAvailable = usedMats.length > 0 && usedMats.every((m) => m.supply.mode === "catalog" && m.supply.formats.every((f) => f.price != null));
+  const workshop = !!project.workshopMode;
+  const typeOf = (id: string) => orderTypeOf(materials.find((m) => m.id === id), project);
+  const checkInfo = () => (info.site.trim() && info.taskNumber.trim()) || confirm("Le chantier ou le numéro de tâche est vide. Générer le PDF quand même ?");
   const run = async () => {
     const emptyField = project.pieces.some((p) => !p.width || !p.height || !p.quantity)
       || linears.some((l) => !l.bandWidth || !l.totalLength || (l.mode === "fixed" ? !l.segment : !l.min));
@@ -159,15 +163,26 @@ function Index() {
           <Brand />
           <nav className="ml-auto flex flex-wrap gap-2">
             <Button asChild variant="ghost" className="btn-ghost"><Link to="/bibliotheque"><Library size={15} /> Bibliothèque</Link></Button>
+            <label className="flex items-center gap-2 px-2 text-sm">
+              <Button type="button" role="switch" variant="ghost" size="icon" aria-checked={workshop} aria-label="Mode atelier" onClick={() => setProject({ ...project, workshopMode: !workshop })}
+                className={`relative h-5 w-9 rounded-full transition-colors ${workshop ? "bg-primary" : "bg-muted"}`}>
+                <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow transition-all ${workshop ? "left-[18px]" : "left-0.5"}`} />
+              </Button>
+              Mode atelier
+            </label>
             <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"} onClick={async () => {
-              if (!result) return;
-              if ((!info.site.trim() || !info.taskNumber.trim()) && !confirm("Le chantier ou le numéro de tâche est vide. Générer le PDF quand même ?")) return;
+              if (!result || !checkInfo()) return;
+              try { const { exportOrderPdf } = await import("@/lib/export/orderPdf"); exportOrderPdf(result, materials, allPieces, info, project); }
+              catch (e) { console.error(e); toast.error("Échec de la génération du PDF"); }
+            }}><FileText size={15} /> PDF commande</button>
+            {workshop && <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"} onClick={async () => {
+              if (!result || !checkInfo()) return;
               try { const { exportWorkshopPdf } = await import("@/lib/export/pdf"); exportWorkshopPdf(result, materials, allPieces, info, recap, project.materialStatus, project.offcuts); }
               catch (e) { console.error(e); toast.error("Échec de la génération du PDF"); }
-            }}><FileText size={15} /> PDF atelier</button>
+            }}><FileText size={15} /> PDF atelier</button>}
             <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"} onClick={async () => {
               if (!result) return;
-              try { const { exportOrderXlsx } = await import("@/lib/export/xlsx"); exportOrderXlsx(result, materials, info); }
+              try { const { exportOrderXlsx } = await import("@/lib/export/xlsx"); exportOrderXlsx(result, materials, info, allPieces, project, workshop); }
               catch (e) { console.error(e); toast.error("Échec de l'export Excel"); }
             }}><FileSpreadsheet size={15} /> Commande Excel</button>
             <button className="btn-ghost" onClick={() => setShowProjects(true)}><FolderOpen size={15} /> Mes projets</button>
@@ -218,9 +233,11 @@ function Index() {
             {activeMaterial.supply.mode === "single" ? dims(activeMaterial.supply.width, activeMaterial.supply.length)
               : activeMaterial.supply.mode === "catalog" ? activeMaterial.supply.formats.map((f) => dims(f.width, f.length)).join(" · ")
               : `${num(activeMaterial.supply.width)} × ${num(activeMaterial.supply.minLength)}–${num(activeMaterial.supply.maxLength)}`}
-            {` · ${activeMaterial.cutType === "free" ? "CNC" : "scie"} · trait ${num(activeMaterial.kerf, 1)} · délign. ${num(activeMaterial.trim, 1)}${activeMaterial.grainLocked ? " · sens imposé" : ""}`}
+            {` · ${activeMaterial.cutType === "free" ? "CNC" : "scie"} · trait ${num(activeMaterial.kerf, 1)} · délign. ${num(activeMaterial.trim, 1)}${activeMaterial.grainLocked ? " · sens imposé" : ""} · ${orderTypeLabel(typeOf(activeMaterial.id)).toLowerCase()}${activeMaterial.supplier ? ` · ${activeMaterial.supplier}` : ""}`}
           </>}
-            settings={<ProjectSettings status={project.materialStatus} onStatus={(materialStatus) => setProject({ ...project, materialStatus })} offcuts={project.offcuts} onOffcuts={(offcuts) => setProject({ ...project, offcuts })}>
+            settings={<ProjectSettings status={project.materialStatus} onStatus={(materialStatus) => setProject({ ...project, materialStatus })} offcuts={project.offcuts} onOffcuts={(offcuts) => setProject({ ...project, offcuts })}
+              workshop={workshop} orderType={typeOf(selectedTab)} onOrderType={(t) => setProject({ ...project, orderTypes: { ...project.orderTypes, [selectedTab]: t } })}
+              showEstimate={project.showEstimate} onShowEstimate={(showEstimate) => setProject({ ...project, showEstimate })}>
               {optimizationControls}
             </ProjectSettings>}
             highlightEmpty={checkInputs} linears={linears} onLinearsChange={(l) => setProject({ ...project, linears: l })} />
@@ -240,7 +257,7 @@ function Index() {
               }}>Appliquer</button>
             </div>
           )}
-          {result ? <ResultsPanel result={result} materials={materials} materialId={selectedTab === "summary" ? undefined : selectedTab} summaryOnly={selectedTab === "summary"}
+          {result ? <ResultsPanel result={result} materials={materials} materialId={selectedTab === "summary" ? undefined : selectedTab} summaryOnly={selectedTab === "summary"} workshop={workshop} orderTypeOf={typeOf}
             linears={selectedTab === "summary" ? recap : recap.filter((r) => linears.some((l) => l.id === r.id && l.materialId === selectedTab))}
             pieces={allPieces} status={project.materialStatus} onStatus={(materialStatus) => setProject({ ...project, materialStatus })} offcuts={project.offcuts} onOffcuts={(offcuts) => setProject({ ...project, offcuts })} /> : (
             <div className="flex flex-col items-center gap-4 px-4 py-12 text-sm text-muted-foreground">

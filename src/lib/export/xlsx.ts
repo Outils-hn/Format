@@ -56,7 +56,7 @@ export function exportOrderXlsx(result: OptimizeResult, materials: Material[], i
       rows.push([]);
     }
     const ws = sheet([["Fournisseur", sec.supplier], [], ...rows]);
-    ws["A1"].s = undefined;
+    if (ws["B1"]) ws["B1"].s = undefined;
     for (const r of bold) for (let c = 0; c < 7; c++) {
       const ref = XLSX.utils.encode_cell({ r: r + 2, c });
       if (ws[ref]) ws[ref].s = { font: { bold: true }, fill: rows[r]?.[0] === "Total" ? undefined : { fgColor: { rgb: "E5E7EB" } } };
