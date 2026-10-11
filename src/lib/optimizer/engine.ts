@@ -160,7 +160,13 @@ function packAll(m: Material, fmts: Fmt[], items: Item[], byPrice: boolean, cfg:
   // essaie un format plus petit / moins cher pour le dernier panneau
   if (fmts.length > 1 && sheets.length) {
     const last = sheets.at(-1)!;
-    const lastItems = last.placements.map((p) => items.find((i) => i.pieceId === p.pieceId && i.label === p.label)!);
+    // Retrouve les exemplaires reellement places sur ce panneau, sans reutiliser deux fois le meme :
+    // des doublons du meme objet faussaient le placement en grille (plantage).
+    const pool = [...items];
+    const lastItems = last.placements.map((p) => {
+      const i = pool.findIndex((it) => it.pieceId === p.pieceId && it.label === p.label);
+      return pool.splice(i, 1)[0]!;
+    });
     const cost = (f: Fmt) => (byPrice ? f.price! : area(f));
     for (const f of [...fmts].sort((a, b) => cost(a) - cost(b))) {
       if (cost(f) >= cost(last.fmt)) break;
