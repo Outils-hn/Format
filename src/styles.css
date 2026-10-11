@@ -168,6 +168,52 @@ select.input-tech {
 }
 select.input-tech option { text-decoration: none; font-style: normal; font-weight: 400; }
 
+/* Cellules de saisie uniquement : les réglages conservent leurs cadres. */
+.entry-table th {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.entry-cell-row {
+  height: 40px;
+  border-bottom: 1px solid var(--border);
+}
+.entry-cell-row .input-tech {
+  height: 40px;
+  max-width: 100%;
+  padding-inline: 11px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  box-shadow: none;
+}
+.entry-cell-row td:hover .input-tech {
+  background-color: var(--background);
+}
+.entry-cell-row .input-tech:focus {
+  border-color: var(--primary);
+  background-color: var(--card);
+  box-shadow: none;
+}
+.entry-cell-row .input-tech[aria-invalid="true"] {
+  border-color: var(--destructive);
+  background-color: var(--destructive-soft);
+  box-shadow: none;
+}
+.entry-cell-row .entry-label-input { padding-left: 31px; }
+.entry-table .entry-label-heading { padding-left: 32px; }
+.entry-repere-swatch {
+  top: 50%;
+  transform: translateY(-50%);
+}
+.entry-linear-settings .field-label { text-align: right; }
+.entry-linear-settings .entry-mode-label { text-align: left; }
+@media (min-width: 640px) {
+  .entry-cell-row > td { padding-block: 0; }
+}
+.entry-linear-row > td { padding-block: 0; }
+
 /* Chutes : fond pale + hachures */
 @utility hatch-waste {
   background-color: var(--offcut-waste-bg);

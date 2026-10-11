@@ -96,7 +96,7 @@ export function PiecesCard({
           <colgroup className="max-sm:hidden">{materialId ? <><col className="w-[25%]" /><col className="w-[20%]" /><col className="w-[20%]" /><col className="w-[12%]" /><col className="w-[18%]" /><col className="w-[5%]" /></> : <><col className="w-[15%]" /><col className="w-[30%]" /><col className="w-[15%]" /><col className="w-[15%]" /><col className="w-[10%]" /><col className="w-[10%]" /><col className="w-[5%]" /></>}</colgroup>
           <thead className="text-left font-sans text-xs font-semibold text-foreground max-sm:hidden">
             <tr className="border-b border-border">
-              <th className="px-3 py-2 font-semibold">Repère</th>
+              <th className="entry-label-heading px-3 py-2 font-semibold">Repère</th>
               {!materialId && <th className="px-3 py-2 font-semibold">Matériau</th>}
               <th className="px-3 py-2 text-right font-semibold">Largeur (mm)</th>
               <th className="px-3 py-2 text-right font-semibold">Hauteur (mm)</th>
@@ -119,23 +119,23 @@ export function PiecesCard({
               const locked = !!mat?.grainLocked;
               const err = validatePiece(p, materials);
               return (
-                <tr key={p.id} className={`border-b border-border max-sm:mx-3 max-sm:my-2 max-sm:grid max-sm:grid-cols-2 max-sm:gap-x-3 max-sm:rounded-sm max-sm:border max-sm:p-3 ${err ? "bg-destructive-soft" : ""}`} title={err ?? undefined}>
+                <tr key={p.id} className="entry-cell-row border-b border-border max-sm:mx-3 max-sm:my-2 max-sm:grid max-sm:grid-cols-2 max-sm:gap-x-3 max-sm:rounded-sm max-sm:border max-sm:p-3" title={err ?? undefined}>
                   <td className="py-1.5 max-sm:col-span-2 max-sm:block"><span className="field-label sm:hidden">Repère</span>
                     <div className="relative">
-                      <span className="pointer-events-none absolute left-3 top-2.5 h-3 w-3 rounded-[2px] border border-foreground/20" style={{ background: planColor(i) }} />
-                      <input aria-label="Repère de pièce" className="input-tech w-full pl-8 pr-3" value={p.label} onChange={(e) => upd(p.id, { label: e.target.value })} />
+                      <span className="entry-repere-swatch pointer-events-none absolute left-3 h-3 w-3 rounded-[2px] border border-foreground/20" style={{ background: planColor(i) }} />
+                      <input aria-label="Repère de pièce" aria-invalid={!p.label.trim() || undefined} className="entry-label-input input-tech w-full pl-8 pr-3" value={p.label} onChange={(e) => upd(p.id, { label: e.target.value })} />
                     </div>
                   </td>
                   {!materialId && <td className="py-1.5 max-sm:col-span-2 max-sm:block"><span className="field-label sm:hidden">Matériau</span>
-                    <select className="input-tech w-full px-3" value={p.materialId}
+                    <select aria-invalid={!mat || undefined} className="input-tech w-full px-3" value={p.materialId}
                       onChange={(e) => { const m = materials.find((x) => x.id === e.target.value); upd(p.id, { materialId: e.target.value, canRotate: m?.grainLocked ? false : p.canRotate }); }}>
                       {!mat && <option value={p.materialId}>— choisir —</option>}
                       {materials.map((m) => <option key={m.id} value={m.id}>{m.name} {m.thickness}</option>)}
                     </select>
                   </td>}
-                  <td className="py-1.5 max-sm:block"><span className="field-label sm:hidden">Largeur (mm)</span><NumInput aria-label={`Largeur de ${p.label}`} invalid={bad(p.width)} className={`input-num w-full px-3 ${err ? "border-destructive" : ""}`} value={p.width} onChange={(n) => upd(p.id, { width: n })} /></td>
-                  <td className="py-1.5 max-sm:block"><span className="field-label sm:hidden">Hauteur (mm)</span><NumInput aria-label={`Hauteur de ${p.label}`} invalid={bad(p.height)} className={`input-num w-full px-3 ${err ? "border-destructive" : ""}`} value={p.height} onChange={(n) => upd(p.id, { height: n })} /></td>
-                  <td className="py-1.5 max-sm:block"><span className="field-label sm:hidden">Qté</span><NumInput aria-label={`Quantité de ${p.label}`} zeroIsEmpty invalid={bad(p.quantity)} className="input-num w-full px-3" value={p.quantity} onChange={(n) => upd(p.id, { quantity: n == null ? 0 : Math.max(0, Math.round(n)) })} /></td>
+                  <td className="py-1.5 max-sm:block"><span className="field-label sm:hidden">Largeur (mm)</span><NumInput aria-label={`Largeur de ${p.label}`} invalid={!p.width || p.width < 0} className="input-num w-full px-3" value={p.width} onChange={(n) => upd(p.id, { width: n })} /></td>
+                  <td className="py-1.5 max-sm:block"><span className="field-label sm:hidden">Hauteur (mm)</span><NumInput aria-label={`Hauteur de ${p.label}`} invalid={!p.height || p.height < 0} className="input-num w-full px-3" value={p.height} onChange={(n) => upd(p.id, { height: n })} /></td>
+                  <td className="py-1.5 max-sm:block"><span className="field-label sm:hidden">Qté</span><NumInput aria-label={`Quantité de ${p.label}`} zeroIsEmpty invalid={!p.quantity || p.quantity < 0} className="input-num w-full px-3" value={p.quantity} onChange={(n) => upd(p.id, { quantity: n == null ? 0 : Math.max(0, Math.round(n)) })} /></td>
                   <td className="px-2 py-1.5 text-center max-sm:block max-sm:px-0 max-sm:text-left"><span className="field-label sm:hidden">Peut tourner</span>
                     {locked ? <span className="whitespace-nowrap text-xs text-muted-foreground">Sens imposé</span> : <input type="checkbox" aria-label={`Autoriser la rotation de ${p.label}`} className="accent-primary disabled:opacity-40" disabled={locked} checked={!locked && p.canRotate}
                       title={locked ? "Sens imposé par le matériau" : undefined} onChange={(e) => upd(p.id, { canRotate: e.target.checked })} />}
@@ -156,7 +156,7 @@ export function PiecesCard({
             <colgroup>{materialId ? <><col className="w-[20%]" /><col className="w-[20%]" /><col className="w-[20%]" /><col className="w-[35%]" /><col className="w-[5%]" /></> : <><col className="w-[20%]" /><col className="w-[20%]" /><col className="w-[20%]" /><col className="w-[20%]" /><col className="w-[15%]" /><col className="w-[5%]" /></>}</colgroup>
             <thead className="text-left font-sans text-xs font-semibold text-foreground">
               <tr className="border-b border-border">
-                <th className="px-3 py-2 font-semibold">Repère</th>
+                <th className="entry-label-heading px-3 py-2 font-semibold">Repère</th>
                 {!materialId && <th className="px-3 py-2 font-semibold">Matériau</th>}
                 <th className="px-3 py-2 text-right font-semibold">Bande (mm)</th>
                 <th className="px-3 py-2 text-right font-semibold">Longueur (m)</th>
@@ -171,16 +171,19 @@ export function PiecesCard({
                 const mat = materials.find((m) => m.id === l.materialId);
                 return (
                   <Fragment key={l.id}>
-                  <tr>
-                    <td className="py-1.5"><input aria-label="Repère de linéaire" className="input-tech w-full px-3" value={l.label} onChange={(e) => updL(l.id, { label: e.target.value })} /></td>
+                  <tr className="entry-cell-row entry-linear-row">
+                    <td className="py-1.5"><div className="relative">
+                      <span className="entry-repere-swatch pointer-events-none absolute left-3 h-3 w-3 rounded-[2px] border border-foreground/20" style={{ background: planColor(pieces.length + linears.findIndex((row) => row.id === l.id)) }} />
+                      <input aria-label="Repère de linéaire" aria-invalid={!l.label.trim() || undefined} className="entry-label-input input-tech w-full px-3" value={l.label} onChange={(e) => updL(l.id, { label: e.target.value })} />
+                    </div></td>
                     {!materialId && <td className="py-1.5">
-                      <select aria-label="Matériau du linéaire" className="input-tech w-full px-3" value={l.materialId} onChange={(e) => updL(l.id, { materialId: e.target.value })}>
+                      <select aria-label="Matériau du linéaire" aria-invalid={!mat || undefined} className="input-tech w-full px-3" value={l.materialId} onChange={(e) => updL(l.id, { materialId: e.target.value })}>
                         {!mat && <option value={l.materialId}>— choisir —</option>}
                         {materials.map((m) => <option key={m.id} value={m.id}>{m.name} {m.thickness}</option>)}
                       </select>
                     </td>}
-                    <td className="py-1.5"><NumInput aria-label="Largeur de bande" invalid={bad(l.bandWidth)} className="input-num w-full px-3" value={l.bandWidth} onChange={(n) => updL(l.id, { bandWidth: n })} /></td>
-                    <td className="py-1.5"><NumInput aria-label="Longueur totale" invalid={bad(l.totalLength)} className="input-num w-full px-3" value={l.totalLength} onChange={(n) => updL(l.id, { totalLength: n })} /></td>
+                    <td className="py-1.5"><NumInput aria-label="Largeur de bande" invalid={!l.bandWidth || l.bandWidth < 0} className="input-num w-full px-3" value={l.bandWidth} onChange={(n) => updL(l.id, { bandWidth: n })} /></td>
+                    <td className="py-1.5"><NumInput aria-label="Longueur totale" invalid={!l.totalLength || l.totalLength < 0} className="input-num w-full px-3" value={l.totalLength} onChange={(n) => updL(l.id, { totalLength: n })} /></td>
                     <td />
                     <td className="pr-3 text-right">
                       <Button variant="ghost" size="sm" className="btn-danger h-7 w-7 justify-center px-0" aria-label="Supprimer le linéaire" onClick={() => onLinearsChange?.(linears.filter((x) => x.id !== l.id))}><Trash2 size={14} /></Button>
@@ -188,9 +191,9 @@ export function PiecesCard({
                   </tr>
                   <tr className="border-b border-border">
                     <td colSpan={materialId ? 5 : 6} className="pb-4 pl-6 pr-3 pt-1">
-                      <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
+                      <div className="entry-linear-settings flex flex-wrap items-end gap-x-3 gap-y-2">
                         <label className="block">
-                          <span className="field-label">Mode de tronçons</span>
+                          <span className="entry-mode-label field-label">Mode de tronçons</span>
                           <select className="input-tech w-64" value={l.mode} onChange={(e) => updL(l.id, { mode: e.target.value as Linear["mode"] })}>
                             <option value="fixed">Tronçons de longueur fixe</option>
                             <option value="joined">Raboutage autorisé</option>
