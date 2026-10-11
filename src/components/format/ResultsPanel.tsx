@@ -8,7 +8,7 @@ import { groupSheets } from "@/lib/cutplan";
 import { SheetPlan } from "./SheetPlan";
 import type { LinearRecap } from "@/lib/linear";
 
-import { dims, eur, m2, num } from "@/lib/format";
+import { dims, eur, m2, num, panelGroup, panelOrder, reuseCaption } from "@/lib/format";
 import type { OffcutSettings } from "@/lib/types";
 import { DEFAULT_OFFCUT_SETTINGS, offcutKey } from "@/lib/offcuts";
 const pct = (r: number) => `${num(r * 100, 1)} %`;
@@ -37,11 +37,11 @@ function Split({ b }: { b: Balance }) {
   );
 }
 
-function Kpis({ b }: { b: Balance }) {
+function Kpis({ b, mode }: { b: Balance; mode: OffcutSettings["mode"] }) {
   const i = indicators(b);
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      <Card label="Chutes réutilisables" value={`${m2(i.reusable)} m² · ${pct1(i.reusablePct)}`} sub="À conserver pour d'autres travaux" tone="hatch-reuse" />
+      <Card label="Chutes réutilisables" value={`${m2(i.reusable)} m² · ${pct1(i.reusablePct)}`} sub={reuseCaption(mode)} tone="hatch-reuse" />
       <Card label="Perte définitive" value={`${m2(i.loss)} m² · ${pct1(i.lossPct)}`} sub="Matière réellement jetée" tone="hatch-waste" />
     </div>
   );
@@ -68,7 +68,7 @@ function Banner({ result, status, onStatus }: { result: OptimizeResult; status?:
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{statusTitle(s)}{statusSuffix(s)}</div>
           {materialLines(result.materials).map((l, k) => (
-            <div key={k} className="mt-1 text-2xl font-semibold"><span className="tabular-nums">{l.text}</span> <span className="text-sm font-normal text-muted-foreground">{l.name}</span></div>
+            <div key={k} className="mt-1 text-2xl font-semibold"><span className="tabular-nums">{l.text}</span></div>
           ))}
         </div>
         <div className="text-right">
@@ -175,7 +175,7 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
       {!ok && <ul className="list-disc pl-5 text-xs text-destructive">{result.errors.map((e, i) => <li key={i}>{e}</li>)}</ul>}
 
       <Banner result={result} status={status} onStatus={onStatus} />
-      <Kpis b={result.total.balance} />
+      <Kpis b={result.total.balance} mode={oc.mode} />
 
       {linears.length > 0 && (
         <div className="space-y-2">
@@ -207,9 +207,9 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
           <h3 className="text-sm font-semibold">{r.name} <span className="tabular-nums font-normal text-muted-foreground">{num(r.thickness, 1)} mm</span><Badge r={r} mat={mat(r.materialId)} pieces={pieces} />
             <span className="tabular-nums ml-3 text-xs font-normal text-muted-foreground">{r.sheets.length} panneau(x) · rendement {pct1(indicators(r.balance).yieldPct)}</span></h3>
           <Split b={r.balance} />
-          <Kpis b={r.balance} />
+          <Kpis b={r.balance} mode={oc.mode} />
           <p className="tabular-nums text-xs">
-            {r.formats.map((f) => `${f.count} × ${dims(f.width, f.length)}${f.price != null ? ` (${eur(f.count * f.price)})` : ""}`).join(" · ") || "Aucun panneau"}
+            {r.formats.map((f) => `${panelOrder(f.count, f.width, f.length, r.name, r.thickness)}${f.price != null ? ` (${eur(f.count * f.price)})` : ""}`).join(" · ") || "Aucun panneau"}
           </p>
           <Solutions list={r.solutions ?? []} />
           {r.unplaced.length > 0 && (
@@ -230,13 +230,13 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
                 </tr>
               </thead>
               <tbody className="tabular-nums">
-                {r.sheets.map((s) => (
-                  <tr key={s.index} className="border-b border-border">
-                    <td className="py-1.5 pr-2">{s.index}</td>
-                    <td className="px-2 py-1.5">{dims(s.width, s.length)}</td>
-                    <td className="px-2 py-1.5 text-right">{s.placements.length}</td>
-                    <td className="px-2 py-1.5 text-right">{m2(s.offcuts.filter((o) => o.reusable).reduce((a, o) => a + o.w * o.h, 0))}</td>
-                    <td className="px-2 py-1.5 text-right">{pct(s.efficiency)}</td>
+                {groupSheets(r.sheets).map((g) => (
+                  <tr key={g.sheet.index} className="border-b border-border">
+                    <td className="py-1.5 pr-2">{panelGroup(g.indexes)}</td>
+                    <td className="px-2 py-1.5">{dims(g.sheet.width, g.sheet.length)}</td>
+                    <td className="px-2 py-1.5 text-right">{num(g.sheet.placements.length * g.count)}</td>
+                    <td className="px-2 py-1.5 text-right">{m2(g.sheet.offcuts.filter((o) => o.reusable).reduce((a, o) => a + o.w * o.h, 0) * g.count)}</td>
+                    <td className="px-2 py-1.5 text-right">{pct(g.sheet.efficiency)}</td>
                   </tr>
                 ))}
               </tbody>
