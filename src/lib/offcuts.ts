@@ -28,7 +28,8 @@ export function markResolver(result: OptimizeResult, settings?: OffcutSettings):
     for (const i of g.indexes) lead.set(`${m.materialId}|${i}`, g.indexes[0]!);
   return (materialId, sheetIndex, label) => {
     const k = offcutKey(materialId, lead.get(`${materialId}|${sheetIndex}`) ?? sheetIndex, label);
-    return { keep: true, note: "", ...settings?.marks?.[k] };
+    const m = settings?.marks?.[k];
+    return { keep: m?.keep ?? true, note: m?.note ?? "" };
   };
 }
 

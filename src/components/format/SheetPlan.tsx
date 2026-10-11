@@ -1,25 +1,42 @@
 import { useId, useMemo, useState, type MouseEvent } from "react";
 import { Maximize2, Minus, Plus, X } from "lucide-react";
-import type { Material } from "@/lib/types";
+import type { Material, OffcutSettings } from "@/lib/types";
 import type { Placement } from "@/lib/optimizer/types";
 import { cutSequence, type Cut, type SheetGroup } from "@/lib/cutplan";
-import { labeledOffcuts } from "@/lib/offcuts";
+import { labeledOffcuts, type Mark } from "@/lib/offcuts";
+import { dims, m2, num } from "@/lib/format";
+import { fitPieceLabel, pieceRowKey, type Measure } from "@/lib/pieceLabels";
 
 const INK = "var(--foreground)";
 
-interface Props { group: SheetGroup; material: Material; colorOf: (pieceId: string) => string }
+let ctx: CanvasRenderingContext2D | null | undefined;
+/** Largeur réelle du texte en Inter (approximation si le canvas est indisponible). */
+const measure: Measure = (text, size, bold) => {
+  if (ctx === undefined) ctx = typeof document !== "undefined" ? document.createElement("canvas").getContext("2d") : null;
+  if (!ctx) return text.length * size * 0.6;
+  ctx.font = `${bold ? 600 : 400} 100px Inter, ui-sans-serif, system-ui, sans-serif`;
+  return (ctx.measureText(text).width / 100) * size * 1.04;
+};
 
-function PlanSvg({ group, material, colorOf, cuts, onHover, hovered }: Props & {
-  cuts: Cut[]; hovered: Placement | null; onHover: (p: Placement | null, e?: MouseEvent) => void;
+interface Props {
+  group: SheetGroup; material: Material; colorOf: (pieceId: string) => string;
+  mode?: OffcutSettings["mode"];
+  markOf?: (label: string) => Mark;
+  onMark?: (label: string, patch: Partial<Mark>) => void;
+}
+
+function PlanSvg({ group, material, colorOf, cuts, onHover, hovered, refOf, mode = "indicative", markOf }: Props & {
+  cuts: Cut[]; hovered: Placement | null; onHover: (p: Placement | null, e?: MouseEvent) => void; refOf: (p: Placement) => number;
 }) {
   const uid = useId().replace(/:/g, "");
   const s = group.sheet, t = material.trim;
   const big = Math.max(s.width, s.length);
   const m = big * 0.07; // marge pour les cotes
   const fs = big / 55; // taille de texte de reference
+  const minFs = fs * 0.59; // équivalent de 6 pt pour une base d'environ 10 pt
   const sw = big / 900;
   return (
-    <svg viewBox={`${-m} ${-m} ${s.width + 1.6 * m} ${s.length + 1.6 * m}`} className="h-auto w-full" style={{ fontFamily: "var(--font-mono)" }}>
+    <svg viewBox={`${-m} ${-m} ${s.width + 1.6 * m} ${s.length + 1.6 * m}`} className="h-auto w-full" style={{ fontFamily: "var(--font-sans)", fontVariantNumeric: "tabular-nums" }}>
       <defs>
         <pattern id={`w${uid}`} patternUnits="userSpaceOnUse" width={fs * 1.4} height={fs * 1.4} patternTransform="rotate(-45)">
           <rect width={fs * 1.4} height={fs * 1.4} fill="var(--offcut-waste-bg)" />
@@ -35,16 +52,18 @@ function PlanSvg({ group, material, colorOf, cuts, onHover, hovered }: Props & {
       <rect x={t} y={t} width={s.usableW} height={s.usableL} fill="var(--card)" stroke={INK} strokeWidth={sw * 0.6} strokeDasharray={`${fs / 3} ${fs / 4}`} />
       {/* chutes */}
       {labeledOffcuts(s).map((o) => {
+        const kept = mode === "retain" && o.reusable && (markOf?.(o.label).keep ?? true);
+        const reuse = mode === "retain" ? kept : o.reusable;
         const showDim = Math.min(o.w, o.h) > fs * 1.6 && o.w > fs * 6;
-         const labelSize = Math.min(fs * 0.9, o.h / 2.5, o.w / (o.label.length * 0.8));
+        const labelSize = Math.min(fs * 0.9, o.h / 2.5, o.w / (o.label.length * 0.8));
         return (
-           <g key={o.label}>
-             <title>{o.label} — {o.w} × {o.h} mm — {o.reusable ? "À conserver" : "Perte"}</title>
-            <rect x={o.x + t} y={o.y + t} width={o.w} height={o.h} fill={`url(#${o.reusable ? "r" : "w"}${uid})`} stroke="var(--muted-foreground)" strokeWidth={sw * 0.5} />
-             {labelSize > fs * 0.15 && <text x={o.x + t + o.w / 2} y={o.y + t + o.h / 2 - (showDim ? fs * 0.55 : 0)} fontSize={labelSize} fontWeight={600} textAnchor="middle" dominantBaseline="middle" fill={INK} paintOrder="stroke" stroke="var(--card)" strokeWidth={labelSize * 0.25}>{o.label}</text>}
+          <g key={o.label}>
+            <title>{o.label} — {dims(o.w, o.h)} mm{reuse ? (mode === "retain" ? " — À conserver" : " — Conservable") : ""}</title>
+            <rect x={o.x + t} y={o.y + t} width={o.w} height={o.h} fill={`url(#${reuse ? "r" : "w"}${uid})`} stroke={kept ? INK : "var(--muted-foreground)"} strokeWidth={kept ? sw * 4 : sw * 0.5} />
+            {labelSize > fs * 0.15 && <text x={o.x + t + o.w / 2} y={o.y + t + o.h / 2 - (showDim ? fs * 0.55 : 0)} fontSize={labelSize} fontWeight={600} textAnchor="middle" dominantBaseline="middle" fill={INK} paintOrder="stroke" stroke="var(--card)" strokeWidth={labelSize * 0.25}>{o.label}</text>}
             {showDim && (
-               <text x={o.x + t + o.w / 2} y={o.y + t + o.h / 2 + fs * 0.55} fontSize={fs * 0.75} textAnchor="middle" dominantBaseline="middle" fill={INK} paintOrder="stroke" stroke="var(--card)" strokeWidth={fs * 0.25}>
-                {Math.round(o.w)} × {Math.round(o.h)}
+              <text x={o.x + t + o.w / 2} y={o.y + t + o.h / 2 + fs * 0.55} fontSize={fs * 0.75} textAnchor="middle" dominantBaseline="middle" fill={INK} paintOrder="stroke" stroke="var(--card)" strokeWidth={fs * 0.25}>
+                {dims(Math.round(o.w), Math.round(o.h))}
               </text>
             )}
           </g>
@@ -53,23 +72,22 @@ function PlanSvg({ group, material, colorOf, cuts, onHover, hovered }: Props & {
       {/* pieces */}
       {s.placements.map((p, i) => {
         const x = p.x + t, y = p.y + t;
-        const f = Math.min(fs, p.h / 3.2, p.w / 7);
-        const tiny = f < fs * 0.35;
-        const fl = Math.min(fs, p.h / 1.6, p.w / Math.max(2, p.label.length * 0.75));
         const hl = hovered === p;
+        const fit = fitPieceLabel({ label: p.label, dims: dims(p.w, p.h), w: p.w, h: p.h, base: fs, min: minFs, ref: String(refOf(p)), measure });
+        const cx = x + p.w / 2, cy = y + p.h / 2;
         return (
           <g key={i} onMouseMove={(e) => onHover(p, e)} onMouseLeave={() => onHover(null)} style={{ cursor: "default" }}>
             <rect x={x} y={y} width={p.w} height={p.h} fill={colorOf(p.pieceId)} stroke={INK} strokeWidth={hl ? sw * 5 : sw * 1.8} opacity={hovered && !hl ? 0.55 : 1} />
-            {tiny ? (
-              fl > fs * 0.2 && <text x={x + p.w / 2} y={y + p.h / 2} fontSize={fl} fontWeight={600} textAnchor="middle" dominantBaseline="middle" fill={INK}>{p.label}</text>
-            ) : (
-              <>
-                <text x={x + p.w / 2} y={y + p.h / 2 - f * 0.6} fontSize={f * 1.15} fontWeight={600} textAnchor="middle" dominantBaseline="middle" fill={INK}>{p.label}</text>
-                <text x={x + p.w / 2} y={y + p.h / 2 + f * 0.75} fontSize={f} textAnchor="middle" dominantBaseline="middle" fill={INK}>{p.w} × {p.h}</text>
-              </>
+            {fit?.kind === "text" && fit.lines.map((line, n) => (
+              <text key={n} x={cx} y={cy + (n - (fit.lines.length - 1) / 2) * fit.size * 1.2} fontSize={fit.size} textAnchor="middle" dominantBaseline="central" fill={INK}>
+                {line.map((part, j) => <tspan key={j} fontWeight={part.bold ? 600 : 400}>{part.text}</tspan>)}
+              </text>
+            ))}
+            {fit?.kind === "ref" && (
+              <text x={cx} y={cy} fontSize={fit.size} fontWeight={600} textAnchor="middle" dominantBaseline="central" fill={INK}>{fit.text}</text>
             )}
-            {p.rotated && Math.min(p.w, p.h) > fs * 1.4 && (
-              <text x={x + p.w - fs * 0.25} y={y + fs * 0.25} fontSize={fs * 0.9} textAnchor="end" dominantBaseline="hanging" fill={INK}>↻</text>
+            {p.rotated && Math.min(p.w, p.h) > fs * 3 && (
+              <text x={x + p.w - fs * 0.25} y={y + fs * 0.25} fontSize={fs * 0.8} textAnchor="end" dominantBaseline="hanging" fill={INK}>↻</text>
             )}
           </g>
         );
@@ -94,17 +112,17 @@ function PlanSvg({ group, material, colorOf, cuts, onHover, hovered }: Props & {
       <g stroke={INK} strokeWidth={sw} fill={INK} fontSize={fs}>
         <line x1={0} y1={-m * 0.45} x2={s.width} y2={-m * 0.45} />
         <line x1={0} y1={-m * 0.65} x2={0} y2={-m * 0.2} /><line x1={s.width} y1={-m * 0.65} x2={s.width} y2={-m * 0.2} />
-        <text x={s.width / 2} y={-m * 0.6} textAnchor="middle" stroke="none">{s.width}</text>
+        <text x={s.width / 2} y={-m * 0.6} textAnchor="middle" stroke="none">{num(s.width)}</text>
         <line x1={-m * 0.45} y1={0} x2={-m * 0.45} y2={s.length} />
         <line x1={-m * 0.65} y1={0} x2={-m * 0.2} y2={0} /><line x1={-m * 0.65} y1={s.length} x2={-m * 0.2} y2={s.length} />
-        <text x={-m * 0.6} y={s.length / 2} textAnchor="middle" stroke="none" transform={`rotate(-90 ${-m * 0.6} ${s.length / 2})`}>{s.length}</text>
+        <text x={-m * 0.6} y={s.length / 2} textAnchor="middle" stroke="none" transform={`rotate(-90 ${-m * 0.6} ${s.length / 2})`}>{num(s.length)}</text>
       </g>
     </svg>
   );
 }
 
 export function SheetPlan(props: Props) {
-  const { group, material } = props;
+  const { group, material, mode = "indicative", markOf, onMark } = props;
   const s = group.sheet;
   const [hover, setHover] = useState<{ p: Placement; x: number; y: number } | null>(null);
   const [full, setFull] = useState(false);
@@ -117,21 +135,23 @@ export function SheetPlan(props: Props) {
   const rows = useMemo(() => {
     const map = new Map<string, { p: Placement; qty: number; pos: string[] }>();
     for (const p of s.placements) {
-      const k = `${p.pieceId}|${p.w}|${p.h}|${p.rotated}`;
+      const k = pieceRowKey(p);
       const r = map.get(k) ?? { p, qty: 0, pos: [] };
-      r.qty++; r.pos.push(`${p.x + material.trim} / ${p.y + material.trim}`);
+      r.qty++; r.pos.push(`${num(p.x + material.trim, 1)} / ${num(p.y + material.trim, 1)}`);
       map.set(k, r);
     }
-    return [...map.values()];
+    return [...map.entries()];
   }, [s, material]);
-  const svg = <PlanSvg {...props} cuts={cuts} hovered={hover?.p ?? null} onHover={onHover} />;
+  const refOf = (p: Placement) => rows.findIndex(([k]) => k === pieceRowKey(p)) + 1;
+  const svg = <PlanSvg {...props} cuts={cuts} hovered={hover?.p ?? null} onHover={onHover} refOf={refOf} />;
+  const th = "px-2 py-1 font-medium";
 
   return (
     <div className="space-y-3 rounded-sm border border-border p-3 break-inside-avoid">
       <div className="flex items-center gap-2 text-sm">
         <span className="font-semibold">Panneau {group.indexes.join(", ")}</span>
-        <span className="mono text-muted-foreground">{s.width} × {s.length} mm</span>
-        {group.count > 1 && <span className="mono rounded-sm bg-foreground px-1.5 py-0.5 text-xs font-semibold text-background">×{group.count}</span>}
+        <span className="tabular-nums text-muted-foreground">{dims(s.width, s.length)} mm</span>
+        {group.count > 1 && <span className="tabular-nums rounded-sm bg-foreground px-1.5 py-0.5 text-xs font-semibold text-background">×{group.count}</span>}
         <button className="btn-ghost ml-auto h-7 px-2 text-xs print:hidden" onClick={() => setFull(true)}><Maximize2 size={13} /> Agrandir</button>
       </div>
       <div className="mx-auto max-w-[720px] cursor-zoom-in" onClick={() => setFull(true)}>{svg}</div>
@@ -140,60 +160,81 @@ export function SheetPlan(props: Props) {
       {cuts.length > 0 && (
         <div>
           <h4 className="mb-1 text-xs font-semibold uppercase tracking-[0.14em]">Séquence de coupe</h4>
-          <ol className="space-y-0.5 text-xs">
-            {cuts.map((c) => <li key={c.n}><span className="mono font-semibold">{c.n}.</span> {c.text}</li>)}
+          <ol className="space-y-0.5 text-xs tabular-nums">
+            {cuts.map((c) => <li key={c.n}><span className="font-semibold">{c.n}.</span> {c.text}</li>)}
           </ol>
         </div>
       )}
 
-      <table className="w-full text-xs">
-        <thead className="text-left text-muted-foreground">
+      <table className="w-full text-xs tabular-nums">
+        <thead className="text-muted-foreground">
           <tr className="border-b border-border">
-            <th className="py-1 pr-2 font-medium">Repère</th>
-            <th className="px-2 py-1 font-medium">Dimensions (mm)</th>
-            <th className="px-2 py-1 text-right font-medium">Qté</th>
-            <th className="px-2 py-1 font-medium">Tournée</th>
-            <th className="px-2 py-1 font-medium">Position X / Y</th>
+            <th className={`${th} text-right`}>N°</th>
+            <th className={`${th} text-left`}>Repère</th>
+            <th className={`${th} text-left`}>Dimensions (mm)</th>
+            <th className={`${th} text-right`}>Qté</th>
+            <th className={`${th} text-left`}>Tournée</th>
+            <th className={`${th} text-left`}>Position X / Y (mm)</th>
           </tr>
         </thead>
-        <tbody className="mono">
-          {rows.map((r, i) => (
-            <tr key={i} className="border-b border-border align-top">
-              <td className="py-1 pr-2 font-sans"><span className="mr-1.5 inline-block h-2.5 w-2.5 border border-foreground align-middle" style={{ background: props.colorOf(r.p.pieceId) }} />{r.p.label}</td>
-              <td className="px-2 py-1">{r.p.w} × {r.p.h}</td>
+        <tbody>
+          {rows.map(([k, r], i) => (
+            <tr key={k} className="border-b border-border align-top">
+              <td className="px-2 py-1 text-right">{i + 1}</td>
+              <td className="px-2 py-1"><span className="mr-1.5 inline-block h-2.5 w-2.5 border border-foreground align-middle" style={{ background: props.colorOf(r.p.pieceId) }} />{r.p.label}</td>
+              <td className="whitespace-nowrap px-2 py-1">{dims(r.p.w, r.p.h)}</td>
               <td className="px-2 py-1 text-right">{r.qty}</td>
-              <td className="px-2 py-1 font-sans">{r.p.rotated ? "oui" : "non"}</td>
+              <td className="px-2 py-1">{r.p.rotated ? "oui" : "non"}</td>
               <td className="px-2 py-1">{r.pos.join(" · ")}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-       <div>
-         <h4 className="mb-1 text-xs font-semibold uppercase tracking-[0.14em]">Chutes</h4>
-         <div className="overflow-x-auto">
-           <table className="w-full text-xs">
-             <thead className="text-left text-muted-foreground"><tr className="border-b border-border">
-               <th className="py-1 pr-2 font-medium">Repère</th><th className="px-2 py-1 font-medium">Dimensions (mm)</th>
-               <th className="px-2 py-1 text-right font-medium">Surface (m²)</th><th className="px-2 py-1 font-medium">Position X / Y (mm)</th>
-               <th className="px-2 py-1 font-medium">Destination</th>
-             </tr></thead>
-             <tbody className="mono">{labeledOffcuts(s).map((o) => <tr key={o.label} className="border-b border-border">
-               <td className="py-1 pr-2 font-semibold">{o.label}</td><td className="px-2 py-1 whitespace-nowrap">{o.w} × {o.h}</td>
-               <td className="px-2 py-1 text-right">{(o.w * o.h / 1e6).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-               <td className="px-2 py-1">{o.x + material.trim} / {o.y + material.trim}</td>
-               <td className="px-2 py-1 font-sans"><span className={`mr-1.5 inline-block h-3 w-4 border border-border align-middle ${o.reusable ? "hatch-reuse" : "hatch-waste"}`} />{o.reusable ? "À conserver" : "Perte"}</td>
-             </tr>)}</tbody>
-           </table>
-         </div>
-         {s.offcuts.length === 0 && <p className="text-xs text-muted-foreground">Aucune chute.</p>}
-       </div>
+      <div>
+        <h4 className="mb-1 text-xs font-semibold uppercase tracking-[0.14em]">Chutes</h4>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs tabular-nums">
+            <thead className="text-muted-foreground"><tr className="border-b border-border">
+              <th className={`${th} text-left`}>Repère</th><th className={`${th} text-left`}>Dimensions (mm)</th>
+              <th className={`${th} text-right`}>Surface (m²)</th><th className={`${th} text-left`}>Position X / Y (mm)</th>
+              <th className={`${th} text-left`}>{mode === "retain" ? "Consigne" : "Destination"}</th>
+            </tr></thead>
+            <tbody>{labeledOffcuts(s).map((o) => {
+              const mk = markOf?.(o.label) ?? { keep: true, note: "" };
+              return (
+                <tr key={o.label} className="border-b border-border align-middle">
+                  <td className="px-2 py-1 font-semibold">{o.label}</td><td className="whitespace-nowrap px-2 py-1">{dims(o.w, o.h)}</td>
+                  <td className="px-2 py-1 text-right">{m2(o.w * o.h)}</td>
+                  <td className="px-2 py-1">{num(o.x + material.trim, 1)} / {num(o.y + material.trim, 1)}</td>
+                  <td className="px-2 py-1">
+                    {mode === "retain" && o.reusable ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                          <input type="checkbox" className="accent-primary" checked={mk.keep} aria-label={`À conserver ${o.label}`}
+                            onChange={(e) => onMark?.(o.label, { keep: e.target.checked })} />
+                          À conserver
+                        </label>
+                        <input className="input-tech h-7 min-w-28 flex-1 text-xs" placeholder="Note" aria-label={`Note ${o.label}`}
+                          value={mk.note} disabled={!mk.keep} onChange={(e) => onMark?.(o.label, { note: e.target.value })} />
+                      </div>
+                    ) : (
+                      <><span className={`mr-1.5 inline-block h-3 w-4 border border-border align-middle ${o.reusable ? "hatch-reuse" : "hatch-waste"}`} />{o.reusable ? "Conservable" : "Perte"}</>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}</tbody>
+          </table>
+        </div>
+        {s.offcuts.length === 0 && <p className="text-xs text-muted-foreground">Aucune chute.</p>}
+      </div>
 
       {hover && (
         <div className="pointer-events-none fixed z-[60] rounded-sm border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow" style={{ left: hover.x + 14, top: hover.y + 14 }}>
-          <div className="font-semibold">{hover.p.label}{hover.p.rotated ? " ↻ tournée" : ""}</div>
-          <div className="mono">{hover.p.w} × {hover.p.h} mm</div>
-          <div className="mono text-muted-foreground">X {hover.p.x + material.trim} / Y {hover.p.y + material.trim}</div>
+          <div className="font-semibold">N° {refOf(hover.p)} · {hover.p.label}{hover.p.rotated ? " ↻ tournée" : ""}</div>
+          <div className="tabular-nums">{dims(hover.p.w, hover.p.h)} mm</div>
+          <div className="tabular-nums text-muted-foreground">X {num(hover.p.x + material.trim, 1)} / Y {num(hover.p.y + material.trim, 1)}</div>
         </div>
       )}
 
@@ -201,10 +242,10 @@ export function SheetPlan(props: Props) {
         <div className="fixed inset-0 z-50 flex flex-col bg-background">
           <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-sm">
             <span className="font-semibold">{material.name} — Panneau {group.indexes.join(", ")}</span>
-            <span className="mono text-muted-foreground">{s.width} × {s.length} mm</span>
+            <span className="tabular-nums text-muted-foreground">{dims(s.width, s.length)} mm</span>
             <div className="ml-auto flex items-center gap-1">
               <button className="btn-ghost h-8 px-2" onClick={() => setZoom((z) => Math.max(0.5, z / 1.25))} aria-label="Dézoomer"><Minus size={15} /></button>
-              <span className="mono w-14 text-center text-xs">{Math.round(zoom * 100)} %</span>
+              <span className="tabular-nums w-14 text-center text-xs">{Math.round(zoom * 100)} %</span>
               <button className="btn-ghost h-8 px-2" onClick={() => setZoom((z) => Math.min(8, z * 1.25))} aria-label="Zoomer"><Plus size={15} /></button>
               <button className="btn-ghost h-8 px-2" onClick={() => { setFull(false); setZoom(1); }} aria-label="Fermer"><X size={16} /></button>
             </div>
