@@ -84,7 +84,7 @@ export function PiecesCard({
           Toutes les pièces peuvent tourner
         </label>
         <table aria-label="Pièces" className="entry-table w-full text-sm max-sm:block sm:min-w-[780px] sm:table-fixed">
-          <colgroup className="max-sm:hidden"><col className="w-[15%]" />{!materialId && <col className="w-[30%]" />}<col className="w-[15%]" /><col className="w-[15%]" /><col className="w-[10%]" /><col className="w-[10%]" /><col className="w-[5%]" /></colgroup>
+          <colgroup className="max-sm:hidden">{materialId ? <><col className="w-[25%]" /><col className="w-[22%]" /><col className="w-[22%]" /><col className="w-[12%]" /><col className="w-[14%]" /><col className="w-[5%]" /></> : <><col className="w-[15%]" /><col className="w-[30%]" /><col className="w-[15%]" /><col className="w-[15%]" /><col className="w-[10%]" /><col className="w-[10%]" /><col className="w-[5%]" /></>}</colgroup>
           <thead className="text-left font-sans text-xs font-semibold text-foreground max-sm:hidden">
             <tr className="border-b border-border">
               <th className="px-3 py-2 font-semibold">Repère</th>
@@ -144,7 +144,7 @@ export function PiecesCard({
           <div className={visiblePieces.length ? "border-t border-border" : ""}>
           <h3 className="px-4 pb-2 pt-4 text-sm font-semibold">Linéaires</h3>
           <table aria-label="Linéaires" className="entry-table w-full min-w-[780px] table-fixed text-sm">
-            <colgroup><col className="w-[15%]" />{!materialId && <col className="w-[30%]" />}<col className="w-[20%]" />{!materialId && <col className="w-[30%]" />}<col className="w-[5%]" /></colgroup>
+            <colgroup>{materialId ? <><col className="w-[25%]" /><col className="w-[30%]" /><col className="w-[40%]" /><col className="w-[5%]" /></> : <><col className="w-[15%]" /><col className="w-[30%]" /><col className="w-[20%]" /><col className="w-[30%]" /><col className="w-[5%]" /></>}</colgroup>
             <thead className="text-left font-sans text-xs font-semibold text-foreground">
               <tr className="border-b border-border">
                 <th className="px-3 py-2 font-semibold">Repère</th>

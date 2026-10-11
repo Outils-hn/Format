@@ -12,7 +12,7 @@ export function PasteDialog({
   materials, onClose, onApply, defaultMaterialId,
 }: {
   materials: Material[];
-  defaultMaterialId?: string;
+  defaultMaterialId?: string | undefined;
   onClose: () => void;
   onApply: (pieces: Piece[], mode: "replace" | "append") => void;
 }) {

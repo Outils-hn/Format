@@ -138,7 +138,7 @@ function Solutions({ list }: { list: SolutionSummary[] }) {
 }
 
 export function ResultsPanel({ result, materials, linears = [], pieces = [], status, onStatus = () => {}, offcuts, onOffcuts = () => {}, materialId, summaryOnly = false }: {
-  materialId?: string; summaryOnly?: boolean;
+  materialId?: string | undefined; summaryOnly?: boolean;
   result: OptimizeResult; materials: Material[]; linears?: LinearRecap[]; pieces?: Piece[]; status?: MaterialStatus | undefined; onStatus?: (s: MaterialStatus) => void;
   offcuts?: OffcutSettings | undefined; onOffcuts?: (o: OffcutSettings) => void;
 }) {

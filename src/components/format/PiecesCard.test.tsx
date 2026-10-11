@@ -36,6 +36,27 @@ describe("Bulk rotation", () => {
 });
 
 describe("Entry sections", () => {
+  it("filters material rows and preserves the other material when editing or adding", () => {
+    function FilteredExample() {
+      const [rows, setRows] = useState<Piece[]>([
+        { ...newPiece("mat-mdf19", 1), width: 600, height: 400 },
+        { ...newPiece("mat-mela18", 2, true), width: 700, height: 500 },
+      ]);
+      return <><PiecesCard materialId="mat-mdf19" pieces={rows} materials={materials} onChange={setRows} />
+        <output data-testid="rows">{JSON.stringify(rows)}</output></>;
+    }
+    render(<FilteredExample />);
+    expect(screen.queryByRole("columnheader", { name: "Matériau" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Largeur de P2" })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole("textbox", { name: "Largeur de P1" }), { target: { value: "650" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Ajouter$/ }));
+    const rows = JSON.parse(screen.getByTestId("rows").textContent ?? "[]") as Piece[];
+    expect(rows).toHaveLength(3);
+    expect(rows[0]?.width).toBe(650);
+    expect(rows[1]?.materialId).toBe("mat-mela18");
+    expect(rows[1]?.width).toBe(700);
+    expect(rows[2]?.materialId).toBe("mat-mdf19");
+  });
   it("shows only the empty message when there are no rows", () => {
     render(<PiecesCard pieces={[]} materials={materials} onChange={() => {}} linears={[]} onLinearsChange={() => {}} />);
     expect(screen.getByText("Ajoutez des pièces ou un linéaire")).toBeInTheDocument();
