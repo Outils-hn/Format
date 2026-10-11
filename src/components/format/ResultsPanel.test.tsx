@@ -23,7 +23,7 @@ describe("Simple results", () => {
     const title = screen.getByText("3 pièces à faire débiter - MDF 19 mm");
     expect(title).toHaveClass("text-xl");
     expect(screen.getByText(/^Estimation : environ/)).toHaveClass("text-xs");
-    expect(screen.getByText("L1 · 1 234")).toBeInTheDocument();
+    expect(screen.getByText(/L1 · 1\s234/)).toBeInTheDocument();
     expect(screen.getByText("L1 · 994")).toBeInTheDocument();
   });
   it("collapses verification details initially and lets the user open them", () => {
