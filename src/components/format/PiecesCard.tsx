@@ -1,5 +1,5 @@
-import { Fragment, useEffect, useRef, useState } from "react";
-import { ClipboardCopy, ClipboardPaste, Plus, Trash2 } from "lucide-react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import { ChevronDown, ClipboardCopy, ClipboardPaste, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Linear, Material, Piece } from "@/lib/types";
 import { linearSegments, newLinear, segmentsText } from "@/lib/linear";
@@ -12,7 +12,7 @@ import { PasteDialog } from "./PasteDialog";
 import { NumInput } from "./NumInput";
 
 export function PiecesCard({
-  pieces, materials, onChange, linears = [], onLinearsChange, highlightEmpty = false, materialId,
+  pieces, materials, onChange, linears = [], onLinearsChange, highlightEmpty = false, materialId, subtitle, settings,
 }: {
   highlightEmpty?: boolean;
   materialId?: string;
