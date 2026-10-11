@@ -32,6 +32,12 @@ export function verifyMaterial(m: Material, pieces: Piece[], sheets: SheetResult
       if (p.x < 0 || p.y < 0 || p.x + p.w > s.usableW + 1e-6 || p.y + p.h > s.usableL + 1e-6)
         errs.push(`${m.name} panneau ${s.index} : ${p.label} hors zone utile`);
       const piece = pieces.find((x) => x.id === p.pieceId);
+      // Les dimensions posees doivent etre celles de la piece, dans le sens indique par "rotated".
+      if (piece && piece.width != null && piece.height != null) {
+        const [ew, eh] = p.rotated ? [piece.height, piece.width] : [piece.width, piece.height];
+        if (Math.abs(p.w - ew) > 1e-6 || Math.abs(p.h - eh) > 1e-6)
+          errs.push(`${m.name} panneau ${s.index} : ${p.label} posée en ${p.w} × ${p.h} au lieu de ${ew} × ${eh}`);
+      }
       if (p.rotated && piece && (!piece.canRotate || m.grainLocked))
         errs.push(`${m.name} panneau ${s.index} : ${p.label} tournée sans autorisation`);
       for (let j = i + 1; j < ps.length; j++) {

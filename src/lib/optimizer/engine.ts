@@ -1,7 +1,7 @@
 // Moteur d'optimisation 2D — materiau par materiau. Code pur, execute dans un Web Worker.
 import type { Material, Piece } from "../types";
 import { validatePiece } from "../validation";
-import { freeRects, guillotinePacker, maxRectsPacker, type GuillotineFit, type GuillotineSplit, type MaxRectsFit } from "./packers";
+import { freeRects, guillotinePacker, maxRectsPacker, workMeter, type GuillotineFit, type GuillotineSplit, type MaxRectsFit } from "./packers";
 import type {
   Balance, FormatCount, Item, MaterialResult, OptimizeOptions, OptimizeRequest, OptimizeResult,
   Objective, Placement, Rect, SheetResult, SolutionSummary, Unplaced,
@@ -10,6 +10,10 @@ import { verifyMaterial } from "./verify";
 
 export const DEFAULT_REUSE_MIN = 300;
 const INTENSIVE_MS = 2000;
+/** Budget de travail du mode intensif (evaluations de placement), calibre pour environ 2 s. */
+export const INTENSIVE_WORK = 120_000_000;
+/** Plafond d'essais : borne aussi les petits cas, ou le travail compte peu. */
+const INTENSIVE_MAX_TRIES = 15_000;
 
 interface Fmt { width: number; length: number; price?: number | undefined }
 interface RawSheet { fmt: Fmt; placements: Placement[] }
@@ -86,6 +90,7 @@ function bestPattern(it: Item, BW: number, BH: number, k: number): Pattern | nul
 /** Remplit un panneau avec les items dans l'ordre donne ; renvoie placements et items restants. */
 function fillSheet(m: Material, f: Fmt, items: Item[], cfg: Cfg) {
   const W = f.width - 2 * m.trim, L = f.length - 2 * m.trim, k = m.kerf;
+  workMeter.units += 30 * items.length; // regroupement et preparation du panneau
   const placements: Placement[] = [];
   let todo = items;
   let initFree: Rect[] | undefined;
@@ -212,11 +217,33 @@ function orientationVariants(items: Item[]): Item[][] {
   ];
 }
 
-function shuffle<T>(a: T[]): T[] {
+function shuffle<T>(a: T[], rnd: () => number): T[] {
   const r = [...a];
-  for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j]!, r[i]!]; }
+  for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [r[i], r[j]] = [r[j]!, r[i]!]; }
   return r;
 }
+
+/** Generateur pseudo-aleatoire a graine fixe (mulberry32) : memes donnees => meme resultat. */
+function seededRandom(seed: number): () => number {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Graine derivee des pieces et des reglages du materiau. */
+function seedOf(m: Material, items: Item[]): number {
+  let h = 2166136261;
+  const mix = (n: number) => { h = Math.imul(h ^ (Math.round(n) | 0), 16777619); };
+  for (const it of items) { mix(it.w); mix(it.h); mix(it.canRotate ? 1 : 0); }
+  mix(m.kerf); mix(m.trim);
+  return h >>> 0;
+}
+
 
 function finalizeSheets(m: Material, raw: RawSheet[]): SheetResult[] {
   const reuseMin = m.reuseMin ?? DEFAULT_REUSE_MIN;
@@ -261,7 +288,7 @@ export const addBalance = (a: Balance, b: Balance): Balance => ({
   reusable: a.reusable + b.reusable, losses: a.losses + b.losses,
 });
 
-function optimizeMaterial(m: Material, pieces: Piece[], opt: OptimizeOptions, budgetMs: number): MaterialResult {
+function optimizeMaterial(m: Material, pieces: Piece[], opt: OptimizeOptions, budgetMs: number, budgetWork: number): MaterialResult {
   const own = pieces.filter((p) => p.materialId === m.id);
   const unplaced: Unplaced[] = [];
   const items: Item[] = [];
@@ -297,6 +324,7 @@ function optimizeMaterial(m: Material, pieces: Piece[], opt: OptimizeOptions, bu
   let bestScore: number[] = [];
   const perKey = new Map<string, { sol: RawSheet[]; score: number[] }>();
   const consider = (key: string, sf: Fmt[], order: Item[], cfg: Cfg) => {
+    workMeter.units += 60 * order.length; // cout fixe d'un essai (tri, score, blocs)
     const sol = packAll(m, sf, order, byPrice, cfg);
     if (!sol) return;
     const sc = solutionScore(m, sol, opt.objective, byPrice);
@@ -312,11 +340,15 @@ function optimizeMaterial(m: Material, pieces: Piece[], opt: OptimizeOptions, bu
         for (const v of variants)
           for (const sort of SORTS) consider(keyOf(s, cfg), s.fmts, [...v].sort(sort), cfg);
     if (opt.intensive && strategies.length) {
-      const end = Date.now() + budgetMs;
-      const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)]!;
-      while (Date.now() < end) {
+      // Budget de travail fixe + graine fixe : le meme projet donne toujours le meme resultat.
+      // Le delai ne sert que de garde-fou sur une machine tres lente.
+      const rnd = seededRandom(seedOf(m, items));
+      const end = Date.now() + 3 * budgetMs;
+      const pick = <T,>(a: T[]) => a[Math.floor(rnd() * a.length)]!;
+      const start = workMeter.units;
+      for (let t = 0; t < INTENSIVE_MAX_TRIES && workMeter.units - start < budgetWork && Date.now() < end; t++) {
         const s = pick(strategies), cfg = pick(cfgs);
-        consider(keyOf(s, cfg), s.fmts, shuffle(pick(variants)), cfg);
+        consider(keyOf(s, cfg), s.fmts, shuffle(pick(variants), rnd), cfg);
       }
     }
   }
@@ -347,7 +379,8 @@ export function optimize({ materials, pieces, options }: OptimizeRequest): Optim
   const t0 = Date.now();
   const used = materials.filter((m) => pieces.some((p) => p.materialId === m.id));
   const budget = INTENSIVE_MS / Math.max(1, used.length);
-  const results = used.map((m) => optimizeMaterial(m, pieces, options, budget));
+  const work = INTENSIVE_WORK / Math.max(1, used.length);
+  const results = used.map((m) => optimizeMaterial(m, pieces, options, budget, work));
   const orphan = pieces.filter((p) => !materials.some((m) => m.id === p.materialId));
   const zero: Balance = { purchased: 0, pieces: 0, trim: 0, reusable: 0, losses: 0 };
   return {

@@ -11,6 +11,12 @@ export type GuillotineFit = "bssf" | "baf";
 export type GuillotineSplit = "short" | "long";
 export type MaxRectsFit = "bssf" | "baf" | "bl" | "cp";
 
+/**
+ * Compteur de travail deterministe (nombre d'evaluations de placement). Sert a borner
+ * le mode intensif par l'effort fourni plutot que par le temps : resultat reproductible.
+ */
+export const workMeter = { units: 0 };
+
 interface Choice { rect: number; w: number; h: number; rotated: boolean; score: number; score2: number }
 
 /** Orientations possibles ; `flip` signifie que l'item est deja fourni tourne. */
@@ -26,6 +32,8 @@ const overlap1 = (a0: number, a1: number, b0: number, b1: number) => Math.max(0,
 function choose(free: Rect[], item: Item, k: number, fit: MaxRectsFit, used: Rect[], binW: number, binH: number): Choice | null {
   let best: Choice | null = null;
   const ts = tries(item);
+  // Contact Point parcourt aussi les pieces deja posees : on le compte.
+  workMeter.units += free.length * ts.length * (fit === "cp" ? 1 + used.length : 1);
   free.forEach((r, i) => {
     for (const [w, h, rotated] of ts) {
       const ow = w + k, oh = h + k;
@@ -98,7 +106,8 @@ export function maxRectsPacker(W: number, L: number, k: number, fit: MaxRectsFit
         if (u.y > f.y) next.push({ x: f.x, y: f.y, w: f.w, h: u.y - f.y });
         if (u.y + u.h < f.y + f.h) next.push({ x: f.x, y: u.y + u.h, w: f.w, h: f.y + f.h - u.y - u.h });
       }
-      // supprime les rectangles contenus dans un autre
+      // supprime les rectangles contenus dans un autre (cout quadratique, compte dans le travail)
+      workMeter.units += next.length * next.length;
       free = next.filter((a, i) => !next.some((b, j) => j !== i &&
         a.x >= b.x && a.y >= b.y && a.x + a.w <= b.x + b.w && a.y + a.h <= b.y + b.h &&
         (j < i || a.x !== b.x || a.y !== b.y || a.w !== b.w || a.h !== b.h)));
