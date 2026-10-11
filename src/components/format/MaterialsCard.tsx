@@ -65,7 +65,7 @@ export function MaterialsCard({
 function Num({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
   return (
     <label className="block">
-      <span className="field-label">{label}</span>
+      <span className="field-label whitespace-nowrap">{label}</span>
       <NumInput className="input-num" value={value} onChange={(n) => onChange(n ?? NaN)} />
     </label>
   );
@@ -85,23 +85,23 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
 
   return (
     <Modal title={initial.name ? "Matériau" : "Nouveau matériau"} onClose={onCancel}>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <label className="col-span-2 block">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-[2fr_1fr_1fr]">
+        <label className="col-span-2 block sm:col-span-1">
           <span className="field-label">Nom</span>
           <input className="input-tech" value={m.name} onChange={(e) => set({ name: e.target.value })} />
         </label>
         <Num label="Épaisseur (mm)" value={m.thickness} onChange={(thickness) => set({ thickness })} />
         <Num label="Trait de coupe (mm)" value={m.kerf} onChange={(kerf) => set({ kerf })} />
-        <Num label="Délignage / bord (mm)" value={m.trim} onChange={(trim) => set({ trim })} />
-        <label className="col-span-3 block">
+        <Num label="Délignage (mm)" value={m.trim} onChange={(trim) => set({ trim })} />
+        <Num label="Chute réutil. mini (mm)" value={m.reuseMin ?? 300} onChange={(reuseMin) => set({ reuseMin })} />
+        <label className="col-span-2 block sm:col-span-3">
           <span className="field-label">Type de découpe</span>
           <select className="input-tech" value={m.cutType} onChange={(e) => set({ cutType: e.target.value as Material["cutType"] })}>
             <option value="guillotine">Coupes traversantes (scie à panneaux)</option>
             <option value="free">Placement libre (CNC)</option>
           </select>
         </label>
-        <Num label="Chute réutil. mini (mm)" value={m.reuseMin ?? 300} onChange={(reuseMin) => set({ reuseMin })} />
-        <label className="col-span-4 flex items-center gap-2 text-sm">
+        <label className="col-span-2 flex items-center gap-2 text-sm sm:col-span-3">
           <input type="checkbox" className="accent-primary" checked={m.grainLocked} onChange={(e) => set({ grainLocked: e.target.checked })} />
           Sens imposé <span className="text-muted-foreground">— les pièces ne tournent pas (décor, fil du bois, laquage)</span>
         </label>
