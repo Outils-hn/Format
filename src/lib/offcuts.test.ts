@@ -25,7 +25,7 @@ describe("offcut presentation", () => {
     };
     expect(retainedOffcuts(result)).toEqual([{
       materialId: "m", material: "MDF", thickness: 19, w: 400, h: 350,
-      quantity: 2, origins: ["P1 / C2", "P2 / C2"],
+      quantity: 2, origins: ["P1 / C2", "P2 / C2"], notes: [],
     }]);
   });
 });

@@ -63,12 +63,20 @@ export interface MaterialStatus {
   orderNumber?: string | undefined;
 }
 
+/** Chutes dans le PDF atelier : sans qualification, indicatif, ou consigne de conservation. */
+export interface OffcutSettings {
+  mode: "hide" | "indicative" | "retain";
+  labelsPage: boolean;
+  marks: Record<string, { keep?: boolean; note?: string }>;
+}
+
 export interface Project {
   id: string;
   info: ProjectInfo;
   pieces: Piece[];
   linears?: Linear[] | undefined;
   materialStatus?: MaterialStatus | undefined;
+  offcuts?: OffcutSettings | undefined;
   updatedAt: string;
 }
 

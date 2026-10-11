@@ -4,13 +4,15 @@ import type { Material, Supply } from "@/lib/types";
 import { newMaterial } from "@/lib/defaults";
 import { uid } from "@/lib/ids";
 import { Modal } from "./Modal";
+import { NumInput } from "./NumInput";
+import { dims, num } from "@/lib/format";
 
 const supplyLabel = (s: Supply) =>
   s.mode === "single"
-    ? `${s.width} × ${s.length}`
+    ? dims(s.width, s.length)
     : s.mode === "catalog"
       ? `${s.formats.length} formats`
-      : `${s.width} × ${s.minLength}–${s.maxLength}`;
+      : `${num(s.width)} × ${num(s.minLength)}–${num(s.maxLength)}`;
 
 export function MaterialsCard({
   materials,
@@ -38,7 +40,7 @@ export function MaterialsCard({
           <li key={m.id} className="flex items-center gap-2 px-4 py-2.5">
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-medium">
-                {m.name} <span className="mono text-muted-foreground">{m.thickness} mm</span>
+                {m.name} <span className="mono text-muted-foreground">{num(m.thickness, 1)} mm</span>
               </div>
               <div className="mono overflow-x-auto text-xs leading-5 text-muted-foreground">
                 <p className="whitespace-nowrap">{supplyLabel(m.supply)} · {m.cutType === "free" ? "CNC" : "scie"}</p>
@@ -64,7 +66,7 @@ function Num({ label, value, onChange }: { label: string; value: number; onChang
   return (
     <label className="block">
       <span className="field-label">{label}</span>
-      <input type="number" className="input-num" value={Number.isFinite(value) ? value : ""} onChange={(e) => onChange(parseFloat(e.target.value))} />
+      <NumInput className="input-num" value={value} onChange={(n) => onChange(n ?? NaN)} />
     </label>
   );
 }
@@ -140,9 +142,9 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
                 set({ supply: { ...s, formats: s.formats.map((x, j) => (j === i ? { ...x, ...patch } : x)) } });
               return (
                 <div key={f.id} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
-                  <input type="number" className="input-num" value={f.width} onChange={(e) => upd({ width: parseFloat(e.target.value) })} />
-                  <input type="number" className="input-num" value={f.length} onChange={(e) => upd({ length: parseFloat(e.target.value) })} />
-                  <input type="number" className="input-num" placeholder="—" value={f.price ?? ""} onChange={(e) => upd({ price: e.target.value === "" ? undefined : parseFloat(e.target.value) })} />
+                  <NumInput aria-label="Largeur du format" className="input-num" value={f.width} onChange={(n) => upd({ width: n ?? NaN })} />
+                  <NumInput aria-label="Longueur du format" className="input-num" value={f.length} onChange={(n) => upd({ length: n ?? NaN })} />
+                  <NumInput aria-label="Prix du format" className="input-num" placeholder="—" value={f.price ?? null} onChange={(n) => upd({ price: n ?? undefined })} />
                   <button className="btn-danger h-8 w-7 justify-center px-0" aria-label="Retirer" onClick={() => set({ supply: { ...s, formats: s.formats.filter((_, j) => j !== i) } })}><Trash2 size={14} /></button>
                 </div>
               );
