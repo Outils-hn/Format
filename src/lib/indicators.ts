@@ -1,7 +1,7 @@
 // Indicateurs de présentation dérivés des résultats (aucun impact sur le moteur).
 import type { Balance, FormatCount, MaterialResult } from "./optimizer/types";
 import type { Material, MaterialStatus, Piece } from "./types";
-import { dims, pct1 } from "./format";
+import { dims, num, panelOrder, pct1 } from "./format";
 
 export interface Indicators {
   purchased: number; pieces: number; reusable: number; loss: number;
@@ -35,7 +35,23 @@ export function lowerBound(mat: Material, pieces: Piece[]): number | null {
     const isBig = (w: number, h: number) => w > uw / 2 && h > ul / 2;
     if (isBig(p.width, p.height) && (!p.canRotate || mat.grainLocked || isBig(p.height, p.width))) big += p.quantity;
   }
-  return Math.max(Math.ceil(area / (uw * ul) - 1e-9), big);
+  let bound = Math.max(Math.ceil(area / (uw * ul) - 1e-9), big);
+  const rows = pieces.filter((p) => p.materialId === mat.id && p.width && p.height && p.quantity > 0);
+  const first = rows[0];
+  if (first?.width && first.height && rows.every((p) => p.width === first.width && p.height === first.height)) {
+    const w = first.width + mat.kerf, h = first.height + mat.kerf;
+    const normalFits = w <= uw && h <= ul;
+    const turnedFits = h <= uw && w <= ul;
+    // Apply only when every piece has exactly the same single feasible orientation.
+    const orientations = rows.map((p) => ({ normal: normalFits, turned: p.canRotate && !mat.grainLocked && turnedFits }));
+    const onlyNormal = orientations.every((o) => o.normal && !o.turned);
+    const onlyTurned = orientations.every((o) => !o.normal && o.turned);
+    if (onlyNormal || onlyTurned) {
+      const capacity = Math.floor(uw / (onlyNormal ? w : h)) * Math.floor(ul / (onlyNormal ? h : w));
+      if (capacity > 0) bound = Math.max(bound, Math.ceil(rows.reduce((sum, p) => sum + p.quantity, 0) / capacity));
+    }
+  }
+  return bound;
 }
 
 export const formatsText = (f: FormatCount[]) => f.map((x) => `${x.count} × ${dims(x.width, x.length)} mm`).join(" · ");
@@ -54,4 +70,4 @@ export function statusSuffix(s?: MaterialStatus): string {
 }
 
 export const materialLines = (r: MaterialResult[]) =>
-  r.flatMap((m) => m.formats.map((f) => ({ name: `${m.name} ${m.thickness} mm`, text: `${f.count} × ${dims(f.width, f.length)} mm` })));
+  r.flatMap((m) => m.formats.map((f) => ({ name: `${m.name} ${num(m.thickness, 1)} mm`, text: panelOrder(f.count, f.width, f.length, m.name, m.thickness) })));

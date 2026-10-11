@@ -3,6 +3,7 @@ import XLSX from "xlsx-js-style";
 import type { OptimizeResult } from "../optimizer/types";
 import type { Material, ProjectInfo } from "../types";
 import { cleanName, download } from "./common";
+import { panelOrder } from "../format";
 
 type Cell = string | number | null | { f: string; v?: number };
 
@@ -23,7 +24,7 @@ function sheet(rows: Cell[][]) {
 }
 
 export function exportOrderXlsx(result: OptimizeResult, materials: Material[], info: ProjectInfo) {
-  const order: Cell[][] = [["Matériau", "Épaisseur (mm)", "Format (L x H mm)", "Quantité panneaux", "Prix unitaire (€)", "Prix total (€)"]];
+  const order: Cell[][] = [["Matériau", "Épaisseur (mm)", "Format (L x H mm)", "Quantité panneaux", "Prix unitaire (€)", "Prix total (€)", "Commande"]];
   const pieces: Cell[][] = [["Panneau n°", "Repère", "Matériau", "Largeur (mm)", "Hauteur (mm)", "Tournée", "Position X (mm)", "Position Y (mm)"]];
   const offcuts: Cell[][] = [["Matériau", "Épaisseur (mm)", "Largeur (mm)", "Hauteur (mm)", "Panneau d'origine"]];
   let hasPrice = false;
@@ -33,7 +34,8 @@ export function exportOrderXlsx(result: OptimizeResult, materials: Material[], i
       const row = order.length + 1;
       const priced = f.price != null;
       if (priced) hasPrice = true;
-      order.push([r.name, r.thickness, `${f.width} x ${f.length}`, f.count, priced ? f.price! : null, priced ? { f: `D${row}*E${row}`, v: f.count * f.price! } : null]);
+      const price = f.price;
+      order.push([r.name, r.thickness, `${f.width} x ${f.length}`, f.count, price ?? null, price != null ? { f: `D${row}*E${row}`, v: f.count * price } : null, panelOrder(f.count, f.width, f.length, r.name, r.thickness)]);
     }
     for (const s of r.sheets) {
       for (const p of s.placements)
@@ -46,6 +48,7 @@ export function exportOrderXlsx(result: OptimizeResult, materials: Material[], i
     hasPrice ? { f: `SUM(F2:F${n})`, v: result.total.totalPrice ?? 0 } : null]);
   const wb = XLSX.utils.book_new();
   const wsO = sheet(order);
+  if (wsO["!cols"]) wsO["!cols"][6] = { wch: 70 };
   const last = XLSX.utils.encode_cell({ r: n, c: 0 });
   wsO[last].s = { font: { bold: true } };
   XLSX.utils.book_append_sheet(wb, wsO, "Commande");

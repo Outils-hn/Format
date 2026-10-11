@@ -10,3 +10,6 @@
 - [x] Garder les tableaux PDF entiers avec leur titre et vérifier les changements de page.
 - [x] Retoucher la présentation des pièces, linéaires, matériaux et de la barre de lancement sans changer le fonctionnement, puis vérifier.
 - [x] Harmonisation : chutes dans le PDF (3 modes, étiquettes), champs numériques, étiquettes ajustées, format français, Inter, cartes sur mobile.
+- [x] Affiner la borne des pièces identiques à orientation unique et vérifier le cas des 160 pièces.
+- [x] Harmoniser les consignes de chutes, commandes, groupes de panneaux et positions écran/PDF/Excel.
+- [x] Réaligner les champs de la fenêtre matériau et vérifier les retouches.

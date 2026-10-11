@@ -1,9 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 import { Writer } from "./pdf";
+import { positionPair } from "../format";
 
 const cols = [{ h: "Repère", w: 20 }, { h: "Position X / Y (mm)", w: 40 }];
 
 describe("PDF atomic tables", () => {
+  it("wraps positions only between complete X/Y pairs", () => {
+    const w = new Writer();
+    const pairs = [positionPair(1530, 10), positionPair(1840, 10), positionPair(10, 2514)];
+    const layout = w.measureTable([{ h: "Repère", w: 130 }, { h: "Position", w: 25, positionPairs: true }], [["A", pairs.join(" · ")]]);
+    const lines = layout.body[0]?.cells[1] ?? [];
+    expect(lines.length).toBeGreaterThan(1);
+    expect(lines.flatMap((line) => line.split(" · "))).toEqual(pairs);
+  });
   it("moves the entire table and its title before drawing any row", () => {
     const w = new Writer();
     w.y = w.bottom - 14;

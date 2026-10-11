@@ -4,7 +4,7 @@ import type { Material, OffcutSettings } from "@/lib/types";
 import type { Placement } from "@/lib/optimizer/types";
 import { cutSequence, type Cut, type SheetGroup } from "@/lib/cutplan";
 import { labeledOffcuts, type Mark } from "@/lib/offcuts";
-import { dims, m2, num } from "@/lib/format";
+import { dims, m2, num, panelGroup, positionPair } from "@/lib/format";
 import { fitPieceLabel, pieceRowKey, type Measure } from "@/lib/pieceLabels";
 
 const INK = "var(--foreground)";
@@ -137,7 +137,7 @@ export function SheetPlan(props: Props) {
     for (const p of s.placements) {
       const k = pieceRowKey(p);
       const r = map.get(k) ?? { p, qty: 0, pos: [] };
-      r.qty++; r.pos.push(`${num(p.x + material.trim, 1)} / ${num(p.y + material.trim, 1)}`);
+      r.qty++; r.pos.push(positionPair(p.x + material.trim, p.y + material.trim));
       map.set(k, r);
     }
     return [...map.entries()];
@@ -148,10 +148,9 @@ export function SheetPlan(props: Props) {
 
   return (
     <div className="space-y-3 rounded-sm border border-border p-3 break-inside-avoid">
-      <div className="flex items-center gap-2 text-sm">
-        <span className="font-semibold">Panneau {group.indexes.join(", ")}</span>
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="font-semibold">{panelGroup(group.indexes)}</span>
         <span className="tabular-nums text-muted-foreground">{dims(s.width, s.length)} mm</span>
-        {group.count > 1 && <span className="tabular-nums rounded-sm bg-foreground px-1.5 py-0.5 text-xs font-semibold text-background">×{group.count}</span>}
         <button className="btn-ghost ml-auto h-7 px-2 text-xs print:hidden" onClick={() => setFull(true)}><Maximize2 size={13} /> Agrandir</button>
       </div>
       <div className="mx-auto max-w-[720px] cursor-zoom-in" onClick={() => setFull(true)}>{svg}</div>
@@ -166,6 +165,7 @@ export function SheetPlan(props: Props) {
         </div>
       )}
 
+      <h4 className="text-xs font-semibold">Pièces — {panelGroup(group.indexes)}</h4>
       <table className="w-full text-xs tabular-nums">
         <thead className="text-muted-foreground">
           <tr className="border-b border-border">
@@ -185,14 +185,14 @@ export function SheetPlan(props: Props) {
               <td className="whitespace-nowrap px-2 py-1">{dims(r.p.w, r.p.h)}</td>
               <td className="px-2 py-1 text-right">{r.qty}</td>
               <td className="px-2 py-1">{r.p.rotated ? "oui" : "non"}</td>
-              <td className="px-2 py-1">{r.pos.join(" · ")}</td>
+              <td className="px-2 py-1">{r.pos.map((pos, j) => <span key={j}>{j > 0 && " · "}<span className="whitespace-nowrap">{pos}</span></span>)}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
       <div>
-        <h4 className="mb-1 text-xs font-semibold uppercase tracking-[0.14em]">Chutes</h4>
+        <h4 className="mb-1 text-xs font-semibold">Chutes — {panelGroup(group.indexes)}</h4>
         <div className="overflow-x-auto">
           <table className="w-full text-xs tabular-nums">
             <thead className="text-muted-foreground"><tr className="border-b border-border">
@@ -206,7 +206,7 @@ export function SheetPlan(props: Props) {
                 <tr key={o.label} className="border-b border-border align-middle">
                   <td className="px-2 py-1 font-semibold">{o.label}</td><td className="whitespace-nowrap px-2 py-1">{dims(o.w, o.h)}</td>
                   <td className="px-2 py-1 text-right">{m2(o.w * o.h)}</td>
-                  <td className="px-2 py-1">{num(o.x + material.trim, 1)} / {num(o.y + material.trim, 1)}</td>
+                  <td className="whitespace-nowrap px-2 py-1">{positionPair(o.x + material.trim, o.y + material.trim)}</td>
                   <td className="px-2 py-1">
                     {mode === "retain" && o.reusable ? (
                       <div className="flex flex-wrap items-center gap-2">
@@ -241,7 +241,7 @@ export function SheetPlan(props: Props) {
       {full && (
         <div className="fixed inset-0 z-50 flex flex-col bg-background">
           <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-sm">
-            <span className="font-semibold">{material.name} — Panneau {group.indexes.join(", ")}</span>
+            <span className="font-semibold">{material.name} — {panelGroup(group.indexes)}</span>
             <span className="tabular-nums text-muted-foreground">{dims(s.width, s.length)} mm</span>
             <div className="ml-auto flex items-center gap-1">
               <button className="btn-ghost h-8 px-2" onClick={() => setZoom((z) => Math.max(0.5, z / 1.25))} aria-label="Dézoomer"><Minus size={15} /></button>
