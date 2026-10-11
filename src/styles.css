@@ -176,7 +176,7 @@ select.input-tech option { text-decoration: none; font-style: normal; font-weigh
   color: var(--foreground);
 }
 .entry-cell-row {
-  height: 40px;
+  height: 39px;
   border-bottom: 1px solid var(--border);
 }
 .entry-cell-row :is(.input-tech, .input-num) {
@@ -188,7 +188,7 @@ select.input-tech option { text-decoration: none; font-style: normal; font-weigh
   background-color: transparent;
   box-shadow: none;
 }
-.entry-cell-row td:hover :is(.input-tech, .input-num) {
+.entry-cell-row td:hover :is(.input-tech, .input-num):not(:focus):not([aria-invalid="true"]) {
   background-color: var(--background);
 }
 .entry-cell-row :is(.input-tech, .input-num):focus {
