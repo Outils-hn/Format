@@ -179,7 +179,7 @@ select.input-tech option { text-decoration: none; font-style: normal; font-weigh
   height: 40px;
   border-bottom: 1px solid var(--border);
 }
-.entry-cell-row .input-tech {
+.entry-cell-row :is(.input-tech, .input-num) {
   height: 40px;
   max-width: 100%;
   padding-inline: 11px;
@@ -188,15 +188,15 @@ select.input-tech option { text-decoration: none; font-style: normal; font-weigh
   background-color: transparent;
   box-shadow: none;
 }
-.entry-cell-row td:hover .input-tech {
+.entry-cell-row td:hover :is(.input-tech, .input-num) {
   background-color: var(--background);
 }
-.entry-cell-row .input-tech:focus {
+.entry-cell-row :is(.input-tech, .input-num):focus {
   border-color: var(--primary);
   background-color: var(--card);
   box-shadow: none;
 }
-.entry-cell-row .input-tech[aria-invalid="true"] {
+.entry-cell-row :is(.input-tech, .input-num)[aria-invalid="true"] {
   border-color: var(--destructive);
   background-color: var(--destructive-soft);
   box-shadow: none;
