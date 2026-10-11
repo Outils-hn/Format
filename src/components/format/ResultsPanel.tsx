@@ -137,7 +137,8 @@ function Solutions({ list }: { list: SolutionSummary[] }) {
   );
 }
 
-export function ResultsPanel({ result, materials, linears = [], pieces = [], status, onStatus = () => {}, offcuts, onOffcuts = () => {} }: {
+export function ResultsPanel({ result, materials, linears = [], pieces = [], status, onStatus = () => {}, offcuts, onOffcuts = () => {}, materialId, summaryOnly = false }: {
+  materialId?: string | undefined; summaryOnly?: boolean;
   result: OptimizeResult; materials: Material[]; linears?: LinearRecap[]; pieces?: Piece[]; status?: MaterialStatus | undefined; onStatus?: (s: MaterialStatus) => void;
   offcuts?: OffcutSettings | undefined; onOffcuts?: (o: OffcutSettings) => void;
 }) {
@@ -174,10 +175,10 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
       </div>
       {!ok && <ul className="list-disc pl-5 text-xs text-destructive">{result.errors.map((e, i) => <li key={i}>{e}</li>)}</ul>}
 
-      <Banner result={result} status={status} onStatus={onStatus} />
-      <Kpis b={result.total.balance} mode={oc.mode} />
+      {!materialId && <><Banner result={result} status={status} onStatus={onStatus} />
+      <Kpis b={result.total.balance} mode={oc.mode} /></>}
 
-      {linears.length > 0 && (
+      {!summaryOnly && linears.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-xs font-semibold uppercase tracking-[0.14em]">Linéaires</h3>
           <table className="w-full text-sm">
@@ -202,7 +203,7 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
         </div>
       )}
 
-      {result.materials.map((r) => (
+      {!summaryOnly && result.materials.filter((r) => !materialId || r.materialId === materialId).map((r) => (
         <div key={r.materialId} className="space-y-3 border-t border-border pt-5">
           <h3 className="text-sm font-semibold">{r.name} <span className="tabular-nums font-normal text-muted-foreground">{num(r.thickness, 1)} mm</span><Badge r={r} mat={mat(r.materialId)} pieces={pieces} />
             <span className="tabular-nums ml-3 text-xs font-normal text-muted-foreground">{r.sheets.length} panneau(x) · rendement {pct1(indicators(r.balance).yieldPct)}</span></h3>

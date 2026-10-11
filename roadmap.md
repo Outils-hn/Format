@@ -13,3 +13,6 @@
 - [x] Affiner la borne des pièces identiques à orientation unique et vérifier le cas des 160 pièces.
 - [x] Harmoniser les consignes de chutes, commandes, groupes de panneaux et positions écran/PDF/Excel.
 - [x] Réaligner les champs de la fenêtre matériau et vérifier les retouches.
+- [x] Déplacer la bibliothèque sur sa page, sans changer la sauvegarde ni la fenêtre matériau.
+- [x] Organiser pièces, linéaires et résultats par onglet matériau, avec synthèse globale et pastilles d’erreur.
+- [x] Vérifier le collage multi-matériaux, le calcul global et les exports inchangés.

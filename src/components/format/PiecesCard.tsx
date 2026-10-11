@@ -12,15 +12,18 @@ import { PasteDialog } from "./PasteDialog";
 import { NumInput } from "./NumInput";
 
 export function PiecesCard({
-  pieces, materials, onChange, linears = [], onLinearsChange, highlightEmpty = false,
+  pieces, materials, onChange, linears = [], onLinearsChange, highlightEmpty = false, materialId,
 }: {
   highlightEmpty?: boolean;
+  materialId?: string;
   pieces: Piece[];
   materials: Material[];
   onChange: (p: Piece[]) => void;
   linears?: Linear[];
   onLinearsChange?: (l: Linear[]) => void;
 }) {
+  const visiblePieces = materialId ? pieces.filter((p) => p.materialId === materialId) : pieces;
+  const visibleLinears = materialId ? linears.filter((l) => l.materialId === materialId) : linears;
   const updL = (id: string, patch: Partial<Linear>) => onLinearsChange?.(linears.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   const [pasting, setPasting] = useState(false);
   const upd = (id: string, patch: Partial<Piece>) => onChange(pieces.map((p) => (p.id === id ? { ...p, ...patch } : p)));
@@ -30,7 +33,7 @@ export function PiecesCard({
     const selected = new Set(eligible.map((p) => p.id));
     onChange(pieces.map((p) => selected.has(p.id) ? { ...p, canRotate: checked } : p));
   };
-  const eligible = pieces.filter((p) => materials.some((m) => m.id === p.materialId && !m.grainLocked));
+  const eligible = visiblePieces.filter((p) => materials.some((m) => m.id === p.materialId && !m.grainLocked));
   const checkedCount = eligible.filter((p) => p.canRotate).length;
   const allChecked = eligible.length > 0 && checkedCount === eligible.length;
   const headerCheckbox = useRef<HTMLInputElement>(null);
@@ -38,18 +41,18 @@ export function PiecesCard({
     for (const r of [headerCheckbox, mobileAll]) if (r.current) r.current.indeterminate = checkedCount > 0 && !allChecked;
   }, [checkedCount, allChecked]);
   const add = () => {
-    const material = materials.find((m) => m.id === pieces.at(-1)?.materialId) ?? materials[0];
+    const material = materials.find((m) => m.id === (materialId ?? pieces.at(-1)?.materialId)) ?? materials[0];
     if (!material) return;
     onChange([...pieces, newPiece(material.id, pieces.length + 1, material.grainLocked)]);
   };
 
   const addLinear = () => {
-    const material = materials.find((m) => m.id === linears.at(-1)?.materialId) ?? materials[0];
+    const material = materials.find((m) => m.id === (materialId ?? linears.at(-1)?.materialId)) ?? materials[0];
     if (material) onLinearsChange?.([...linears, newLinear(material.id, linears.length + 1)]);
   };
 
   const copy = async () => {
-    await navigator.clipboard.writeText(piecesToTsv(pieces, materials));
+    await navigator.clipboard.writeText(piecesToTsv(visiblePieces, materials));
     toast.success("Liste copiée — collez-la dans Excel");
   };
 
@@ -60,7 +63,7 @@ export function PiecesCard({
       </div>
         <div className="flex flex-wrap gap-2 border-b border-border px-4 py-3">
           <Button variant="outline" size="sm" className="btn-outline" onClick={() => setPasting(true)}><ClipboardPaste size={14} /> Coller depuis Excel</Button>
-          <Button variant="outline" size="sm" className="btn-outline" onClick={copy} disabled={!pieces.length}><ClipboardCopy size={14} /> Copier pour Excel</Button>
+          <Button variant="outline" size="sm" className="btn-outline" onClick={copy} disabled={!visiblePieces.length}><ClipboardCopy size={14} /> Copier pour Excel</Button>
           <Button size="sm" className="btn-primary" disabled={!materials.length}
             onClick={add}>
             <Plus size={14} /> Ajouter
@@ -73,7 +76,7 @@ export function PiecesCard({
           )}
         </div>
       <div className="overflow-x-auto">
-        {pieces.length > 0 && (<div>
+        {visiblePieces.length > 0 && (<div>
         <h3 className="px-4 pb-2 pt-4 text-sm font-semibold">Pièces</h3>
         <label className="flex items-center gap-2 px-4 pb-1 text-sm sm:hidden">
           <input ref={mobileAll} type="checkbox" className="accent-primary disabled:opacity-40" checked={allChecked} disabled={!eligible.length}
@@ -81,11 +84,11 @@ export function PiecesCard({
           Toutes les pièces peuvent tourner
         </label>
         <table aria-label="Pièces" className="entry-table w-full text-sm max-sm:block sm:min-w-[780px] sm:table-fixed">
-          <colgroup className="max-sm:hidden"><col className="w-[15%]" /><col className="w-[30%]" /><col className="w-[15%]" /><col className="w-[15%]" /><col className="w-[10%]" /><col className="w-[10%]" /><col className="w-[5%]" /></colgroup>
+          <colgroup className="max-sm:hidden">{materialId ? <><col className="w-[25%]" /><col className="w-[22%]" /><col className="w-[22%]" /><col className="w-[12%]" /><col className="w-[14%]" /><col className="w-[5%]" /></> : <><col className="w-[15%]" /><col className="w-[30%]" /><col className="w-[15%]" /><col className="w-[15%]" /><col className="w-[10%]" /><col className="w-[10%]" /><col className="w-[5%]" /></>}</colgroup>
           <thead className="text-left font-sans text-xs font-semibold text-foreground max-sm:hidden">
             <tr className="border-b border-border">
               <th className="px-3 py-2 font-semibold">Repère</th>
-              <th className="px-3 py-2 font-semibold">Matériau</th>
+              {!materialId && <th className="px-3 py-2 font-semibold">Matériau</th>}
               <th className="px-3 py-2 text-right font-semibold">Largeur (mm)</th>
               <th className="px-3 py-2 text-right font-semibold">Hauteur (mm)</th>
               <th className="px-3 py-2 text-right font-semibold">Qté</th>
@@ -101,7 +104,8 @@ export function PiecesCard({
             </tr>
           </thead>
           <tbody className="max-sm:block">
-            {pieces.map((p, i) => {
+            {visiblePieces.map((p) => {
+              const i = pieces.findIndex((row) => row.id === p.id);
               const mat = materials.find((m) => m.id === p.materialId);
               const locked = !!mat?.grainLocked;
               const err = validatePiece(p, materials);
@@ -113,13 +117,13 @@ export function PiecesCard({
                       <input aria-label="Repère de pièce" className="input-tech w-full px-3 pr-8" value={p.label} onChange={(e) => upd(p.id, { label: e.target.value })} />
                     </div>
                   </td>
-                  <td className="py-1.5 max-sm:col-span-2 max-sm:block"><span className="field-label sm:hidden">Matériau</span>
+                  {!materialId && <td className="py-1.5 max-sm:col-span-2 max-sm:block"><span className="field-label sm:hidden">Matériau</span>
                     <select className="input-tech w-full px-3" value={p.materialId}
                       onChange={(e) => { const m = materials.find((x) => x.id === e.target.value); upd(p.id, { materialId: e.target.value, canRotate: m?.grainLocked ? false : p.canRotate }); }}>
                       {!mat && <option value={p.materialId}>— choisir —</option>}
                       {materials.map((m) => <option key={m.id} value={m.id}>{m.name} {m.thickness}</option>)}
                     </select>
-                  </td>
+                  </td>}
                   <td className="py-1.5 max-sm:block"><span className="field-label sm:hidden">Largeur (mm)</span><NumInput aria-label={`Largeur de ${p.label}`} invalid={bad(p.width)} className={`input-num w-full px-3 ${err ? "border-destructive" : ""}`} value={p.width} onChange={(n) => upd(p.id, { width: n })} /></td>
                   <td className="py-1.5 max-sm:block"><span className="field-label sm:hidden">Hauteur (mm)</span><NumInput aria-label={`Hauteur de ${p.label}`} invalid={bad(p.height)} className={`input-num w-full px-3 ${err ? "border-destructive" : ""}`} value={p.height} onChange={(n) => upd(p.id, { height: n })} /></td>
                   <td className="py-1.5 max-sm:block"><span className="field-label sm:hidden">Qté</span><NumInput aria-label={`Quantité de ${p.label}`} zeroIsEmpty invalid={bad(p.quantity)} className="input-num w-full px-3" value={p.quantity} onChange={(n) => upd(p.id, { quantity: n == null ? 0 : Math.max(0, Math.round(n)) })} /></td>
@@ -136,22 +140,22 @@ export function PiecesCard({
           </tbody>
         </table>
         </div>)}
-        {linears.length > 0 && (
-          <div className={pieces.length ? "border-t border-border" : ""}>
+        {visibleLinears.length > 0 && (
+          <div className={visiblePieces.length ? "border-t border-border" : ""}>
           <h3 className="px-4 pb-2 pt-4 text-sm font-semibold">Linéaires</h3>
           <table aria-label="Linéaires" className="entry-table w-full min-w-[780px] table-fixed text-sm">
-            <colgroup><col className="w-[15%]" /><col className="w-[30%]" /><col className="w-[20%]" /><col className="w-[30%]" /><col className="w-[5%]" /></colgroup>
+            <colgroup>{materialId ? <><col className="w-[25%]" /><col className="w-[30%]" /><col className="w-[40%]" /><col className="w-[5%]" /></> : <><col className="w-[15%]" /><col className="w-[30%]" /><col className="w-[20%]" /><col className="w-[30%]" /><col className="w-[5%]" /></>}</colgroup>
             <thead className="text-left font-sans text-xs font-semibold text-foreground">
               <tr className="border-b border-border">
                 <th className="px-3 py-2 font-semibold">Repère</th>
-                <th className="px-3 py-2 font-semibold">Matériau</th>
+                {!materialId && <th className="px-3 py-2 font-semibold">Matériau</th>}
                 <th className="px-3 py-2 text-right font-semibold">Bande (mm)</th>
                 <th className="px-3 py-2 text-right font-semibold">Longueur (m)</th>
                 <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
-              {linears.map((l) => {
+              {visibleLinears.map((l) => {
                 const seg = linearSegments(l, materials);
                 const err = typeof seg === "string" ? seg : null;
                 const mat = materials.find((m) => m.id === l.materialId);
@@ -159,12 +163,12 @@ export function PiecesCard({
                   <Fragment key={l.id}>
                   <tr>
                     <td className="py-1.5"><input aria-label="Repère de linéaire" className="input-tech w-full px-3" value={l.label} onChange={(e) => updL(l.id, { label: e.target.value })} /></td>
-                    <td className="py-1.5">
+                    {!materialId && <td className="py-1.5">
                       <select aria-label="Matériau du linéaire" className="input-tech w-full px-3" value={l.materialId} onChange={(e) => updL(l.id, { materialId: e.target.value })}>
                         {!mat && <option value={l.materialId}>— choisir —</option>}
                         {materials.map((m) => <option key={m.id} value={m.id}>{m.name} {m.thickness}</option>)}
                       </select>
-                    </td>
+                    </td>}
                     <td className="py-1.5"><NumInput aria-label="Largeur de bande" invalid={bad(l.bandWidth)} className="input-num w-full px-3" value={l.bandWidth} onChange={(n) => updL(l.id, { bandWidth: n })} /></td>
                     <td className="py-1.5"><NumInput aria-label="Longueur totale" invalid={bad(l.totalLength)} className="input-num w-full px-3" value={l.totalLength} onChange={(n) => updL(l.id, { totalLength: n })} /></td>
                     <td className="text-center">
@@ -172,7 +176,7 @@ export function PiecesCard({
                     </td>
                   </tr>
                   <tr className="border-b border-border">
-                    <td colSpan={5} className="pb-4 pl-6 pr-3 pt-1">
+                    <td colSpan={materialId ? 4 : 5} className="pb-4 pl-6 pr-3 pt-1">
                       <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
                         <label className="block">
                           <span className="field-label">Mode de tronçons</span>
@@ -199,16 +203,16 @@ export function PiecesCard({
           </table>
           </div>
         )}
-        {pieces.length === 0 && linears.length === 0 && <p className="px-4 py-10 text-center text-sm text-muted-foreground">Ajoutez des pièces ou un linéaire</p>}
+        {visiblePieces.length === 0 && visibleLinears.length === 0 && <p className="px-4 py-10 text-center text-sm text-muted-foreground">Ajoutez des pièces ou un linéaire</p>}
       </div>
-      {pieces.some((p) => validatePiece(p, materials)) && (
+      {visiblePieces.some((p) => validatePiece(p, materials)) && (
         <p className="px-4 py-2 text-xs text-destructive">
-          {pieces.filter((p) => validatePiece(p, materials)).length} pièce(s) impossible(s) — survolez une ligne pour le détail.
+          {visiblePieces.filter((p) => validatePiece(p, materials)).length} pièce(s) impossible(s) — survolez une ligne pour le détail.
         </p>
       )}
       {pasting && (
-        <PasteDialog materials={materials} onClose={() => setPasting(false)}
-          onApply={(np, mode) => { onChange(mergeDuplicates(mode === "replace" ? np : [...pieces, ...np])); setPasting(false); }} />
+        <PasteDialog materials={materials} defaultMaterialId={materialId} onClose={() => setPasting(false)}
+          onApply={(np, mode) => { const untouched = materialId ? pieces.filter((p) => p.materialId !== materialId && !np.some((n) => n.materialId === p.materialId)) : []; onChange(mergeDuplicates(mode === "replace" ? [...untouched, ...np] : [...pieces, ...np])); setPasting(false); }} />
       )}
     </section>
   );
