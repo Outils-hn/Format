@@ -8,7 +8,8 @@ import {
   exportProject, importProject, loadCurrent, loadMaterials, saveCurrent, saveMaterials, saveProject,
 } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/format/Logo";
+import { Brand } from "@/components/format/Brand";
+import { ProjectSettings } from "@/components/format/ProjectSettings";
 import { Modal } from "@/components/format/Modal";
 import { PiecesCard } from "@/components/format/PiecesCard";
 import { ProjectsDialog } from "@/components/format/ProjectsDialog";
@@ -132,17 +133,30 @@ function Index() {
     }
   };
 
+  const optimizationControls = <>
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Objectif</span>
+            <select className="input-tech w-72 max-w-full" value={objective === "price" && !priceAvailable ? "waste" : objective} onChange={(e) => setObjective(e.target.value as Objective)}>
+              <option value="waste">Minimiser la chute</option>
+              <option value="sheets">Minimiser le nombre de panneaux</option>
+              <option value="price" disabled={!priceAvailable}>Minimiser le prix{priceAvailable ? "" : " (prix manquants)"}</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-sm" title="Essais aléatoires supplémentaires pendant 2 secondes">
+            <Button type="button" role="switch" variant="ghost" size="icon" aria-checked={intensive} onClick={() => setIntensive(!intensive)}
+              className={`relative h-5 w-9 rounded-full transition-colors ${intensive ? "bg-primary" : "bg-muted"}`}>
+              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow transition-all ${intensive ? "left-[18px]" : "left-0.5"}`} />
+            </Button>
+            Optimisation intensive
+          </label>
+
+  </>;
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-border bg-card/90 backdrop-blur">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-4 px-8 py-3">
-          <div className="flex items-center gap-3">
-            <Logo />
-            <div>
-              <h1 className="text-lg font-bold leading-none tracking-[0.35em]">FORMAT</h1>
-              <p className="mt-1 text-[10px] font-medium tracking-[0.2em] text-muted-foreground">OPTIMISATION DE DÉCOUPE 2D</p>
-            </div>
-          </div>
+          <Brand />
           <nav className="ml-auto flex flex-wrap gap-2">
             <Button asChild variant="ghost" className="btn-ghost"><Link to="/bibliotheque"><Library size={15} /> Bibliothèque</Link></Button>
             <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"} onClick={async () => {
@@ -163,7 +177,7 @@ function Index() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1600px] space-y-5 px-8 py-6">
+      <main className="mx-auto max-w-[1600px] space-y-5 px-8 pt-6 pb-28">
         <section className="card-tech">
           <div className="card-tech-head"><h2 className="card-title">Informations du projet</h2></div>
           <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -199,38 +213,18 @@ function Index() {
         </div>
 
         {selectedTab !== "summary" && <div className="space-y-4">
-          {activeMaterial && <p className="tabular-nums text-sm text-muted-foreground">
+          <PiecesCard key={selectedTab} materialId={selectedTab} pieces={project.pieces} materials={materials} onChange={(pieces) => setProject({ ...project, pieces })}
+            subtitle={activeMaterial && <>
             {activeMaterial.supply.mode === "single" ? dims(activeMaterial.supply.width, activeMaterial.supply.length)
               : activeMaterial.supply.mode === "catalog" ? activeMaterial.supply.formats.map((f) => dims(f.width, f.length)).join(" · ")
               : `${num(activeMaterial.supply.width)} × ${num(activeMaterial.supply.minLength)}–${num(activeMaterial.supply.maxLength)}`}
             {` · ${activeMaterial.cutType === "free" ? "CNC" : "scie"} · trait ${num(activeMaterial.kerf, 1)} · délign. ${num(activeMaterial.trim, 1)}${activeMaterial.grainLocked ? " · sens imposé" : ""}`}
-          </p>}
-          <PiecesCard key={selectedTab} materialId={selectedTab} pieces={project.pieces} materials={materials} onChange={(pieces) => setProject({ ...project, pieces })}
+          </>}
+            settings={<ProjectSettings status={project.materialStatus} onStatus={(materialStatus) => setProject({ ...project, materialStatus })} offcuts={project.offcuts} onOffcuts={(offcuts) => setProject({ ...project, offcuts })}>
+              {optimizationControls}
+            </ProjectSettings>}
             highlightEmpty={checkInputs} linears={linears} onLinearsChange={(l) => setProject({ ...project, linears: l })} />
         </div>}
-
-        <div className="card-tech flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div className="flex flex-wrap items-center gap-4">
-          <label className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Objectif</span>
-            <select className="input-tech w-72 max-w-full" value={objective === "price" && !priceAvailable ? "waste" : objective} onChange={(e) => setObjective(e.target.value as Objective)}>
-              <option value="waste">Minimiser la chute</option>
-              <option value="sheets">Minimiser le nombre de panneaux</option>
-              <option value="price" disabled={!priceAvailable}>Minimiser le prix{priceAvailable ? "" : " (prix manquants)"}</option>
-            </select>
-          </label>
-          <label className="flex items-center gap-2 text-sm" title="Essais aléatoires supplémentaires pendant 2 secondes">
-            <button type="button" role="switch" aria-checked={intensive} onClick={() => setIntensive(!intensive)}
-              className={`relative h-5 w-9 rounded-full transition-colors ${intensive ? "bg-primary" : "bg-muted"}`}>
-              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow transition-all ${intensive ? "left-[18px]" : "left-0.5"}`} />
-            </button>
-            Optimisation intensive
-          </label>
-          </div>
-          <Button className="btn-primary ml-auto h-9 px-4" disabled={running} onClick={run}>
-            {running ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />} {running ? "Calcul en cours…" : "Lancer l'optimisation"}
-          </Button>
-        </div>
 
         <section id="project-tab-panel" role="tabpanel" aria-labelledby={selectedTab === "summary" ? "tab-summary" : `tab-${selectedTab}`} className="card-tech">
           <div className="card-tech-head"><h2 className="card-title">{selectedTab === "summary" ? "Synthèse" : "Résultats"}</h2></div>
@@ -259,6 +253,15 @@ function Index() {
           )}
         </section>
       </main>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur print:hidden">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-end gap-4 px-8 py-3">
+          <span className="tabular-nums text-sm text-muted-foreground">{num(allPieces.reduce((n, p) => n + p.quantity, 0))} pièces</span>
+          <Button className="btn-primary h-10 px-4" disabled={running} onClick={run}>
+            {running ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}{running ? "Calcul en cours…" : "Lancer l'optimisation"}
+          </Button>
+        </div>
+      </div>
 
       {choosingMaterial && <Modal title="Ajouter un matériau" onClose={() => setChoosingMaterial(false)}>
         <div className="divide-y divide-border">

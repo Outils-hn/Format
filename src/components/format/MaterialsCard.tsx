@@ -5,6 +5,7 @@ import { newMaterial } from "@/lib/defaults";
 import { uid } from "@/lib/ids";
 import { Modal } from "./Modal";
 import { NumInput } from "./NumInput";
+import { Button } from "@/components/ui/button";
 import { dims, num } from "@/lib/format";
 
 const supplyLabel = (s: Supply) =>
@@ -30,14 +31,14 @@ export function MaterialsCard({
   };
 
   return (
-    <section className="card-tech">
-      <div className="card-tech-head">
+    <section>
+      <div className="mb-4 flex items-center justify-between gap-2">
         <h2 className="card-title">Matériaux</h2>
-        <button className="btn-outline" onClick={() => setEditing(newMaterial())}><Plus size={14} /> Nouveau</button>
+        <Button variant="outline" className="btn-outline" onClick={() => setEditing(newMaterial())}><Plus size={14} /> Nouveau</Button>
       </div>
-      <ul className="divide-y divide-border">
+      <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {materials.map((m) => (
-          <li key={m.id} className="flex items-center gap-2 px-4 py-2.5">
+          <li key={m.id} className="card-tech flex items-start gap-2 p-4">
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-medium">
                 {m.name} <span className="mono text-muted-foreground">{num(m.thickness, 1)} mm</span>
@@ -47,12 +48,12 @@ export function MaterialsCard({
                 <p className="whitespace-nowrap">trait {m.kerf} · délign. {m.trim}{m.grainLocked && " · sens"}</p>
               </div>
             </div>
-            <button className="btn-ghost h-7 px-1.5" aria-label="Modifier" onClick={() => setEditing(m)}><Pencil size={14} /></button>
-            <button
+            <Button variant="ghost" className="btn-ghost h-7 px-1.5" aria-label="Modifier" onClick={() => setEditing(m)}><Pencil size={14} /></Button>
+            <Button variant="ghost"
               className="btn-danger h-7 px-1.5"
               aria-label="Supprimer"
               onClick={() => confirm(`Supprimer « ${m.name} » ?`) && onChange(materials.filter((x) => x.id !== m.id))}
-            ><Trash2 size={14} /></button>
+            ><Trash2 size={14} /></Button>
           </li>
         ))}
         {materials.length === 0 && <li className="px-4 py-6 text-center text-sm text-muted-foreground">Aucun matériau</li>}

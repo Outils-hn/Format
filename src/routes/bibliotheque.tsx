@@ -4,7 +4,7 @@ import { ArrowLeft, Library } from "lucide-react";
 import type { Material } from "@/lib/types";
 import { loadMaterials, saveMaterials } from "@/lib/storage";
 import { MaterialsCard } from "@/components/format/MaterialsCard";
-import { Logo } from "@/components/format/Logo";
+import { Brand } from "@/components/format/Brand";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/bibliotheque")({
@@ -26,7 +26,7 @@ function LibraryPage() {
   return <div className="min-h-screen">
     <header className="border-b border-border bg-card/90 backdrop-blur">
       <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-4 px-8 py-3">
-        <div className="flex items-center gap-3"><Logo /><div><h1 className="text-lg font-bold leading-none">FORMAT</h1><p className="mt-1 text-[10px] font-medium text-muted-foreground">OPTIMISATION DE DÉCOUPE 2D</p></div></div>
+        <Brand />
         <Button asChild variant="ghost" className="btn-ghost ml-auto"><Link to="/"><ArrowLeft size={15} /> Retour au projet</Link></Button>
       </div>
     </header>
