@@ -23,3 +23,4 @@
 - [x] Mode commande par défaut (fournisseur, type de commande, miniatures, PDF commande, Excel par fournisseur, interrupteur Mode atelier)
 - [x] Bibliothèque vide par défaut, état vide, export/import .json avec choix Remplacer / Garder les deux
 - [x] Finitions : bandeau débit sur deux niveaux, remarques fournisseur par matériau dans les réglages et le PDF commande, légendes des repères multidimensions, flèche grise fine des menus ; tests et vérification visuelle écran/PDF, calculs inchangés.
+- [x] Fenêtre matériau : valeurs des trois modes conservées, catalogue initialisé depuis le format unique, doublons bloqués et CHF affiché ; tests et sauvegarde après rechargement vérifiés, calculs inchangés.

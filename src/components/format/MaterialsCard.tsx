@@ -7,6 +7,7 @@ import { Modal } from "./Modal";
 import { NumInput } from "./NumInput";
 import { Button } from "@/components/ui/button";
 import { dims, num } from "@/lib/format";
+import { duplicateFormats, switchSupply } from "@/lib/materialSupply";
 
 const supplyLabel = (s: Supply) =>
   s.mode === "single"
@@ -78,15 +79,13 @@ function Num({ label, value, onChange }: { label: string; value: number; onChang
 
 function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave: (m: Material) => void; onCancel: () => void }) {
   const [m, setM] = useState<Material>(structuredClone(initial));
-  const set = (patch: Partial<Material>) => setM({ ...m, ...patch });
+  const set = (patch: Partial<Material>) => setM((current) => ({ ...current, ...patch,
+    ...(patch.supply ? { supplyValues: { ...current.supplyValues, [patch.supply.mode]: patch.supply } } : {}),
+  }));
   const s = m.supply;
 
-  const setMode = (mode: Supply["mode"]) => {
-    const w = s.mode === "single" || s.mode === "fixedWidth" ? s.width : 2070;
-    if (mode === "single") set({ supply: { mode, width: w, length: 2800 } });
-    if (mode === "catalog") set({ supply: { mode, formats: [{ id: uid(), width: w, length: 2800 }] } });
-    if (mode === "fixedWidth") set({ supply: { mode, width: w, minLength: 1000, maxLength: 4000, step: 100 } });
-  };
+  const setMode = (mode: Supply["mode"]) => setM((current) => switchSupply(current, mode));
+  const duplicates = duplicateFormats(s.mode === "catalog" ? s : m.supplyValues?.catalog);
 
   return (
     <Modal title={initial.name ? "Matériau" : "Nouveau matériau"} onClose={onCancel}>
@@ -131,7 +130,7 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
             ["catalog", "Plusieurs formats catalogue"],
             ["fixedWidth", "Longueur à la demande"],
           ] as const).map(([k, l]) => (
-            <button key={k} className={`btn justify-center text-xs ${s.mode === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`} onClick={() => setMode(k)}>{l}</button>
+            <Button key={k} variant="ghost" aria-pressed={s.mode === k} className={`btn h-auto min-h-8 justify-center whitespace-normal text-xs ${s.mode === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`} onClick={() => setMode(k)}>{l}</Button>
           ))}
         </div>
         {s.mode === "single" && (
@@ -160,19 +159,27 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
                 <div key={f.id} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
                   <NumInput aria-label="Largeur du format" className="input-num" value={f.width} onChange={(n) => upd({ width: n ?? NaN })} />
                   <NumInput aria-label="Longueur du format" className="input-num" value={f.length} onChange={(n) => upd({ length: n ?? NaN })} />
-                  <NumInput aria-label="Prix du format" className="input-num" placeholder="—" value={f.price ?? null} onChange={(n) => upd({ price: n ?? undefined })} />
-                  <button className="btn-danger h-8 w-7 justify-center px-0" aria-label="Retirer" onClick={() => set({ supply: { ...s, formats: s.formats.filter((_, j) => j !== i) } })}><Trash2 size={14} /></button>
+                  <div className="relative min-w-0">
+                    <NumInput aria-label="Prix du format" className="input-num pr-10" placeholder="—" value={f.price ?? null} onChange={(n) => upd({ price: n ?? undefined })} />
+                    <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground">CHF</span>
+                  </div>
+                  <Button variant="ghost" className="btn-danger h-8 w-7 justify-center px-0" aria-label="Retirer" onClick={() => set({ supply: { ...s, formats: s.formats.filter((_, j) => j !== i) } })}><Trash2 size={14} /></Button>
+                  {duplicates.has(i) && <p role="alert" className="col-span-4 text-xs font-medium text-warning">Format en double</p>}
                 </div>
               );
             })}
-            <button className="btn-ghost" onClick={() => set({ supply: { ...s, formats: [...s.formats, { id: uid(), width: 2070, length: 2800 }] } })}><Plus size={14} /> Format</button>
+            <Button variant="ghost" className="btn-ghost" onClick={() => set({ supply: { ...s, formats: [...s.formats, { id: uid(), width: 2070, length: 2800 }] } })}><Plus size={14} /> Format</Button>
           </div>
         )}
       </div>
 
       <div className="mt-5 flex justify-end gap-2">
-        <button className="btn-ghost" onClick={onCancel}>Annuler</button>
-        <button className="btn-primary" onClick={() => onSave(m)}>Enregistrer</button>
+        {s.mode !== "catalog" && duplicates.size > 0 && <p role="alert" className="self-center text-xs text-warning">Format en double dans le catalogue</p>}
+        <Button variant="ghost" className="btn-ghost" onClick={onCancel}>Annuler</Button>
+        <Button className="btn-primary" disabled={duplicates.size > 0} onClick={() => {
+          if (duplicates.size > 0) return;
+          onSave({ ...m, supplyValues: { ...m.supplyValues, [s.mode]: s } });
+        }}>Enregistrer</Button>
       </div>
     </Modal>
   );
