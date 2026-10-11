@@ -212,6 +212,9 @@ select.input-tech option { text-decoration: none; font-style: normal; font-weigh
 @media (min-width: 640px) {
   .entry-cell-row > td { padding-block: 0; }
 }
+@media (max-width: 639px) {
+  .entry-table[aria-label="Pièces"] .entry-cell-row { height: auto; }
+}
 .entry-linear-row > td { padding-block: 0; }
 
 /* Chutes : fond pale + hachures */
