@@ -9,6 +9,7 @@ import {
 } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Brand } from "@/components/format/Brand";
+import { AppFooter } from "@/components/format/AppFooter";
 import { ProjectSettings } from "@/components/format/ProjectSettings";
 import { Modal } from "@/components/format/Modal";
 import { PiecesCard } from "@/components/format/PiecesCard";
@@ -157,7 +158,7 @@ function Index() {
   </>;
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <header className="border-b border-border bg-card/90 backdrop-blur">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-4 px-8 py-3">
           <Brand />
@@ -192,7 +193,7 @@ function Index() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1600px] space-y-5 px-8 pt-6 pb-28">
+      <main className="mx-auto w-full max-w-[1600px] flex-1 space-y-5 px-8 pt-6 pb-6">
         <section className="card-tech">
           <div className="card-tech-head"><h2 className="card-title">Informations du projet</h2></div>
           <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -271,6 +272,7 @@ function Index() {
           )}
         </section>
       </main>
+      <AppFooter aboveLaunchBar />
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur print:hidden">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-end gap-x-4 gap-y-2 pl-4 pr-[140px] py-3 sm:pl-8">

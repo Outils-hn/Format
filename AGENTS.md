@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Architecture
+- Screen-only release identity is centralized in src/lib/appInfo.ts and displayed by shared AppFooter; export modules never import it, keeping authorship out of PDF and Excel files.
 - Business logic (types, storage, Excel parsing, validation, palette) lives in src/lib/, UI in src/components/format/ — so the optimisation algorithm can plug in without touching UI.
 - All data is persisted in localStorage only (no backend) — user requirement for offline/private use.
 - Colors, fonts, cut-plan palette and hatch patterns are centralised in src/styles.css tokens.

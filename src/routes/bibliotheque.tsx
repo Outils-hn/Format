@@ -7,6 +7,7 @@ import { exportLibrary, loadMaterials, parseLibrary, saveMaterials } from "@/lib
 import { uid } from "@/lib/ids";
 import { MaterialsCard } from "@/components/format/MaterialsCard";
 import { Brand } from "@/components/format/Brand";
+import { AppFooter } from "@/components/format/AppFooter";
 import { Modal } from "@/components/format/Modal";
 import { Button } from "@/components/ui/button";
 import { download } from "@/lib/export/common";
@@ -60,14 +61,14 @@ function LibraryPage() {
   };
   const conflict = pending?.queue[0];
 
-  return <div className="min-h-screen">
+  return <div className="flex min-h-screen flex-col">
     <header className="border-b border-border bg-card/90 backdrop-blur">
       <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-4 px-8 py-3">
         <Brand />
         <Button asChild variant="ghost" className="btn-ghost ml-auto"><Link to="/"><ArrowLeft size={15} /> Retour au projet</Link></Button>
       </div>
     </header>
-    <main className="mx-auto max-w-[1600px] space-y-5 px-8 py-6">
+    <main className="mx-auto w-full max-w-[1600px] flex-1 space-y-5 px-8 py-6">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="mr-auto flex items-center gap-2 text-xl font-semibold"><Library size={20} /> Bibliothèque</h2>
         <Button variant="outline" className="btn-outline" disabled={!materials.length}
@@ -78,6 +79,7 @@ function LibraryPage() {
       </div>
       <MaterialsCard materials={materials} onChange={change} />
     </main>
+    <AppFooter />
     {conflict && <Modal title="Matériau déjà présent" onClose={() => setPending(null)}>
       <p className="text-sm">Un matériau nommé « {conflict.name} » existe déjà dans la bibliothèque.</p>
       <div className="mt-5 flex justify-end gap-2">
