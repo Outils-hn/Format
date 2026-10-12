@@ -45,7 +45,6 @@ function Index() {
   const [addedMaterials, setAddedMaterials] = useState<string[]>([]);
   const [choosingMaterial, setChoosingMaterial] = useState(false);
   const [objective, setObjective] = useState<Objective>("waste");
-  const [intensive, setIntensive] = useState(false);
   const [running, setRunning] = useState(false);
   const [checkInputs, setCheckInputs] = useState(false);
   const [result, setResult] = useState<OptimizeResult | null>(null);
@@ -56,7 +55,7 @@ function Index() {
   const linears = project.linears ?? [];
   const allPieces = [...project.pieces, ...linearPieces(linears, materials)];
   const recap = result ? linearRecap(linears, materials, allPieces, result) : [];
-  const inputKey = JSON.stringify({ materials, pieces: project.pieces, linears, objective, intensive, projectId: project.id });
+  const inputKey = JSON.stringify({ materials, pieces: project.pieces, linears, objective, projectId: project.id });
   const latestInput = useRef(inputKey);
   latestInput.current = inputKey;
   const visibleSuggestion = suggestion?.key === inputKey ? suggestion : null;
@@ -82,7 +81,8 @@ function Index() {
     const withLinearCheck = (r: OptimizeResult) => ({ ...r, errors: [...r.errors, ...linearErrors(linearRecap(linears, materials, allPieces, r))] });
     const runId = ++calculation.current;
     const key = inputKey;
-    const options = { objective: objective === "price" && !priceAvailable ? "waste" as Objective : objective, intensive };
+    // La recherche approfondie est toujours active : le moteur la saute si le resultat est deja optimal.
+    const options = { objective: objective === "price" && !priceAvailable ? "waste" as Objective : objective, intensive: true };
     const isCurrent = () => calculation.current === runId && latestInput.current === key;
     setSuggestion(null);
     setRunning(true);
@@ -146,13 +146,6 @@ function Index() {
               <option value="sheets">Minimiser le nombre de panneaux</option>
               <option value="price" disabled={!priceAvailable}>Minimiser le prix{priceAvailable ? "" : " (prix manquants)"}</option>
             </select>
-          </label>
-          <label className="flex items-center gap-2 text-sm" title="Essais aléatoires supplémentaires pendant 2 secondes">
-            <Button type="button" role="switch" variant="ghost" size="icon" aria-checked={intensive} onClick={() => setIntensive(!intensive)}
-              className={`relative h-5 w-9 rounded-full transition-colors ${intensive ? "bg-primary" : "bg-muted"}`}>
-              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow transition-all ${intensive ? "left-[18px]" : "left-0.5"}`} />
-            </Button>
-            Optimisation intensive
           </label>
 
   </>;
