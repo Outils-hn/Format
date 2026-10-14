@@ -18,7 +18,8 @@ export const normalize = (s: string) =>
 /** "1 250 mm" -> 1250, "2,5 m" -> 2500, "12cm" -> 120, "10 pces" -> 10. */
 export function parseNumber(raw: string, toMm = true): number | null {
   if (!raw) return null;
-  const s = raw.replace(/[\s\u00a0\u202f]/g, "").toLowerCase();
+  // Separateurs de milliers acceptes : espaces (dont insecables) et apostrophes suisses (' ’ ‘).
+  const s = raw.replace(/[\s\u00a0\u202f'\u2019\u2018]/g, "").toLowerCase();
   const m = s.match(/^(-?\d+(?:[.,]\d+)?)([a-z]*)/);
   if (!m) return null;
   let n = parseFloat(m[1]!.replace(",", "."));
