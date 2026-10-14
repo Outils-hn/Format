@@ -14,11 +14,16 @@ export function usableSizes(m: Material): { w: number; l: number }[] {
 }
 
 /** Retourne un message d'erreur, ou null si la piece est faisable. */
+/** Cote minimale credible d'une piece (mm). */
+export const MIN_DIMENSION = 10;
+
 export function validatePiece(p: Piece, materials: Material[]): string | null {
   const m = materials.find((x) => x.id === p.materialId);
   if (!m) return "Matériau inconnu";
   if (!p.width || !p.height || p.width <= 0 || p.height <= 0) return "Dimensions manquantes";
   if (!p.quantity || p.quantity <= 0) return "Quantité nulle";
+  // Garde-fou : une cote sous 10 mm vient presque toujours d'un separateur ou d'une unite mal lus.
+  if (p.width < MIN_DIMENSION || p.height < MIN_DIMENSION) return `Dimension suspecte (moins de ${MIN_DIMENSION} mm)`;
   const rotate = p.canRotate && !m.grainLocked;
   const fits = usableSizes(m).some(
     ({ w, l }) =>
