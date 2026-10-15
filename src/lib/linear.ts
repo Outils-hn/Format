@@ -75,7 +75,7 @@ export const extraLength = (l: Linear, s: Segment[]) =>
 export const segmentsText = (l: Linear, s: Segment[]) => {
   const extra = extraLength(l, s);
   return `${num(l.totalLength ?? 0, 3)} ml → ${s.map((x) => `${x.count} × ${num(x.length)}`).join(" + ")}` +
-    (extra > 0 ? ` · +${num(extra)} mm (reste porté au mini)` : "");
+    (extra > 0 ? ` · +${num(extra)} mm (dernière pièce portée au mini)` : "");
 };
 
 /** Pieces rectangulaires issues des lineaires valides. */

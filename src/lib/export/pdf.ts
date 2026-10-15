@@ -492,7 +492,7 @@ export function exportWorkshopPdf(result: OptimizeResult, materials: Material[],
 
   if (linears.length) {
     w.table(
-      [{ h: "Repère", w: 18 }, { h: "Matériau", w: 30 }, { h: "Bande (mm)", w: 18, right: true }, { h: "Demandé (mm)", w: 22, right: true }, { h: "Tronçons obtenus (mm)", w: 54 }, { h: "Produit (mm)", w: 22, right: true }],
+      [{ h: "Repère", w: 18 }, { h: "Matériau", w: 30 }, { h: "Bande (mm)", w: 18, right: true }, { h: "Demandé (mm)", w: 22, right: true }, { h: "Pièces obtenues (mm)", w: 54 }, { h: "Produit (mm)", w: 22, right: true }],
       linears.map((l) => [l.label, l.material, num(l.band, 1), num(l.requested), l.segments.map((x) => `${x.count} × ${num(x.length)}`).join(" + ") || "—", `${num(l.produced)}${l.ok ? "" : " (!)"}`]),
       false, "Linéaires",
     );
