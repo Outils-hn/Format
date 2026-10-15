@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { linearPieces, linearSegments } from "./linear";
+import { extraLength, linearErrors, linearPieces, linearRecap, linearSegments, segmentsText } from "./linear";
 import { optimize } from "./optimizer/engine";
 import type { Linear, Material } from "./types";
 
@@ -26,5 +26,31 @@ describe("linéaires", () => {
     const s = linearSegments({ ...base, mode: "joined", totalLength: 5.1, multiple: 600 }, [mat]) as { length: number; count: number }[];
     expect(sum(s)).toBe(5100);
     expect(s.every((x) => x.length >= 500 && x.length <= 2500)).toBe(true);
+  });
+});
+
+describe("linéaires : reste trop court", () => {
+  it("mode fixe : 10,003 ml en 2000 → reste porté au mini, jamais moins que demandé", () => {
+    const l = { ...base, totalLength: 10.003, segment: 2000, min: 200 };
+    const s = linearSegments(l, [mat]) as { length: number; count: number }[];
+    expect(s).toEqual([{ length: 2000, count: 5 }, { length: 200, count: 1 }]);
+    expect(extraLength(l, s)).toBe(197);
+    expect(segmentsText(l, s)).toContain("+197 mm");
+  });
+  it("mode fixe : un reste au-dessus du mini est inchangé", () => {
+    const s = linearSegments({ ...base, totalLength: 10.5, segment: 2000, min: 200 }, [mat]);
+    expect(s).toEqual([{ length: 2000, count: 5 }, { length: 500, count: 1 }]);
+  });
+  it("mode fixe : mini plus grand que le tronçon → plafonné au tronçon", () => {
+    const s = linearSegments({ ...base, totalLength: 2.1, segment: 1000, min: 1500 }, [mat]);
+    expect(s).toEqual([{ length: 1000, count: 3 }]);
+  });
+  it("le contrôle produit/prévu reste vert quand le reste a été porté au mini", () => {
+    const l = { ...base, totalLength: 10.003, segment: 2000, min: 200 };
+    const pieces = linearPieces([l], [mat]);
+    const r = optimize({ materials: [mat], pieces, options: { objective: "waste", intensive: false } });
+    const recap = linearRecap([l], [mat], pieces, r);
+    expect(recap[0]!.ok).toBe(true);
+    expect(linearErrors(recap)).toEqual([]);
   });
 });

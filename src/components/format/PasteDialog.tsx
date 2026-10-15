@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { Material, Piece } from "@/lib/types";
 import {
-  COLUMN_ROLES, detectHeader, matchMaterial, parseTable, rowsToPieces, type ColumnRole,
+  COLUMN_ROLES, detectHeader, matchMaterial, parseTable, quantityError, rowsToPieces, type ColumnRole,
 } from "@/lib/excel";
 import { loadPasteMapping, savePasteMapping } from "@/lib/storage";
 import { Modal } from "./Modal";
@@ -32,9 +32,16 @@ export function PasteDialog({
   const unmatched = matCol < 0 ? [] : [...new Set(dataRows.map((r) => r[matCol] ?? ""))]
     .filter((t) => t && !matchMaterial(t, materials));
 
+  // Quantites : vides, a virgule ou nulles = ligne refusee (meme regle que Linear), avec son numero
+  const qtyCol = effRoles.indexOf("quantity");
+  const rowError = (r: string[]) => (qtyCol >= 0 ? quantityError(r[qtyCol] ?? "") : null);
+  const firstLine = header ? 2 : 1;
+  const issues = dataRows.map((r, i) => ({ line: i + firstLine, msg: rowError(r) })).filter((x) => x.msg);
+  const validRows = dataRows.filter((r) => !rowError(r));
+
   const apply = (mode: "replace" | "append") => {
     savePasteMapping(effRoles);
-    onApply(rowsToPieces(dataRows, effRoles, materials, fallback, overrides), mode);
+    onApply(rowsToPieces(validRows, effRoles, materials, fallback, overrides), mode);
   };
 
   return (
@@ -63,7 +70,7 @@ export function PasteDialog({
               </thead>
               <tbody>
                 {dataRows.slice(0, 50).map((row, i) => (
-                  <tr key={i} className="border-t border-border">
+                  <tr key={i} className={`border-t border-border ${rowError(row) ? "bg-destructive/10 text-destructive" : ""}`}>
                     {effRoles.map((r, j) => (
                       <td key={j} className={`px-2 py-1 ${r === "ignore" ? "text-muted-foreground/50 line-through" : ""} ${["width", "height", "quantity"].includes(r) ? "mono text-right" : ""}`}>{row[j]}</td>
                     ))}
@@ -73,6 +80,14 @@ export function PasteDialog({
             </table>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">{dataRows.length} ligne(s){header && " · en-têtes détectés"}</p>
+          {issues.length > 0 && (
+            <div className="mt-2 rounded-sm border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+              <p className="font-semibold">{issues.length} ligne(s) ignorée(s) :</p>
+              <ul className="mt-1 max-h-24 overflow-auto">
+                {issues.map((x) => <li key={x.line}>Ligne {x.line} : {x.msg}</li>)}
+              </ul>
+            </div>
+          )}
 
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {unmatched.map((t) => (
@@ -95,8 +110,8 @@ export function PasteDialog({
 
           <div className="mt-5 flex justify-end gap-2">
             <button className="btn-ghost mr-auto" onClick={() => { setText(""); setRoles(null); }}>Recommencer</button>
-            <button className="btn-outline" onClick={() => apply("replace")}>Remplacer la liste</button>
-            <button className="btn-primary" onClick={() => apply("append")}>Ajouter à la liste</button>
+            <button className="btn-outline" disabled={validRows.length === 0} onClick={() => apply("replace")}>Remplacer la liste</button>
+            <button className="btn-primary" disabled={validRows.length === 0} onClick={() => apply("append")}>Ajouter à la liste</button>
           </div>
         </>
       )}
