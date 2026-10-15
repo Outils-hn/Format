@@ -200,7 +200,10 @@ export function PiecesCard({
                           </select>
                         </label>
                         {l.mode === "fixed" ? (
+                          <>
                           <label className="block"><span className="field-label">Tronçon (mm)</span><NumInput className="input-num w-24 px-3" invalid={bad(l.segment)} value={l.segment} onChange={(n) => updL(l.id, { segment: n })} /></label>
+                          <label className="block" title="Un dernier tronçon plus court est porté à cette longueur"><span className="field-label">Reste mini (mm)</span><NumInput className="input-num w-20 px-3" value={l.min} onChange={(n) => updL(l.id, { min: n })} /></label>
+                          </>
                         ) : (<>
                           <label className="block"><span className="field-label">Mini (mm)</span><NumInput className="input-num w-20 px-3" invalid={bad(l.min)} value={l.min} onChange={(n) => updL(l.id, { min: n })} /></label>
                           <label className="block"><span className="field-label">Maxi (mm)</span><NumInput className="input-num w-20 px-3" placeholder="panneau" value={l.max} onChange={(n) => updL(l.id, { max: n })} /></label>

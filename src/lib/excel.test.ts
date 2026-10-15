@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseNumber } from "./excel";
+import { parseNumber, quantityError } from "./excel";
 import { MIN_DIMENSION, validatePiece } from "./validation";
 import type { Material, Piece } from "./types";
 
@@ -25,5 +25,18 @@ describe("dimension suspecte", () => {
   });
   it("une piece normale reste valide", () => {
     expect(validatePiece(piece(MIN_DIMENSION, 500), [m])).toBeNull();
+  });
+});
+
+describe("collage Excel : quantités", () => {
+  it("entier positif accepté", () => {
+    expect(quantityError("3")).toBeNull();
+    expect(quantityError("12 pces")).toBeNull();
+  });
+  it("vide, à virgule, nulle ou texte refusés", () => {
+    expect(quantityError("")).toBe("quantité vide");
+    expect(quantityError("2,5")).toBe("quantité non entière ou nulle");
+    expect(quantityError("0")).toBe("quantité non entière ou nulle");
+    expect(quantityError("abc")).toBe("quantité non numérique");
   });
 });

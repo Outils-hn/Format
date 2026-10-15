@@ -31,6 +31,15 @@ export function parseNumber(raw: string, toMm = true): number | null {
   return Math.round(n * 100) / 100;
 }
 
+/** Erreur de quantite d'une cellule collee, ou null si c'est un entier positif. */
+export function quantityError(raw: string): string | null {
+  if (!raw || !raw.trim()) return "quantité vide";
+  const n = parseNumber(raw, false);
+  if (n == null) return "quantité non numérique";
+  if (!Number.isInteger(n) || n <= 0) return "quantité non entière ou nulle";
+  return null;
+}
+
 export const parseTable = (text: string): string[][] =>
   text
     .replace(/\r/g, "")

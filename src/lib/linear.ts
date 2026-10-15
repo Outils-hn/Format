@@ -43,7 +43,11 @@ export function linearSegments(l: Linear, materials: Material[]): Segment[] | st
     if (!l.segment || l.segment <= 0) return "Longueur de tronçon manquante";
     if (l.segment > fit) return "Tronçon plus long que le panneau";
     const n = Math.floor(total / l.segment);
-    push(l.segment, n); push(total - n * l.segment);
+    const rest = total - n * l.segment;
+    // Un reste plus court que le mini (ex. 3 mm) est porte au mini, sans depasser le troncon :
+    // on commande un peu plus, jamais moins.
+    const minRest = Math.min(l.min && l.min > 0 ? l.min : 0, l.segment);
+    push(l.segment, n); push(rest > 0 ? Math.max(rest, minRest) : 0);
     return out;
   }
   const min = Math.max(1, l.min ?? 1);
@@ -64,8 +68,15 @@ export function linearSegments(l: Linear, materials: Material[]): Segment[] | st
   return out;
 }
 
-export const segmentsText = (l: Linear, s: Segment[]) =>
-  `${num(l.totalLength ?? 0, 3)} ml → ${s.map((x) => `${x.count} × ${num(x.length)}`).join(" + ")}`;
+/** Longueur ajoutee par l'arrondi du reste au mini (0 si la somme des troncons = longueur demandee). */
+export const extraLength = (l: Linear, s: Segment[]) =>
+  s.reduce((a, x) => a + x.length * x.count, 0) - Math.round((l.totalLength ?? 0) * 1000);
+
+export const segmentsText = (l: Linear, s: Segment[]) => {
+  const extra = extraLength(l, s);
+  return `${num(l.totalLength ?? 0, 3)} ml → ${s.map((x) => `${x.count} × ${num(x.length)}`).join(" + ")}` +
+    (extra > 0 ? ` · +${num(extra)} mm (reste porté au mini)` : "");
+};
 
 /** Pieces rectangulaires issues des lineaires valides. */
 export function linearPieces(linears: Linear[], materials: Material[]): Piece[] {
@@ -82,12 +93,14 @@ export function linearPieces(linears: Linear[], materials: Material[]): Piece[] 
   return out;
 }
 
-export interface LinearRecap { id: string; label: string; material: string; band: number; requested: number; segments: Segment[]; produced: number; ok: boolean }
+export interface LinearRecap { id: string; label: string; material: string; band: number; requested: number; planned: number; segments: Segment[]; produced: number; ok: boolean }
 
 /** Recapitulatif base sur les troncons reellement places. */
 export function linearRecap(linears: Linear[], materials: Material[], pieces: Piece[], result: OptimizeResult): LinearRecap[] {
   const len = new Map(pieces.map((p) => [p.id, p.height ?? 0]));
   return linears.filter((l) => typeof linearSegments(l, materials) !== "string").map((l) => {
+    // Longueur prevue = somme des troncons calcules (peut depasser la demande si le reste a ete porte au mini)
+    const planned = (linearSegments(l, materials) as Segment[]).reduce((a, x) => a + x.length * x.count, 0);
     const counts = new Map<number, number>();
     for (const r of result.materials) for (const sh of r.sheets) for (const p of sh.placements)
       if (linearOf(p.pieceId) === l.id) { const k = len.get(p.pieceId) ?? 0; counts.set(k, (counts.get(k) ?? 0) + 1); }
@@ -95,9 +108,9 @@ export function linearRecap(linears: Linear[], materials: Material[], pieces: Pi
     const produced = segments.reduce((a, s) => a + s.length * s.count, 0);
     const requested = Math.round((l.totalLength ?? 0) * 1000);
     const m = materials.find((x) => x.id === l.materialId);
-    return { id: l.id, label: l.label, material: m ? `${m.name} ${m.thickness}` : "?", band: l.bandWidth ?? 0, requested, segments, produced, ok: produced === requested };
+    return { id: l.id, label: l.label, material: m ? `${m.name} ${m.thickness}` : "?", band: l.bandWidth ?? 0, requested, planned, segments, produced, ok: produced === planned };
   });
 }
 
 export const linearErrors = (recap: LinearRecap[]) =>
-  recap.filter((r) => !r.ok).map((r) => `Linéaire ${r.label} : longueur produite ${r.produced} mm ≠ demandée ${r.requested} mm`);
+  recap.filter((r) => !r.ok).map((r) => `Linéaire ${r.label} : longueur produite ${r.produced} mm ≠ prévue ${r.planned} mm`);
