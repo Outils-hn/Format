@@ -3,6 +3,8 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { APP_INFO } from "@/lib/appInfo";
 import { Logo } from "./Logo";
+import { BackupLink, BackupReminder } from "@/components/BackupControls";
+import { BACKUP_CONFIG } from "@/lib/backup-config";
 
 export function AppFooter({ aboveLaunchBar = false }: { aboveLaunchBar?: boolean }) {
   const updated = new Intl.DateTimeFormat("fr-FR", {
@@ -18,8 +20,11 @@ export function AppFooter({ aboveLaunchBar = false }: { aboveLaunchBar?: boolean
             Conçu par {APP_INFO.author}
           </Button>
         </Dialog.Trigger>
-        <span>· {APP_INFO.year}</span>
+        <span>· {APP_INFO.year} ·</span>
+        <BackupLink cfg={BACKUP_CONFIG} appName={APP_INFO.name} />
       </p>
+      {/* Au-dessus de la barre de lancement fixe sur la page projet */}
+      <BackupReminder cfg={BACKUP_CONFIG} className={aboveLaunchBar ? "bottom-36" : "bottom-4"} />
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/30 print:hidden" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-card p-6 text-left shadow-lg print:hidden">
