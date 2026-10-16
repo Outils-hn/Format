@@ -187,7 +187,7 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
               <tr className="border-b border-border">
                 <th className="py-1.5 pr-2 font-medium">Repère</th><th className="px-2 py-1.5 font-medium">Matériau</th>
                 <th className="px-2 py-1.5 text-right font-medium">Bande (mm)</th><th className="px-2 py-1.5 text-right font-medium">Demandé (mm)</th>
-                <th className="px-2 py-1.5 font-medium">Tronçons obtenus (mm)</th><th className="px-2 py-1.5 text-right font-medium">Produit (mm)</th>
+                <th className="px-2 py-1.5 font-medium">Pièces obtenues (mm)</th><th className="px-2 py-1.5 text-right font-medium">Produit (mm)</th>
               </tr>
             </thead>
             <tbody className="tabular-nums">

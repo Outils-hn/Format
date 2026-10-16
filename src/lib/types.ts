@@ -48,7 +48,7 @@ export interface Linear {
   materialId: string;
   bandWidth: number | null; // largeur de bande (mm)
   totalLength: number | null; // longueur totale (m)
-  mode: "fixed" | "joined"; // troncons fixes | raboutage autorise
+  mode: "fixed" | "joined"; // pieces de meme longueur | longueurs variables posees bout a bout
   segment: number | null; // mode fixed (mm)
   min: number | null; // mode joined (mm)
   max: number | null;

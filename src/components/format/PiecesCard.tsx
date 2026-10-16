@@ -193,16 +193,20 @@ export function PiecesCard({
                     <td colSpan={materialId ? 5 : 6} className="pb-4 pl-6 pr-3 pt-1">
                       <div className="entry-linear-settings flex flex-wrap items-end gap-x-3 gap-y-2">
                         <label className="block">
-                          <span className="entry-mode-label field-label">Mode de tronçons</span>
-                          <select className="input-tech w-64" value={l.mode} onChange={(e) => updL(l.id, { mode: e.target.value as Linear["mode"] })}>
-                            <option value="fixed">Tronçons de longueur fixe</option>
-                            <option value="joined">Raboutage autorisé</option>
+                          <span className="entry-mode-label field-label">Découpe de la bande</span>
+                          <select className="input-tech w-64" value={l.mode}
+                            title={l.mode === "fixed"
+                              ? "Toutes les pièces ont la même longueur ; seule la dernière peut être plus courte."
+                              : "Les pièces sont posées bout à bout : leurs longueurs varient entre le mini et le maxi."}
+                            onChange={(e) => updL(l.id, { mode: e.target.value as Linear["mode"] })}>
+                            <option value="fixed">Pièces de même longueur</option>
+                            <option value="joined">Longueurs variables, bout à bout</option>
                           </select>
                         </label>
                         {l.mode === "fixed" ? (
                           <>
-                          <label className="block"><span className="field-label">Tronçon (mm)</span><NumInput className="input-num w-24 px-3" invalid={bad(l.segment)} value={l.segment} onChange={(n) => updL(l.id, { segment: n })} /></label>
-                          <label className="block" title="Un dernier tronçon plus court est porté à cette longueur"><span className="field-label">Reste mini (mm)</span><NumInput className="input-num w-20 px-3" value={l.min} onChange={(n) => updL(l.id, { min: n })} /></label>
+                          <label className="block"><span className="field-label">Longueur pièce (mm)</span><NumInput className="input-num w-24 px-3" invalid={bad(l.segment)} value={l.segment} onChange={(n) => updL(l.id, { segment: n })} /></label>
+                          <label className="block" title="Si la dernière pièce est plus courte, elle est rallongée à cette valeur"><span className="field-label">Dernière pièce mini (mm)</span><NumInput className="input-num w-20 px-3" value={l.min} onChange={(n) => updL(l.id, { min: n })} /></label>
                           </>
                         ) : (<>
                           <label className="block"><span className="field-label">Mini (mm)</span><NumInput className="input-num w-20 px-3" invalid={bad(l.min)} value={l.min} onChange={(n) => updL(l.id, { min: n })} /></label>

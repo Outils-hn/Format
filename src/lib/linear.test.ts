@@ -15,7 +15,7 @@ describe("linéaires", () => {
     expect(r.errors).toEqual([]);
     expect(r.materials[0]!.sheets.length).toBe(66);
   });
-  it("raboutage : somme exacte, 54 plaques", () => {
+  it("longueurs variables : somme exacte, 54 plaques", () => {
     const l = { ...base, mode: "joined" as const };
     const s = linearSegments(l, [mat]) as { length: number; count: number }[];
     expect(sum(s)).toBe(400000);
