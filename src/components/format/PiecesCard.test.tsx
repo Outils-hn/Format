@@ -46,7 +46,7 @@ describe("Entry sections", () => {
     expect(screen.getByLabelText("Hauteur de P1")).not.toHaveAttribute("aria-invalid");
     expect(screen.getByLabelText("Largeur de P1").closest("tr")).toHaveClass("entry-cell-row");
     expect(screen.getByLabelText("Largeur de bande").closest("tr")).toHaveClass("entry-cell-row");
-    expect(screen.getByLabelText("Tronçon (mm)").closest("tr")).not.toHaveClass("entry-cell-row");
+    expect(screen.getByLabelText("Longueur pièce (mm)").closest("tr")).not.toHaveClass("entry-cell-row");
   });
   it("integrates the subtitle and hides settings by default", () => {
     render(<PiecesCard pieces={[]} materials={materials} onChange={() => {}} subtitle="2 070 × 2 800 · scie" settings={<label>Objectif<input /></label>} />);
@@ -88,7 +88,7 @@ describe("Entry sections", () => {
     expect(screen.queryByRole("table", { name: "Pièces" })).not.toBeInTheDocument();
     const table = screen.getByRole("table", { name: "Linéaires" });
     expect(table.querySelectorAll("tbody tr")).toHaveLength(2);
-    expect(screen.getByLabelText("Mode de tronçons")).toBeInTheDocument();
-    expect(screen.getByLabelText("Tronçon (mm)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Découpe de la bande")).toBeInTheDocument();
+    expect(screen.getByLabelText("Longueur pièce (mm)")).toBeInTheDocument();
   });
 });
