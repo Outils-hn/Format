@@ -73,7 +73,7 @@ function Num({ label, value, onChange, invalid }: { label: string; value: number
   return (
     <label className="block">
       <span className="field-label whitespace-nowrap">{label}</span>
-      <NumInput className="input-num" invalid={invalid} value={value} onChange={(n) => onChange(n ?? NaN)} />
+      <NumInput className="input-num" invalid={!!invalid} value={value} onChange={(n) => onChange(n ?? NaN)} />
     </label>
   );
 }
