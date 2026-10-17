@@ -19,7 +19,17 @@ function read<T>(key: string, fallback: T): T {
 }
 const write = (key: string, v: unknown) => localStorage.setItem(key, JSON.stringify(v));
 
-export const loadMaterials = (): Material[] => read<Material[]>(K.materials, []);
+// Un champ laisse vide est enregistre comme null : on remet les valeurs neutres
+// (trait de coupe et delignage a 0) pour que les calculs restent possibles.
+const finite = (n: unknown) => typeof n === "number" && Number.isFinite(n);
+export const normalizeMaterial = (m: Material): Material => ({
+  ...m,
+  kerf: finite(m.kerf) ? m.kerf : 0,
+  trim: finite(m.trim) ? m.trim : 0,
+  reuseMin: finite(m.reuseMin) ? m.reuseMin : undefined,
+});
+
+export const loadMaterials = (): Material[] => read<Material[]>(K.materials, []).map(normalizeMaterial);
 export const saveMaterials = (m: Material[]) => write(K.materials, m);
 
 export const listProjects = (): Project[] =>
@@ -59,7 +69,7 @@ export function importProject(
   const f = JSON.parse(json) as ProjectFile;
   if (f?.app !== "format" || !f.project) throw new Error("Fichier non reconnu");
   const known = new Set(materials.map((m) => m.id));
-  const merged = [...materials, ...(f.materials ?? []).filter((m) => !known.has(m.id))];
+  const merged = [...materials, ...(f.materials ?? []).filter((m) => !known.has(m.id)).map(normalizeMaterial)];
   return { project: { ...f.project, id: f.project.id || uid() }, materials: merged };
 }
 
@@ -70,5 +80,5 @@ export const exportLibrary = (materials: Material[]) =>
 export function parseLibrary(json: string): Material[] {
   const f = JSON.parse(json) as { app?: string; materials?: Material[] };
   if (f?.app !== "format" || !Array.isArray(f.materials)) throw new Error("Fichier non reconnu");
-  return f.materials;
+  return f.materials.map(normalizeMaterial);
 }
