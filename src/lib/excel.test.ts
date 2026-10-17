@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { parseNumber, quantityError } from "./excel";
-import { MIN_DIMENSION, validatePiece } from "./validation";
+import { MIN_DIMENSION, materialProblems, validatePiece } from "./validation";
+import { num } from "./format";
+import { normalizeMaterial } from "./storage";
 import type { Material, Piece } from "./types";
 
 describe("collage Excel : separateurs de milliers", () => {
@@ -38,5 +40,29 @@ describe("collage Excel : quantités", () => {
     expect(quantityError("2,5")).toBe("quantité non entière ou nulle");
     expect(quantityError("0")).toBe("quantité non entière ou nulle");
     expect(quantityError("abc")).toBe("quantité non numérique");
+  });
+});
+
+describe("matériau avec champ vide (enregistré comme null)", () => {
+  const mat = (patch: Partial<Material>): Material => ({ id: "m", name: "M", thickness: 10, kerf: 4, trim: 10, grainLocked: false,
+    cutType: "free", supply: { mode: "single", width: 1250, length: 2500 }, ...patch } as Material);
+  it("l'affichage d'un nombre absent ne plante plus", () => {
+    expect(num(null as unknown as number, 1)).toBe("—");
+    expect(num(Number.NaN)).toBe("—");
+    expect(num(12.5, 1)).toBe("12,5");
+  });
+  it("épaisseur ou format vides : matériau signalé incomplet", () => {
+    expect(materialProblems(mat({ thickness: null as unknown as number }))).toContain("épaisseur");
+    expect(materialProblems(mat({ supply: { mode: "single", width: 1250, length: null as unknown as number } }))).toContain("format du panneau");
+    expect(materialProblems(mat({}))).toEqual([]);
+  });
+  it("une pièce sur un matériau incomplet est bloquée avec un message clair", () => {
+    const m = mat({ thickness: null as unknown as number });
+    const p = { id: "p", label: "P", materialId: "m", width: 500, height: 500, quantity: 1, canRotate: true };
+    expect(validatePiece(p, [m])).toContain("incomplet");
+  });
+  it("au chargement, trait de coupe et délignage vides repassent à 0", () => {
+    const n = normalizeMaterial(mat({ kerf: null as unknown as number, trim: null as unknown as number }));
+    expect([n.kerf, n.trim]).toEqual([0, 0]);
   });
 });

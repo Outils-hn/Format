@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import type { Material, OrderType, Supply } from "@/lib/types";
 import { newMaterial } from "@/lib/defaults";
+import { materialProblems } from "@/lib/validation";
 import { uid } from "@/lib/ids";
 import { Modal } from "./Modal";
 import { NumInput } from "./NumInput";
@@ -68,11 +69,11 @@ export function MaterialsCard({
   );
 }
 
-function Num({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
+function Num({ label, value, onChange, invalid }: { label: string; value: number; onChange: (n: number) => void; invalid?: boolean }) {
   return (
     <label className="block">
       <span className="field-label whitespace-nowrap">{label}</span>
-      <NumInput className="input-num" value={value} onChange={(n) => onChange(n ?? NaN)} />
+      <NumInput className="input-num" invalid={invalid} value={value} onChange={(n) => onChange(n ?? NaN)} />
     </label>
   );
 }
@@ -86,6 +87,10 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
 
   const setMode = (mode: Supply["mode"]) => setM((current) => switchSupply(current, mode));
   const duplicates = duplicateFormats(s.mode === "catalog" ? s : m.supplyValues?.catalog);
+  // Champs vides ou impossibles : enregistrement bloque (sinon la page plante plus loin)
+  const problems = materialProblems(m);
+  const bad = (n: unknown) => !(typeof n === "number" && Number.isFinite(n) && n > 0);
+  const badOrNeg = (n: unknown) => !(typeof n === "number" && Number.isFinite(n) && n >= 0);
 
   return (
     <Modal title={initial.name ? "Matériau" : "Nouveau matériau"} onClose={onCancel}>
@@ -94,9 +99,9 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
           <span className="field-label">Nom</span>
           <input className="input-tech" value={m.name} onChange={(e) => set({ name: e.target.value })} />
         </label>
-        <Num label="Épaisseur (mm)" value={m.thickness} onChange={(thickness) => set({ thickness })} />
-        <Num label="Trait de coupe (mm)" value={m.kerf} onChange={(kerf) => set({ kerf })} />
-        <Num label="Délignage (mm)" value={m.trim} onChange={(trim) => set({ trim })} />
+        <Num label="Épaisseur (mm)" invalid={bad(m.thickness)} value={m.thickness} onChange={(thickness) => set({ thickness })} />
+        <Num label="Trait de coupe (mm)" invalid={badOrNeg(m.kerf)} value={m.kerf} onChange={(kerf) => set({ kerf })} />
+        <Num label="Délignage (mm)" invalid={badOrNeg(m.trim)} value={m.trim} onChange={(trim) => set({ trim })} />
         <Num label="Chute réutil. mini (mm)" value={m.reuseMin ?? 300} onChange={(reuseMin) => set({ reuseMin })} />
         <label className="col-span-2 block sm:col-span-3">
           <span className="field-label">Type de découpe</span>
@@ -135,16 +140,16 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
         </div>
         {s.mode === "single" && (
           <div className="grid grid-cols-2 gap-3">
-            <Num label="Largeur (mm)" value={s.width} onChange={(width) => set({ supply: { ...s, width } })} />
-            <Num label="Longueur (mm)" value={s.length} onChange={(length) => set({ supply: { ...s, length } })} />
+            <Num label="Largeur (mm)" invalid={bad(s.width)} value={s.width} onChange={(width) => set({ supply: { ...s, width } })} />
+            <Num label="Longueur (mm)" invalid={bad(s.length)} value={s.length} onChange={(length) => set({ supply: { ...s, length } })} />
           </div>
         )}
         {s.mode === "fixedWidth" && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Num label="Largeur (mm)" value={s.width} onChange={(width) => set({ supply: { ...s, width } })} />
-            <Num label="Long. mini" value={s.minLength} onChange={(minLength) => set({ supply: { ...s, minLength } })} />
-            <Num label="Long. maxi" value={s.maxLength} onChange={(maxLength) => set({ supply: { ...s, maxLength } })} />
-            <Num label="Pas" value={s.step} onChange={(step) => set({ supply: { ...s, step } })} />
+            <Num label="Largeur (mm)" invalid={bad(s.width)} value={s.width} onChange={(width) => set({ supply: { ...s, width } })} />
+            <Num label="Long. mini" invalid={bad(s.minLength)} value={s.minLength} onChange={(minLength) => set({ supply: { ...s, minLength } })} />
+            <Num label="Long. maxi" invalid={bad(s.maxLength)} value={s.maxLength} onChange={(maxLength) => set({ supply: { ...s, maxLength } })} />
+            <Num label="Pas" invalid={bad(s.step)} value={s.step} onChange={(step) => set({ supply: { ...s, step } })} />
           </div>
         )}
         {s.mode === "catalog" && (
@@ -157,8 +162,8 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
                 set({ supply: { ...s, formats: s.formats.map((x, j) => (j === i ? { ...x, ...patch } : x)) } });
               return (
                 <div key={f.id} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
-                  <NumInput aria-label="Largeur du format" className="input-num" value={f.width} onChange={(n) => upd({ width: n ?? NaN })} />
-                  <NumInput aria-label="Longueur du format" className="input-num" value={f.length} onChange={(n) => upd({ length: n ?? NaN })} />
+                  <NumInput aria-label="Largeur du format" className="input-num" invalid={bad(f.width)} value={f.width} onChange={(n) => upd({ width: n ?? NaN })} />
+                  <NumInput aria-label="Longueur du format" className="input-num" invalid={bad(f.length)} value={f.length} onChange={(n) => upd({ length: n ?? NaN })} />
                   <div className="relative min-w-0">
                     <NumInput aria-label="Prix du format" className="input-num pr-10" placeholder="—" value={f.price ?? null} onChange={(n) => upd({ price: n ?? undefined })} />
                     <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground">CHF</span>
@@ -175,9 +180,10 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
 
       <div className="mt-5 flex justify-end gap-2">
         {s.mode !== "catalog" && duplicates.size > 0 && <p role="alert" className="self-center text-xs text-warning">Format en double dans le catalogue</p>}
+        {problems.length > 0 && <p role="alert" className="mr-auto self-center text-xs font-medium text-destructive">À compléter : {problems.join(", ")}</p>}
         <Button variant="ghost" className="btn-ghost" onClick={onCancel}>Annuler</Button>
-        <Button className="btn-primary" disabled={duplicates.size > 0} onClick={() => {
-          if (duplicates.size > 0) return;
+        <Button className="btn-primary" disabled={duplicates.size > 0 || problems.length > 0} onClick={() => {
+          if (duplicates.size > 0 || problems.length > 0) return;
           onSave({ ...m, supplyValues: { ...m.supplyValues, [s.mode]: s } });
         }}>Enregistrer</Button>
       </div>
