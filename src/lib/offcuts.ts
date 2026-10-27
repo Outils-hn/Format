@@ -72,3 +72,32 @@ export function retainedOffcuts(result: OptimizeResult, mark?: MarkOf): Retained
   }
   return [...rows.values()];
 }
+
+/**
+ * Origines compactees pour le PDF : « P1 / C1 · P2 / C1 · … · P96 / C1 » devient
+ * « P1 à P96 / C1 ». Les panneaux sont regroupes par repere de chute, puis en plages
+ * de numeros consecutifs (« P101 et P102 », « P5 à P9, P12 »).
+ */
+export function compactOrigins(origins: string[]): string {
+  const byMark = new Map<string, number[]>();
+  for (const o of origins) {
+    const m = o.match(/^P(\d+) \/ (.+)$/);
+    if (!m) { byMark.set(o, byMark.get(o) ?? []); continue; }
+    const list = byMark.get(m[2]!) ?? [];
+    list.push(Number(m[1]));
+    byMark.set(m[2]!, list);
+  }
+  const ranges = (ns: number[]) => {
+    const sorted = [...new Set(ns)].sort((a, b) => a - b);
+    const parts: string[] = [];
+    for (let i = 0; i < sorted.length; ) {
+      let j = i;
+      while (j + 1 < sorted.length && sorted[j + 1] === sorted[j]! + 1) j++;
+      const a = sorted[i]!, b = sorted[j]!;
+      parts.push(a === b ? `P${a}` : b === a + 1 ? `P${a} et P${b}` : `P${a} à P${b}`);
+      i = j + 1;
+    }
+    return parts.join(", ");
+  };
+  return [...byMark.entries()].map(([mark, ns]) => (ns.length ? `${ranges(ns)} / ${mark}` : mark)).join(" · ");
+}
