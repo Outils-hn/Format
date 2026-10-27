@@ -76,11 +76,18 @@ await session("mobile", false, async (page) => {
   await page.reload({ waitUntil: "networkidle" });
   await shot(page, "07-mobile");
 });
-await session("sombre", false, async (page) => {
-  await page.emulateMedia({ colorScheme: "dark" });
-  await page.reload({ waitUntil: "networkidle" });
+await session("sombre", true, async (page) => {
+  await page.getByRole("button", { name: "Basculer le thème" }).click();
   await run(page);
   await shot(page, "08-mode-sombre");
+  await page.getByText("Synthèse").first().click(); await page.waitForTimeout(800);
+  await shot(page, "09-mode-sombre-synthese");
+  // le PDF doit rester en couleurs claires
+  await pdf(page, /PDF atelier/, "12-pdf-atelier-depuis-mode-sombre");
+  await page.goto(BASE + "bibliotheque", { waitUntil: "networkidle" });
+  await shot(page, "13-mode-sombre-bibliotheque");
+  await page.getByRole("button", { name: "Modifier" }).first().click(); await page.waitForTimeout(500);
+  await shot(page, "14-mode-sombre-fenetre-materiau", false);
 });
 writeFileSync(`${OUT}/erreurs.txt`, errors.join("\n") || "aucune");
 console.log(errors.join("\n") || "aucune erreur");

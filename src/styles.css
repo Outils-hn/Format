@@ -115,6 +115,49 @@
   --sidebar-accent-foreground: var(--accent-foreground); --sidebar-border: var(--border); --sidebar-ring: var(--ring);
 }
 
+/* Mode sombre (bouton lune/soleil en haut a droite). Les PDF restent toujours en couleurs claires. */
+.dark {
+  --background: oklch(0.205 0.012 250);
+  --foreground: oklch(0.9 0.01 250);
+  --card: oklch(0.245 0.013 250);
+  --card-foreground: oklch(0.9 0.01 250);
+  --popover: oklch(0.245 0.013 250);
+  --popover-foreground: oklch(0.9 0.01 250);
+  --primary: oklch(0.66 0.09 186);
+  --primary-foreground: oklch(0.17 0.02 186);
+  --secondary: oklch(0.3 0.013 250);
+  --secondary-foreground: oklch(0.9 0.01 250);
+  --muted: oklch(0.3 0.013 250);
+  --muted-foreground: oklch(0.71 0.02 250);
+  --accent: oklch(0.32 0.04 186);
+  --accent-foreground: oklch(0.86 0.06 186);
+  --destructive: oklch(0.66 0.19 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --destructive-soft: oklch(0.3 0.06 25);
+  --warning: oklch(0.76 0.14 60);
+  --border: oklch(0.34 0.015 250);
+  --input: oklch(0.39 0.015 250);
+  --ring: oklch(0.66 0.09 186);
+  --grid-line: oklch(0.8 0.03 220 / 0.04);
+  --grid-line-major: oklch(0.8 0.03 220 / 0.07);
+  /* Pieces : memes teintes, assombries pour que le texte clair reste lisible */
+  --plan-1: oklch(0.45 0.07 230);
+  --plan-2: oklch(0.47 0.07 150);
+  --plan-3: oklch(0.44 0.07 300);
+  --plan-4: oklch(0.5 0.07 100);
+  --plan-5: oklch(0.45 0.07 15);
+  --plan-6: oklch(0.45 0.06 190);
+  --plan-7: oklch(0.48 0.05 60);
+  --plan-8: oklch(0.42 0.06 260);
+  --plan-9: oklch(0.46 0.06 340);
+  --plan-10: oklch(0.47 0.06 125);
+  --offcut-waste: oklch(0.55 0.015 260);
+  --offcut-waste-bg: oklch(0.28 0.01 250);
+  --offcut-reuse: oklch(0.72 0.14 62);
+  --offcut-reuse-bg: oklch(0.33 0.05 70);
+  --sidebar: oklch(0.245 0.013 250);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
