@@ -21,7 +21,7 @@ const write = (key: string, v: unknown) => localStorage.setItem(key, JSON.string
 
 // Un champ laisse vide est enregistre comme null : on remet les valeurs neutres
 // (trait de coupe et delignage a 0) pour que les calculs restent possibles.
-const finite = (n: unknown) => typeof n === "number" && Number.isFinite(n);
+const finite = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n);
 export const normalizeMaterial = (m: Material): Material => ({
   ...m,
   kerf: finite(m.kerf) ? m.kerf : 0,
