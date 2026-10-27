@@ -5,7 +5,7 @@ import { statusSuffix } from "../indicators";
 import { supplierSections } from "../order";
 import { num } from "../format";
 import { cleanName, download } from "./common";
-import { Writer } from "./pdf";
+import { planThumbnails, Writer } from "./pdf";
 
 const M = 12;
 const GREY: [number, number, number] = [110, 115, 125];
@@ -45,6 +45,8 @@ export function exportOrderPdf(result: OptimizeResult, materials: Material[], pi
       if (project.showEstimate) w.text(`Estimation : environ ${b.estimate}`, 8.5, false, GREY, 3);
     }
     if (sections.some((x) => x.cuts.length)) w.text("Sens du décor « Hauteur » : le fil ou le décor suit la hauteur de la pièce ; « Libre » : la pièce peut être tournée.", 7, false, GREY, 1);
+    // Vignettes des panneaux de ce fournisseur, apres ses tableaux
+    planThumbnails(w, result, materials, sec.materialIds);
   });
   const n = w.doc.getNumberOfPages();
   const foot = ["Format", info.site, info.taskNumber].filter(Boolean).join(" - ");

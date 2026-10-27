@@ -27,15 +27,16 @@ export const orderLines = (results: MaterialResult[], typeOf: (id: string) => Or
 export interface PanelRow { material: string; thickness: number; width: number; length: number; count: number }
 export interface CutRow { label: string; material: string; thickness: number; width: number; height: number; quantity: number; grain: boolean }
 export interface CutBlock { material: string; thickness: number; rows: CutRow[]; total: number; estimate: string; remarks: string }
-export interface SupplierSection { supplier: string; panels: PanelRow[]; cuts: CutBlock[] }
+export interface SupplierSection { supplier: string; panels: PanelRow[]; cuts: CutBlock[]; materialIds: string[] }
 
 export function supplierSections(result: OptimizeResult, materials: Material[], pieces: Piece[], project: Pick<Project, "orderTypes" | "supplierRemarks">): SupplierSection[] {
   const map = new Map<string, SupplierSection>();
   for (const r of result.materials) {
     const mat = materials.find((m) => m.id === r.materialId);
     const supplier = mat?.supplier?.trim() || "Fournisseur non renseigné";
-    const sec = map.get(supplier) ?? { supplier, panels: [], cuts: [] };
+    const sec = map.get(supplier) ?? { supplier, panels: [], cuts: [], materialIds: [] };
     map.set(supplier, sec);
+    sec.materialIds.push(r.materialId);
     if (orderTypeOf(mat, project) === "cut") {
       const merged = new Map<string, CutRow>();
       for (const p of pieces.filter((x) => x.materialId === r.materialId && x.width && x.height && x.quantity)) {

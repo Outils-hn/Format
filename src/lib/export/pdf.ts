@@ -216,7 +216,7 @@ function hatch(doc: jsPDF, x: number, y: number, w: number, h: number, step: num
 
 interface PlanOpts { mode: OffcutSettings["mode"]; mark: MarkOf; lead: number }
 
-function drawPlan(doc: jsPDF, s: SheetResult, mat: Material, cuts: Cut[], color: (id: string) => RGB, ox: number, oy: number, k: number, opts: PlanOpts, refOf: (key: string) => number) {
+function drawPlan(doc: jsPDF, s: SheetResult, mat: Material, cuts: Cut[], color: (id: string) => RGB, ox: number, oy: number, k: number, opts: PlanOpts, refOf: (key: string) => number | string) {
   const t = mat.trim;
   const X = (v: number) => ox + v * k, Y = (v: number) => oy + v * k;
   const reuse = resolveColor("var(--offcut-reuse)");
@@ -432,6 +432,43 @@ function labelsPage(w: Writer, result: OptimizeResult, mark: MarkOf, info: Proje
     i++;
   }
   w.y += bh + gap;
+}
+
+/**
+ * Plans de calepinage en vignettes (PDF commande, hors mode atelier) : un dessin par groupe
+ * de panneaux identiques, deux par ligne, sans sequence de coupe ni tableau de positions.
+ * Indicatif : c'est le fournisseur qui debite.
+ */
+export function planThumbnails(w: Writer, result: OptimizeResult, materials: Material[], materialIds: string[]) {
+  const order = pieceOrder(result);
+  const palette = PLAN_COLORS.map(resolveColor);
+  const color = (id: string) => palette[Math.max(0, order.indexOf(id)) % palette.length]!;
+  const opts = (lead: number): PlanOpts => ({ mode: "indicative", mark: () => ({}), lead });
+  for (const r of result.materials.filter((x) => materialIds.includes(x.materialId) && x.sheets.length)) {
+    const mat = materials.find((m) => m.id === r.materialId);
+    if (!mat) continue;
+    w.newPage("portrait");
+    w.text(`Calepinage indicatif — ${r.name} ${num(r.thickness, 1)} mm`, 12, true, INK, 1);
+    w.text(`${r.sheets.length} panneau(x) · un dessin par groupe de panneaux identiques`, 8, false, GREY, 4);
+    const gap = 8, cellW = (w.W - 2 * M - gap) / 2, maxH = 85;
+    let col = 0, rowH = 0;
+    for (const g of groupSheets(r.sheets)) {
+      const s = g.sheet;
+      const k = Math.min((cellW - 10) / s.width, maxH / s.length);
+      const cellH = 7 + 6 + s.length * k + 6;
+      if (col === 0) { w.ensure(cellH); rowH = 0; }
+      const x0 = M + col * (cellW + gap), y0 = w.y;
+      w.font(8.5, true); w.doc.text(`${panelGroup(g.indexes, false)}${g.count > 1 ? `  ×${g.count}` : ""}`, x0, y0 + 3.5, { maxWidth: cellW });
+      w.font(7.5, false, GREY); w.doc.text(`${dims(s.width, s.length)} mm`, x0 + cellW, y0 + 3.5, { align: "right" });
+      // Pas de tableau de reperes dans ce PDF : une piece trop petite affiche son repere, pas un numero
+      const labels = new Map(s.placements.map((p) => [pieceRowKey(p), p.label]));
+      drawPlan(w.doc, s, mat, [], color, x0 + 8, y0 + 7 + 6, k, opts(g.indexes[0] ?? 1), (key) => labels.get(key) ?? "");
+      rowH = Math.max(rowH, cellH);
+      col = (col + 1) % 2;
+      if (col === 0) w.y += rowH;
+    }
+    if (col === 1) w.y += rowH;
+  }
 }
 
 export function exportWorkshopPdf(result: OptimizeResult, materials: Material[], pieces: Piece[], info: ProjectInfo, linears: LinearRecap[] = [], status?: MaterialStatus, offcutSettings?: OffcutSettings) {
