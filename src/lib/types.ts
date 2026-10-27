@@ -26,6 +26,7 @@ export interface Material {
   grainLocked: boolean; // sens impose
   cutType: CutType;
   reuseMin?: number | undefined; // seuil de chute reutilisable (mm), defaut 300
+  mixMinGain?: number | undefined; // catalogue : melanger les formats seulement si le gain depasse ce % (defaut 3)
   supply: Supply;
   supplyValues?: SupplyValues | undefined; // valeurs conservées des modes inactifs
   supplier?: string | undefined;

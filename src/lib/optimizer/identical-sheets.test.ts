@@ -32,3 +32,20 @@ describe("panneaux au contenu identique", () => {
     expect(groupSheets(sheets).length).toBe(new Set(sheets.map(contenu)).size);
   });
 });
+
+describe("un seul format sauf si melanger fait vraiment gagner", () => {
+  const run = (m: Material) => optimize({ materials: [m], pieces: linearPieces([bande("L3", 361), bande("L4", 133)], [m]),
+    options: { objective: "waste", intensive: true } }).materials[0]!;
+  it("cas reel : le melange ne gagne que ~0,3 % -> un seul format (1250 x 1000)", () => {
+    const r = run(mat);
+    expect(r.errors).toEqual([]);
+    expect(r.formats).toHaveLength(1);
+    expect(r.formatChoice?.kept).toBe("single");
+    expect(r.formatChoice!.gainPct).toBeLessThan(3);
+  });
+  it("seuil a 0 % : le melange le moins cher en matiere est garde", () => {
+    const r = run({ ...mat, mixMinGain: 0 });
+    expect(r.formats.length).toBeGreaterThan(1);
+    expect(r.formatChoice?.kept).toBe("mixed");
+  });
+});
