@@ -15,6 +15,17 @@ export function labeledOffcuts(sheet: SheetResult): LabeledOffcut[] {
 
 export const DEFAULT_OFFCUT_SETTINGS: OffcutSettings = { mode: "indicative", labelsPage: false, marks: {} };
 
+/**
+ * Reglage par defaut quand le projet n'a rien choisi : si toutes les pieces sont
+ * debitees par le fournisseur, les chutes ne restent pas a l'atelier, donc on ne les
+ * detaille pas dans le PDF (« sans qualification »). Un choix fait dans les reglages prime.
+ */
+export function defaultOffcutSettings(orderTypes: string[]): OffcutSettings {
+  return orderTypes.length > 0 && orderTypes.every((t) => t === "cut")
+    ? { ...DEFAULT_OFFCUT_SETTINGS, mode: "hide" }
+    : DEFAULT_OFFCUT_SETTINGS;
+}
+
 /** Clé d'une chute dessinée : matériau, premier panneau du dessin, repère. */
 export const offcutKey = (materialId: string, drawingIndex: number, label: string) => `${materialId}|${drawingIndex}|${label}`;
 
@@ -71,4 +82,33 @@ export function retainedOffcuts(result: OptimizeResult, mark?: MarkOf): Retained
     rows.set(key, row);
   }
   return [...rows.values()];
+}
+
+/**
+ * Origines compactees pour le PDF : « P1 / C1 · P2 / C1 · … · P96 / C1 » devient
+ * « P1 à P96 / C1 ». Les panneaux sont regroupes par repere de chute, puis en plages
+ * de numeros consecutifs (« P101 et P102 », « P5 à P9, P12 »).
+ */
+export function compactOrigins(origins: string[]): string {
+  const byMark = new Map<string, number[]>();
+  for (const o of origins) {
+    const m = o.match(/^P(\d+) \/ (.+)$/);
+    if (!m) { byMark.set(o, byMark.get(o) ?? []); continue; }
+    const list = byMark.get(m[2]!) ?? [];
+    list.push(Number(m[1]));
+    byMark.set(m[2]!, list);
+  }
+  const ranges = (ns: number[]) => {
+    const sorted = [...new Set(ns)].sort((a, b) => a - b);
+    const parts: string[] = [];
+    for (let i = 0; i < sorted.length; ) {
+      let j = i;
+      while (j + 1 < sorted.length && sorted[j + 1] === sorted[j]! + 1) j++;
+      const a = sorted[i]!, b = sorted[j]!;
+      parts.push(a === b ? `P${a}` : b === a + 1 ? `P${a} et P${b}` : `P${a} à P${b}`);
+      i = j + 1;
+    }
+    return parts.join(", ");
+  };
+  return [...byMark.entries()].map(([mark, ns]) => (ns.length ? `${ranges(ns)} / ${mark}` : mark)).join(" · ");
 }

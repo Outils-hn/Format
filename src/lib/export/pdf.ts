@@ -6,7 +6,7 @@ import { indicators, lowerBound, materialLines, pct1, splitLine, statusSuffix, s
 import { cutSequence, groupSheets, type Cut, type SheetGroup } from "../cutplan";
 import { PLAN_COLORS } from "../palette";
 import { cleanName, download, pieceOrder } from "./common";
-import { DEFAULT_OFFCUT_SETTINGS, labeledOffcuts, markResolver, retainedOffcuts, reusableOffcutItems, type MarkOf } from "../offcuts";
+import { DEFAULT_OFFCUT_SETTINGS, compactOrigins, labeledOffcuts, markResolver, retainedOffcuts, reusableOffcutItems, type MarkOf } from "../offcuts";
 import type { OffcutSettings } from "../types";
 import { DEFAULT_REUSE_MIN } from "../optimizer/engine";
 import { dims, eur, m2, num, panelGroup, panelOrder, positionPair, reuseCaption } from "../format";
@@ -515,7 +515,7 @@ export function exportWorkshopPdf(result: OptimizeResult, materials: Material[],
       const cols: TableColumn[] = [{ h: "Matériau", w: 26 }, { h: "Ép. (mm)", w: 13, right: true }, { h: "Dimensions (mm)", w: 26 }, { h: "Qté", w: 9, right: true }, { h: "Surface (m²)", w: 20, right: true }, { h: "Panneau / Repère", w: 36 }];
       if (retain) cols.push({ h: "Note", w: 30 });
       w.table(cols, retained.map((o) => {
-        const row = [o.material, num(o.thickness, 1), dims(o.w, o.h), num(o.quantity), m2(o.w * o.h * o.quantity), o.origins.join(" · ")];
+        const row = [o.material, num(o.thickness, 1), dims(o.w, o.h), num(o.quantity), m2(o.w * o.h * o.quantity), compactOrigins(o.origins)];
         if (retain) row.push(o.notes.join(" · "));
         return row;
       }));
