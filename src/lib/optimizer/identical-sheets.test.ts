@@ -64,3 +64,20 @@ describe("strategie bandes (une piece par colonne)", () => {
     });
   }
 });
+
+describe("strategie bandes : formats saisis dans les deux sens", () => {
+  const P: [string, number, number, number][] = [["P1", 2010, 382, 192], ["P2", 2045, 382, 4], ["P3", 2152.5, 382, 4], ["P4", 1652.5, 382, 8],
+    ["P5", 2010, 237, 192], ["P6", 2045, 237, 4], ["P7", 2152.5, 237, 4], ["P8", 1652.5, 237, 8]];
+  const pieces = P.map(([id, width, height, quantity]) => ({ id, label: id, materialId: "fg", width, height, quantity, canRotate: true }));
+  // Saisie « longueur x largeur » dans les champs largeur / longueur : 2500 en largeur, 1250 en longueur
+  const couche: Material = { ...mat, supply: { mode: "catalog", formats: formats.map((f) => ({ ...f, width: f.length, length: f.width })) } };
+  for (const canRotate of [true, false]) {
+    it(`format couche, pieces ${canRotate ? "orientables" : "fixes"} : 104 panneaux, sans erreur`, () => {
+      const ps = pieces.map((p) => ({ ...p, canRotate }));
+      const r = optimize({ materials: [couche], pieces: ps, options: { objective: "waste", intensive: false } }).materials[0]!;
+      expect(r.errors).toEqual([]);
+      expect(r.sheets.length).toBe(104);
+      expect(groupSheets(r.sheets).length).toBeLessThanOrEqual(6);
+    });
+  }
+});
