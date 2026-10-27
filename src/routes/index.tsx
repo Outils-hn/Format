@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { ThemeToggle } from "@/components/format/ThemeToggle";
 import { FilePlus2, FileSpreadsheet, FileText, FolderOpen, Library, Loader2, Play, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
 import type { Material, Project } from "@/lib/types";
@@ -201,6 +202,7 @@ function Index() {
             <button className="btn-ghost" onClick={() => setShowProjects(true)}><FolderOpen size={15} /> Mes projets</button>
             <button className="btn-ghost" onClick={() => confirm("Commencer un nouveau projet ? Les modifications non sauvegardées seront perdues.") && setProject(newProject())}><FilePlus2 size={15} /> Nouveau</button>
             <button className="btn-primary" onClick={save}><Save size={15} /> Sauvegarder</button>
+            <ThemeToggle />
           </nav>
         </div>
       </header>

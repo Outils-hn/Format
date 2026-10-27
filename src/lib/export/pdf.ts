@@ -23,7 +23,13 @@ const PT = 2.835; // mm -> pt
 /** Convertit une variable CSS (oklch...) en RGB via un canvas. */
 function resolveColor(cssVar: string): RGB {
   const name = cssVar.replace(/^var\(|\)$/g, "");
-  const val = getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#ddd";
+  // Le PDF garde toujours les couleurs claires, meme si l'appli est en mode sombre :
+  // on lit la variable une fraction de seconde sans la classe « dark » (rien n'est redessine entre-temps).
+  const root = document.documentElement;
+  const dark = root.classList.contains("dark");
+  if (dark) root.classList.remove("dark");
+  const val = getComputedStyle(root).getPropertyValue(name).trim() || "#ddd";
+  if (dark) root.classList.add("dark");
   const ctx = document.createElement("canvas").getContext("2d")!;
   ctx.fillStyle = val;
   ctx.fillRect(0, 0, 1, 1);

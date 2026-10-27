@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { ThemeToggle } from "@/components/format/ThemeToggle";
 import { ArrowLeft, Download, Library, Upload } from "lucide-react";
 import { toast } from "sonner";
 import type { Material } from "@/lib/types";
@@ -66,6 +67,7 @@ function LibraryPage() {
       <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-4 px-8 py-3">
         <Brand />
         <Button asChild variant="ghost" className="btn-ghost ml-auto"><Link to="/"><ArrowLeft size={15} /> Retour au projet</Link></Button>
+        <ThemeToggle />
       </div>
     </header>
     <main className="mx-auto w-full max-w-[1600px] flex-1 space-y-5 px-8 py-6">
