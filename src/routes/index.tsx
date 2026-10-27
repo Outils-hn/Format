@@ -5,8 +5,9 @@ import { toast } from "sonner";
 import type { Material, Project } from "@/lib/types";
 import { newProject } from "@/lib/defaults";
 import {
-  exportProject, importProject, loadCurrent, loadMaterials, saveCurrent, saveMaterials, saveProject,
+  exportProject, importProject, listProjects, loadCurrent, loadMaterials, saveCurrent, saveMaterials, saveProject,
 } from "@/lib/storage";
+import { uid } from "@/lib/ids";
 import { Button } from "@/components/ui/button";
 import { Brand } from "@/components/format/Brand";
 import { AppFooter } from "@/components/format/AppFooter";
@@ -41,6 +42,8 @@ function Index() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [project, setProject] = useState<Project>(newProject);
   const [showProjects, setShowProjects] = useState(false);
+  // Projet enregistre dont le chantier ou la tache a change : on demande avant d'ecraser
+  const [saveChoice, setSaveChoice] = useState<Project | null>(null);
   const [activeTab, setActiveTab] = useState<string>("");
   const [addedMaterials, setAddedMaterials] = useState<string[]>([]);
   const [choosingMaterial, setChoosingMaterial] = useState(false);
@@ -116,6 +119,19 @@ function Index() {
   useEffect(() => { if (ready) saveCurrent(project); }, [project, ready]);
 
   const info = project.info;
+  const projectName = (p: Project) => [p.info.site, p.info.taskNumber && `tâche ${p.info.taskNumber}`].filter(Boolean).join(" · ") || "Sans nom";
+  // asNew : nouvel identifiant, l'ancien projet reste intact dans « Mes projets »
+  const writeProject = (p: Project, asNew: boolean) => {
+    const saved = saveProject(asNew ? { ...p, id: uid() } : p);
+    setProject(saved);
+    toast.success(asNew ? `Nouveau projet enregistré : « ${projectName(saved)} »` : `Projet « ${projectName(saved)} » mis à jour`);
+  };
+  const save = () => {
+    const existing = listProjects().find((x) => x.id === project.id);
+    if (!existing) { writeProject(project, false); return; }
+    const renamed = existing.info.site.trim() !== info.site.trim() || existing.info.taskNumber.trim() !== info.taskNumber.trim();
+    if (renamed) setSaveChoice(existing); else writeProject(project, false);
+  };
   const setInfo = (patch: Partial<typeof info>) => setProject({ ...project, info: { ...info, ...patch } });
 
   const doExport = () => {
@@ -181,7 +197,7 @@ function Index() {
             }}><FileSpreadsheet size={15} /> Commande Excel</button>
             <button className="btn-ghost" onClick={() => setShowProjects(true)}><FolderOpen size={15} /> Mes projets</button>
             <button className="btn-ghost" onClick={() => confirm("Commencer un nouveau projet ? Les modifications non sauvegardées seront perdues.") && setProject(newProject())}><FilePlus2 size={15} /> Nouveau</button>
-            <button className="btn-primary" onClick={() => { setProject(saveProject(project)); toast.success("Projet sauvegardé"); }}><Save size={15} /> Sauvegarder</button>
+            <button className="btn-primary" onClick={save}><Save size={15} /> Sauvegarder</button>
           </nav>
         </div>
       </header>
@@ -289,8 +305,21 @@ function Index() {
       </Modal>}
 
       {showProjects && (
-        <ProjectsDialog onClose={() => setShowProjects(false)} onExport={doExport} onImport={doImport}
+        <ProjectsDialog currentId={project.id} onClose={() => setShowProjects(false)} onExport={doExport} onImport={doImport}
           onOpen={(p) => { setProject(p); setShowProjects(false); }} />
+      )}
+
+      {saveChoice && (
+        <Modal title="Enregistrer le projet" onClose={() => setSaveChoice(null)}>
+          <p className="text-sm">
+            Le projet ouvert était enregistré sous <b>« {projectName(saveChoice)} »</b>. Le chantier ou la tâche a changé depuis.
+          </p>
+          <div className="mt-5 flex flex-wrap justify-end gap-2">
+            <button className="btn-ghost" onClick={() => setSaveChoice(null)}>Annuler</button>
+            <button className="btn-outline" onClick={() => { writeProject(project, false); setSaveChoice(null); }}>Remplacer « {projectName(saveChoice)} »</button>
+            <button className="btn-primary" onClick={() => { writeProject(project, true); setSaveChoice(null); }}>Enregistrer comme nouveau projet</button>
+          </div>
+        </Modal>
       )}
     </div>
   );
