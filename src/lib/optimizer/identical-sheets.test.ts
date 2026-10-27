@@ -49,3 +49,18 @@ describe("un seul format sauf si melanger fait vraiment gagner", () => {
     expect(r.formatChoice?.kept).toBe("mixed");
   });
 });
+
+describe("strategie bandes (une piece par colonne)", () => {
+  // Cas reel : bandes de 382 et 237 mm, longueurs 1652,5 a 2152,5 mm, panneaux de 2500 x 1250
+  const P: [string, number, number, number][] = [["P1", 2010, 382, 192], ["P2", 2045, 382, 4], ["P3", 2152.5, 382, 4], ["P4", 1652.5, 382, 8],
+    ["P5", 2010, 237, 192], ["P6", 2045, 237, 4], ["P7", 2152.5, 237, 4], ["P8", 1652.5, 237, 8]];
+  const pieces = P.map(([id, width, height, quantity]) => ({ id, label: id, materialId: "fg", width, height, quantity, canRotate: true }));
+  for (const cutType of ["free", "guillotine"] as const) {
+    it(`2 x 382 + 2 x 237 remplit exactement 1250 : 104 panneaux, peu de dessins (${cutType})`, () => {
+      const r = optimize({ materials: [{ ...mat, cutType }], pieces, options: { objective: "waste", intensive: false } }).materials[0]!;
+      expect(r.errors).toEqual([]);
+      expect(r.sheets.length).toBe(104);
+      expect(groupSheets(r.sheets).length).toBeLessThanOrEqual(6);
+    });
+  }
+});

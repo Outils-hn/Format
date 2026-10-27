@@ -249,6 +249,84 @@ function seedOf(m: Material, items: Item[]): number {
 
 
 /**
+ * Strategie « bandes » : quand deux pieces ne tiennent jamais bout a bout dans la longueur
+ * du panneau (ex. bandes de 2010 mm dans 2500), chaque piece occupe toute une colonne.
+ * Le probleme devient un debit 1D des largeurs dans la largeur utile : on repete le motif
+ * le plus rempli tant qu'il reste des pieces (ex. 2 x 382 + 2 x 237 = 1250 tout juste).
+ * Les pieces d'un meme type sont posees a la suite : les panneaux se ressemblent et se
+ * regroupent en peu de dessins. Renvoie null si la strategie ne s'applique pas.
+ */
+export function stripPack(m: Material, f: Fmt, items: Item[]): RawSheet[] | null {
+  const W = f.width - 2 * m.trim, L = f.length - 2 * m.trim, k = m.kerf;
+  if (!items.length || W <= 0 || L <= 0) return null;
+  // Sens de pose : la grande dimension dans la longueur du panneau, la petite en largeur
+  const posed = items.map((it) => {
+    const opts = [{ w: it.w, h: it.h, rotated: false }];
+    if (it.canRotate) opts.push({ w: it.h, h: it.w, rotated: true });
+    const ok = opts.filter((o) => o.w <= W && o.h <= L).sort((a, b) => a.w - b.w);
+    return ok[0] ? { it, ...ok[0] } : null;
+  });
+  if (posed.some((p) => !p)) return null;
+  const ps = posed as { it: Item; w: number; h: number; rotated: boolean }[];
+  const hs = ps.map((p) => p.h).sort((a, b) => a - b);
+  if (hs.length > 1 && hs[0]! + k + hs[1]! <= L) return null; // deux pieces pourraient se suivre : pas une affaire de bandes
+
+  // Largeurs distinctes et nombre de pieces par largeur
+  const widths = [...new Set(ps.map((p) => p.w))].sort((a, b) => b - a);
+  if (widths.length > 10) return null;
+  const left = widths.map((w) => ps.filter((p) => p.w === w).length);
+  const fill = (c: number[]) => {
+    const n = c.reduce((a, b) => a + b, 0);
+    return n ? c.reduce((a, x, i) => a + x * widths[i]!, 0) + (n - 1) * k : 0;
+  };
+  // Tous les motifs possibles (nombre de pieces de chaque largeur dans une largeur de panneau)
+  const patterns: number[][] = [];
+  const cur = widths.map(() => 0);
+  const rec = (i: number) => {
+    if (patterns.length > 20_000) return;
+    if (i === widths.length) { if (cur.some((x) => x > 0)) patterns.push([...cur]); return; }
+    for (let c = 0; ; c++) {
+      cur[i] = c;
+      if (fill(cur) > W + 1e-9) break;
+      rec(i + 1);
+    }
+    cur[i] = 0;
+  };
+  rec(0);
+  if (!patterns.length || patterns.length > 20_000) return null;
+  patterns.sort((a, b) => fill(b) - fill(a) || b.reduce((x, y) => x + y, 0) - a.reduce((x, y) => x + y, 0));
+
+  // Motif le plus rempli encore possible, autant de fois que les pieces le permettent
+  const bins: number[][] = [];
+  while (left.some((x) => x > 0)) {
+    workMeter.units += patterns.length;
+    const pat = patterns.find((p) => p.every((x, i) => x <= left[i]!));
+    if (!pat) return null;
+    const times = Math.min(...pat.map((x, i) => (x ? Math.floor(left[i]! / x) : Infinity)));
+    for (let t = 0; t < times; t++) bins.push(pat);
+    pat.forEach((x, i) => { left[i] = left[i]! - x * times; });
+  }
+
+  // Pieces de chaque largeur, regroupees par type (le plus frequent d'abord)
+  const freq = new Map<string, number>();
+  for (const p of ps) freq.set(p.it.pieceId, (freq.get(p.it.pieceId) ?? 0) + 1);
+  const queues = widths.map((w) => ps.filter((p) => p.w === w)
+    .sort((a, b) => freq.get(b.it.pieceId)! - freq.get(a.it.pieceId)! || a.it.pieceId.localeCompare(b.it.pieceId)));
+  return bins.map((pat) => {
+    const placements: Placement[] = [];
+    let x = 0;
+    pat.forEach((count, i) => {
+      for (let c = 0; c < count; c++) {
+        const p = queues[i]!.shift()!;
+        placements.push({ pieceId: p.it.pieceId, label: p.it.label, x, y: 0, w: p.w, h: p.h, rotated: p.rotated !== !!p.it.flip });
+        x += p.w + k;
+      }
+    });
+    return { fmt: f, placements };
+  });
+}
+
+/**
  * Panneaux au contenu identique (meme format, memes pieces dans la meme orientation) mais
  * places dans un ordre different : on leur donne a tous la disposition du premier.
  * Le nombre de panneaux et les pieces ne changent pas ; ils deviennent seulement
@@ -355,11 +433,23 @@ function optimizeMaterial(m: Material, pieces: Piece[], opt: OptimizeOptions, bu
   };
   const keyOf = (s: { label: string }, cfg: Cfg) => s.label || cfgLabel(cfg);
   const variants = orientationVariants(items);
+  // Solution deja construite (strategie « bandes ») : comparee comme les autres
+  const considerSolution = (key: string, sol: RawSheet[]) => {
+    const sc = solutionScore(m, sol, opt.objective, byPrice);
+    const prev = perKey.get(key);
+    if (!prev || better(sc, prev.score)) perKey.set(key, { sol, score: sc });
+    if (!best || better(sc, bestScore)) { best = sol; bestScore = sc; }
+  };
   if (items.length) {
     for (const s of strategies)
       for (const cfg of cfgs)
         for (const v of variants)
           for (const sort of SORTS) consider(keyOf(s, cfg), s.fmts, [...v].sort(sort), cfg);
+    for (const s of strategies) {
+      if (s.fmts.length !== 1) continue;
+      const sol = stripPack(m, s.fmts[0]!, items);
+      if (sol) considerSolution(s.label || "Bandes (une pièce par colonne)", sol);
+    }
     // Recherche approfondie automatique, sauf si le resultat atteint deja la borne theorique
     // (impossible de faire moins de panneaux en format unique).
     const lb = lowerBound(m, own);
