@@ -174,6 +174,13 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
               );
             })}
             <Button variant="ghost" className="btn-ghost" onClick={() => set({ supply: { ...s, formats: [...s.formats, { id: uid(), width: 2070, length: 2800 }] } })}><Plus size={14} /> Format</Button>
+            <label className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+              <span>Mélanger les formats seulement si cela fait gagner au moins</span>
+              <NumInput aria-label="Gain minimum pour mélanger les formats" className="input-num w-16" value={m.mixMinGain ?? 3}
+                onChange={(n) => set({ mixMinGain: n ?? undefined })} />
+              <span>% de matière</span>
+            </label>
+            <p className="text-xs text-muted-foreground">Sinon, un seul format est utilisé pour tout le débit.</p>
           </div>
         )}
       </div>

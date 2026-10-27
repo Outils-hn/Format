@@ -4,20 +4,22 @@ import { validatePiece } from "../validation";
 import { freeRects, guillotinePacker, maxRectsPacker, workMeter, type GuillotineFit, type GuillotineSplit, type MaxRectsFit } from "./packers";
 import type {
   Balance, FormatCount, Item, MaterialResult, OptimizeOptions, OptimizeRequest, OptimizeResult,
-  Objective, Placement, Rect, SheetResult, SolutionSummary, Unplaced,
+  FormatChoice, Objective, Placement, Rect, SheetResult, SolutionSummary, Unplaced,
 } from "./types";
 import { verifyMaterial } from "./verify";
 import { lowerBound } from "../indicators";
 
 export const DEFAULT_REUSE_MIN = 300;
+/** Catalogue : on ne melange les formats que si cela fait gagner au moins ce % (surface ou prix). */
+export const DEFAULT_MIX_MIN_GAIN = 3;
 const INTENSIVE_MS = 2000;
 /** Budget de travail du mode intensif (evaluations de placement), calibre pour environ 2 s. */
 export const INTENSIVE_WORK = 120_000_000;
 /** Plafond d'essais : borne aussi les petits cas, ou le travail compte peu. */
 const INTENSIVE_MAX_TRIES = 15_000;
 
-interface Fmt { width: number; length: number; price?: number | undefined }
-interface RawSheet { fmt: Fmt; placements: Placement[] }
+export interface Fmt { width: number; length: number; price?: number | undefined }
+export interface RawSheet { fmt: Fmt; placements: Placement[] }
 
 const area = (f: { width: number; length: number }) => f.width * f.length;
 
@@ -246,9 +248,27 @@ function seedOf(m: Material, items: Item[]): number {
 }
 
 
+/**
+ * Panneaux au contenu identique (meme format, memes pieces dans la meme orientation) mais
+ * places dans un ordre different : on leur donne a tous la disposition du premier.
+ * Le nombre de panneaux et les pieces ne changent pas ; ils deviennent seulement
+ * regroupables a l'ecran et dans le PDF (« Panneaux 1 a 75 ») au lieu d'apparaitre en
+ * plusieurs dessins differents pour le meme debit.
+ */
+export function unifyIdenticalSheets(raw: RawSheet[]): RawSheet[] {
+  const firstByContent = new Map<string, RawSheet>();
+  return raw.map((r) => {
+    const key = `${r.fmt.width}x${r.fmt.length}|` + r.placements
+      .map((p) => `${p.pieceId}:${p.w}x${p.h}:${p.rotated ? 1 : 0}`).sort().join(";");
+    const first = firstByContent.get(key);
+    if (!first) { firstByContent.set(key, r); return r; }
+    return { fmt: r.fmt, placements: first.placements.map((p) => ({ ...p })) };
+  });
+}
+
 function finalizeSheets(m: Material, raw: RawSheet[]): SheetResult[] {
   const reuseMin = m.reuseMin ?? DEFAULT_REUSE_MIN;
-  return raw.map((r, i) => {
+  return unifyIdenticalSheets(raw).map((r, i) => {
     const fmt = boughtFmt(m, r);
     const W = fmt.width - 2 * m.trim, L = fmt.length - 2 * m.trim;
     const occupied = r.placements.map((p) => ({ x: p.x, y: p.y, w: p.w + m.kerf, h: p.h + m.kerf }));
@@ -357,6 +377,24 @@ function optimizeMaterial(m: Material, pieces: Piece[], opt: OptimizeOptions, bu
       }
     }
   }
+  // Un seul format, sauf si melanger fait vraiment gagner : 4 formats differents pour 0,3 %
+  // de matiere en moins n'est pas un bon choix pratique.
+  let formatChoice: FormatChoice | undefined;
+  const bestFound = best as RawSheet[] | null; // best est modifie dans consider() : TS le croit toujours null
+  if (bestFound && strategies.length > 1) {
+    const distinct = (sol: RawSheet[]) => new Set(sol.map((r) => { const f = boughtFmt(m, r); return `${f.width}x${f.length}`; })).size;
+    if (distinct(bestFound) > 1) {
+      let single = null as { sol: RawSheet[]; score: number[] } | null;
+      for (const [, v] of perKey) if (distinct(v.sol) === 1 && (!single || better(v.score, single.score))) single = v;
+      if (single) {
+        const threshold = m.mixMinGain != null && Number.isFinite(m.mixMinGain) && m.mixMinGain >= 0 ? m.mixMinGain : DEFAULT_MIX_MIN_GAIN;
+        const ref = single.score[0]!, mixed = bestScore[0]!;
+        const gainPct = ref > 0 ? ((ref - mixed) / ref) * 100 : 0;
+        if (gainPct < threshold) { best = single.sol; bestScore = single.score; }
+        formatChoice = { kept: gainPct < threshold ? "single" : "mixed", gainPct, thresholdPct: threshold };
+      }
+    }
+  }
   const raw: RawSheet[] = best ?? [];
   if (items.length && !best) unplaced.push(...own.map((p) => ({ pieceId: p.id, label: p.label, quantity: p.quantity, reason: "Aucun format utilisable" })));
 
@@ -376,7 +414,7 @@ function optimizeMaterial(m: Material, pieces: Piece[], opt: OptimizeOptions, bu
   const unplacedMap = new Map(unplaced.map((u) => [u.pieceId, u.quantity]));
   return {
     materialId: m.id, name: m.name, thickness: m.thickness, sheets, formats, totalPrice,
-    balance: balanceOf(sheets), unplaced, errors: verifyMaterial(m, pieces, sheets, unplacedMap), solutions,
+    balance: balanceOf(sheets), unplaced, errors: verifyMaterial(m, pieces, sheets, unplacedMap), solutions, formatChoice,
   };
 }
 

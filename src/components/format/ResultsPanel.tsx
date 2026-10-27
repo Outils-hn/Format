@@ -12,7 +12,7 @@ import type { LinearRecap } from "@/lib/linear";
 import { orderEntries } from "@/lib/order";
 import type { OrderType } from "@/lib/types";
 
-import { dims, eur, m2, num, panelOrder, reuseCaption } from "@/lib/format";
+import { dec, dims, eur, m2, num, panelOrder, reuseCaption } from "@/lib/format";
 import type { OffcutSettings } from "@/lib/types";
 import { DEFAULT_OFFCUT_SETTINGS, offcutKey } from "@/lib/offcuts";
 const pct = (r: number) => `${num(r * 100, 1)} %`;
@@ -214,6 +214,13 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
           <p className="tabular-nums text-xs">
             {r.formats.map((f) => `${panelOrder(f.count, f.width, f.length, r.name, r.thickness)}${f.price != null ? ` (${eur(f.count * f.price)})` : ""}`).join(" · ") || "Aucun panneau"}
           </p>
+          {r.formatChoice && (
+            <p className="text-xs text-muted-foreground">
+              {r.formatChoice.kept === "single"
+                ? `Un seul format retenu : mélanger les formats ne faisait gagner que ${dec(r.formatChoice.gainPct, 1)} % (seuil ${num(r.formatChoice.thresholdPct, 1)} %, réglable dans le matériau).`
+                : `Formats mélangés : ${dec(r.formatChoice.gainPct, 1)} % gagnés par rapport au meilleur format unique (seuil ${num(r.formatChoice.thresholdPct, 1)} %).`}
+            </p>
+          )}
           <Solutions list={r.solutions ?? []} />
            <Legend entries={legendEntries.filter((e) => e.materialId === r.materialId)} />
           {r.unplaced.length > 0 && (

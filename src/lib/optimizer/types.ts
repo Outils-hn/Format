@@ -70,6 +70,16 @@ export interface MaterialResult {
   unplaced: Unplaced[];
   errors: string[]; // verification
   solutions: SolutionSummary[];
+  /** Catalogue : choix entre un seul format et des formats melanges, explique a l'ecran. */
+  formatChoice?: FormatChoice | undefined;
+}
+
+export interface FormatChoice {
+  /** "single" = un seul format retenu alors qu'un melange existait ; "mixed" = melange garde. */
+  kept: "single" | "mixed";
+  /** Gain du melange par rapport au meilleur format unique, en % de l'objectif (surface, prix ou panneaux). */
+  gainPct: number;
+  thresholdPct: number;
 }
 
 export interface OptimizeResult {

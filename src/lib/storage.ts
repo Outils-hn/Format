@@ -27,6 +27,7 @@ export const normalizeMaterial = (m: Material): Material => ({
   kerf: finite(m.kerf) ? m.kerf : 0,
   trim: finite(m.trim) ? m.trim : 0,
   reuseMin: finite(m.reuseMin) ? m.reuseMin : undefined,
+  mixMinGain: finite(m.mixMinGain) ? m.mixMinGain : undefined,
 });
 
 export const loadMaterials = (): Material[] => read<Material[]>(K.materials, []).map(normalizeMaterial);
