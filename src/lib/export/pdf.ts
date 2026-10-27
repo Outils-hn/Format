@@ -152,11 +152,12 @@ export class Writer {
   }
 }
 
-function kpis(w: Writer, b: Balance, sheets: number, mode: OffcutSettings["mode"], mat?: Material, pieces: Piece[] = [], unplaced = 0) {
+function kpis(w: Writer, b: Balance, sheets: number, mode: OffcutSettings["mode"], mat?: Material, pieces: Piece[] = [], unplaced = 0, compact = false) {
   const i = indicators(b);
   const lb = mat && !unplaced ? lowerBound(mat, pieces) : null;
   const badge = lb == null ? "" : sheets <= lb ? " · Résultat optimal" : ` · Meilleur résultat trouvé (borne minimale théorique : ${lb} panneaux)`;
   w.text(`${sheets} panneau(x) · Rendement ${pct1(i.yieldPct)}${badge}`, 9, true, INK, 1);
+  if (compact) return; // un seul materiau : barre et cartes deja dans le bandeau principal
   splitBar(w, b);
   cards(w, i, mode);
 }
@@ -192,6 +193,14 @@ function cards(w: Writer, i: ReturnType<typeof indicators>, mode: OffcutSettings
     w.font(6.5, false, GREY); w.doc.text(sub, x + 2, w.y + 14);
   });
   w.y += h + 3;
+}
+
+/** Formats : ceux reellement utilises ; en catalogue, le nombre de formats proposes en plus. */
+function formatsLine(m: Material, used: { width: number; length: number }[]) {
+  const s = m.supply;
+  if (s.mode !== "catalog" || !used.length) return `Format(s) : ${supplyText(m)}`;
+  const list = used.map((f) => `${dims(f.width, f.length)} mm`).join(", ");
+  return `Format${used.length > 1 ? "s" : ""} utilisé${used.length > 1 ? "s" : ""} : ${list} (catalogue de ${s.formats.length} formats)`;
 }
 
 function supplyText(m: Material) {
@@ -466,23 +475,25 @@ export function exportWorkshopPdf(result: OptimizeResult, materials: Material[],
   cards(w, ti, oc.mode);
   w.y += 2;
 
+  // Un seul materiau : son detail repetait mot pour mot le bandeau principal
+  const single = result.materials.length === 1;
   for (const r of result.materials) {
     const mat = materials.find((m) => m.id === r.materialId);
     w.ensure(60);
     w.text(`${r.name} — ${num(r.thickness, 1)} mm`, 12, true, INK, 1);
     if (mat) {
-      w.text(`Format(s) : ${supplyText(mat)}`, 8.5, false, INK, 0);
+      w.text(formatsLine(mat, r.formats), 8.5, false, INK, 0);
       w.text(`Trait de coupe : ${num(mat.kerf, 1)} mm · Délignage : ${num(mat.trim, 1)} mm par bord · Chute réutilisable à partir de : ${num(mat.reuseMin ?? DEFAULT_REUSE_MIN)} mm · Type de découpe : ${mat.cutType === "guillotine" ? "guillotine (scie à panneaux)" : "libre (CNC)"} · Sens imposé : ${mat.grainLocked ? "oui" : "non"}`, 8.5, false, INK, 2);
     }
-    kpis(w, r.balance, r.sheets.length, oc.mode, mat, pieces, r.unplaced.length);
-    if (r.formats.length)
+    kpis(w, r.balance, r.sheets.length, oc.mode, mat, pieces, r.unplaced.length, single);
+    if (r.formats.length && !single)
       w.text(`${statusTitle(status)} : ${r.formats.map((f) => `${panelOrder(f.count, f.width, f.length, r.name, r.thickness)}${f.price != null ? ` (${eur(f.count * f.price)})` : ""}`).join(" · ")}${statusSuffix(status)}`, 8.5, true, INK, 2);
     if (r.unplaced.length) w.text(`Pièces impossibles à placer : ${r.unplaced.map((u) => `${u.label} × ${u.quantity} (${u.reason})`).join(" ; ")}`, 8.5, true, INK, 2);
     const list = pieces.filter((p) => p.materialId === r.materialId);
     const qty = list.reduce((a, p) => a + p.quantity, 0);
     const area = list.reduce((a, p) => a + (p.width ?? 0) * (p.height ?? 0) * p.quantity, 0);
     w.table(
-      [{ h: "Repère", w: 30 }, { h: "Dimensions L × H (mm)", w: 35 }, { h: "Quantité", w: 18, right: true }, { h: "Surface (m²)", w: 20, right: true }],
+      [{ h: "Repère", w: 30 }, { h: "Dimensions (mm)", w: 35 }, { h: "Quantité", w: 18, right: true }, { h: "Surface (m²)", w: 20, right: true }],
       [...list.map((p) => [p.label, p.width && p.height ? dims(p.width, p.height) : "?", num(p.quantity), m2((p.width ?? 0) * (p.height ?? 0) * p.quantity)]),
         ["Total", "", num(qty), m2(area)]],
       true,

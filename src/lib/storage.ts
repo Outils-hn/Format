@@ -26,7 +26,8 @@ export const normalizeMaterial = (m: Material): Material => ({
   ...m,
   kerf: finite(m.kerf) ? m.kerf : 0,
   trim: finite(m.trim) ? m.trim : 0,
-  reuseMin: finite(m.reuseMin) ? m.reuseMin : undefined,
+  // 0 ou moins : toute chute deviendrait « reutilisable » -> seuil par defaut (300 mm)
+  reuseMin: finite(m.reuseMin) && m.reuseMin > 0 ? m.reuseMin : undefined,
   mixMinGain: finite(m.mixMinGain) ? m.mixMinGain : undefined,
 });
 

@@ -66,3 +66,16 @@ describe("matériau avec champ vide (enregistré comme null)", () => {
     expect([n.kerf, n.trim]).toEqual([0, 0]);
   });
 });
+
+describe("seuil de chute réutilisable", () => {
+  const mat = (reuseMin: number): Material => ({ id: "m", name: "M", thickness: 10, kerf: 4, trim: 0, grainLocked: false, reuseMin,
+    cutType: "free", supply: { mode: "single", width: 1250, length: 2500 } } as Material);
+  it("0 mm est refusé dans la fenêtre matériau", () => {
+    expect(materialProblems(mat(0)).join()).toContain("chute réutilisable");
+    expect(materialProblems(mat(300))).toEqual([]);
+  });
+  it("au chargement, un seuil à 0 repasse au défaut (300 mm)", () => {
+    expect(normalizeMaterial(mat(0)).reuseMin).toBeUndefined();
+    expect(normalizeMaterial(mat(250)).reuseMin).toBe(250);
+  });
+});
