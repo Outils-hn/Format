@@ -257,6 +257,20 @@ function seedOf(m: Material, items: Item[]): number {
  * regroupent en peu de dessins. Renvoie null si la strategie ne s'applique pas.
  */
 export function stripPack(m: Material, f: Fmt, items: Item[]): RawSheet[] | null {
+  // Les bandes peuvent etre dans un sens ou dans l'autre selon la saisie du format
+  // (2500 x 1250 ou 1250 x 2500) : on essaie aussi le panneau « couche », puis on
+  // remet les coordonnees dans le bon sens.
+  const direct = stripPackAxis(m, f, items);
+  if (direct) return direct;
+  const swapped = stripPackAxis(m, { ...f, width: f.length, length: f.width },
+    items.map((it) => ({ ...it, w: it.h, h: it.w, flip: !it.flip })));
+  return swapped && swapped.map((r) => ({
+    fmt: f,
+    placements: r.placements.map((p) => ({ ...p, x: p.y, y: p.x, w: p.h, h: p.w, rotated: !p.rotated })),
+  }));
+}
+
+function stripPackAxis(m: Material, f: Fmt, items: Item[]): RawSheet[] | null {
   const W = f.width - 2 * m.trim, L = f.length - 2 * m.trim, k = m.kerf;
   if (!items.length || W <= 0 || L <= 0) return null;
   // Sens de pose : la grande dimension dans la longueur du panneau, la petite en largeur
