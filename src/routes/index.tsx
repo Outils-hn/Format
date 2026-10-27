@@ -113,6 +113,17 @@ function Index() {
     } finally { if (calculation.current === runId) setRunning(false); }
   };
 
+  // Ctrl + Entree (Cmd + Entree sur Mac) : lance l'optimisation depuis n'importe quel champ
+  const runRef = useRef(run);
+  runRef.current = run;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void runRef.current(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   useEffect(() => {
     setMaterials(loadMaterials());
     const cur = loadCurrent();
@@ -172,14 +183,14 @@ function Index() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-border bg-card/90 backdrop-blur">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-4 px-8 py-3">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md">
+        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-4 px-8 py-3.5">
           <Brand />
-          <nav className="ml-auto flex flex-wrap gap-2">
+          <nav className="ml-auto flex flex-wrap items-center gap-2">
             <Button asChild variant="ghost" className="btn-ghost"><Link to="/bibliotheque"><Library size={15} /> Bibliothèque</Link></Button>
-            <label className="flex items-center gap-2 px-2 text-sm">
+            <label className="mr-1 flex items-center gap-2 px-2 text-[13px] text-muted-foreground">
               <Button type="button" role="switch" variant="ghost" size="icon" aria-checked={workshop} aria-label="Mode atelier" onClick={() => setProject({ ...project, workshopMode: !workshop })}
-                className={`relative h-5 w-9 rounded-full transition-colors ${workshop ? "bg-primary" : "bg-muted"}`}>
+                className={`relative h-5 w-9 rounded-full transition-colors ${workshop ? "bg-primary" : "bg-input"}`}>
                 <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow transition-all ${workshop ? "left-[18px]" : "left-0.5"}`} />
               </Button>
               Mode atelier
@@ -207,10 +218,11 @@ function Index() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[1600px] flex-1 space-y-5 px-8 pt-6 pb-6">
-        <section className="card-tech">
-          <div className="card-tech-head"><h2 className="card-title">Informations du projet</h2></div>
-          <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
+      <main className="mx-auto w-full max-w-[1440px] flex-1 space-y-6 px-8 pt-8 pb-6">
+        <section aria-labelledby="titre-projet">
+          <h2 id="titre-projet" className="text-[40px] font-semibold leading-none tracking-[-0.03em]">{info.site || "Nouveau projet"}</h2>
+          <p className="mt-2 text-[13px] text-muted-foreground">{[info.taskNumber, info.client].filter(Boolean).join(" · ") || "Renseignez le chantier ci-dessous"}</p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {([["site", "Chantier"], ["taskNumber", "Numéro de tâche"], ["client", "Client"]] as const).map(([k, l]) => (
               <label key={k} className="block">
                 <span className="field-label">{l}</span>
@@ -221,24 +233,24 @@ function Index() {
               <span className="field-label">Date</span>
               <input type="date" className="input-tech mono" value={info.date} onChange={(e) => setInfo({ date: e.target.value })} />
             </label>
-            <p className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-4">Ces informations apparaîtront en haut de la fiche de débit PDF.</p>
+            <p className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-4">Ces informations apparaissent en haut des PDF.</p>
           </div>
         </section>
 
-        <div className="flex items-end gap-2 border-b border-border">
-          <div role="tablist" aria-label="Matériaux du projet" className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+        <div className="flex items-center gap-2 pt-2">
+          <div role="tablist" aria-label="Matériaux du projet" className="flex min-w-0 flex-1 flex-wrap items-center gap-1 rounded-xl bg-muted p-1">
             {tabIds.map((id) => {
               const m = materials.find((row) => row.id === id);
               const invalid = invalidTab(id);
               return <Button key={id} id={`tab-${id}`} role="tab" aria-selected={selectedTab === id} aria-controls="project-tab-panel" variant="ghost"
-                className={`h-11 rounded-none border-b-2 px-4 ${selectedTab === id ? "border-primary bg-primary/5 text-primary" : "border-transparent text-muted-foreground"}`} onClick={() => setActiveTab(id)}>
+                className={`h-9 rounded-lg px-4 text-[13px] ${selectedTab === id ? "bg-card text-foreground shadow-sm hover:bg-card" : "text-muted-foreground hover:bg-transparent hover:text-foreground"}`} onClick={() => setActiveTab(id)}>
                 {m ? `${m.name} ${num(m.thickness, 1)} mm` : "Matériau inconnu"}
                 {invalid && <span role="img" aria-label="Saisie invalide" title="Saisie invalide" className="h-2 w-2 shrink-0 rounded-full bg-destructive" />}
               </Button>;
             })}
-            <Button variant="ghost" size="icon" aria-label="Ajouter un matériau" title="Ajouter un matériau" className="h-10 w-10 text-primary" onClick={() => setChoosingMaterial(true)}><Plus size={18} /></Button>
+            <Button variant="ghost" size="icon" aria-label="Ajouter un matériau" title="Ajouter un matériau" className="h-9 w-9 rounded-lg text-muted-foreground hover:bg-card hover:text-foreground" onClick={() => setChoosingMaterial(true)}><Plus size={16} /></Button>
             <Button id="tab-summary" role="tab" aria-selected={selectedTab === "summary"} aria-controls="project-tab-panel" variant="ghost"
-              className={`ml-auto h-11 rounded-none border-b-2 px-4 ${selectedTab === "summary" ? "border-primary bg-primary/5 text-primary" : "border-transparent text-muted-foreground"}`} onClick={() => setActiveTab("summary")}>Synthèse</Button>
+              className={`ml-auto h-9 rounded-lg px-4 text-[13px] ${selectedTab === "summary" ? "bg-card text-foreground shadow-sm hover:bg-card" : "text-muted-foreground hover:bg-transparent hover:text-foreground"}`} onClick={() => setActiveTab("summary")}>Synthèse</Button>
           </div>
         </div>
 
@@ -260,7 +272,7 @@ function Index() {
         </div>}
 
         <section id="project-tab-panel" role="tabpanel" aria-labelledby={selectedTab === "summary" ? "tab-summary" : `tab-${selectedTab}`} className="card-tech">
-          <div className="card-tech-head"><h2 className="card-title">{selectedTab === "summary" ? "Synthèse" : "Résultats"}</h2></div>
+          <div className="card-tech-head"><h2 className="card-title">{selectedTab === "summary" ? "Synthèse" : "Résultats"}</h2>{result && <kbd className="hidden font-mono text-[11px] text-muted-foreground sm:inline">Ctrl + Entrée pour relancer</kbd>}</div>
           {visibleSuggestion && (
             <div role="status" className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-accent px-4 py-3 text-sm text-accent-foreground">
               <p>Autoriser la rotation de ces pièces économiserait {visibleSuggestion.saved} panneau(x)</p>
@@ -278,8 +290,8 @@ function Index() {
             pieces={allPieces} status={project.materialStatus} onStatus={(materialStatus) => setProject({ ...project, materialStatus })} offcuts={offcutSettings} onOffcuts={(offcuts) => setProject({ ...project, offcuts })} /> : (
             <div className="flex flex-col items-center gap-4 px-4 py-12 text-sm text-muted-foreground">
               <div className="flex gap-2">
-                <span className="h-8 w-12 rounded-sm border border-border hatch-waste" />
-                <span className="h-8 w-12 rounded-sm border border-border hatch-reuse" />
+                <span className="h-8 w-12 rounded-lg border border-border hatch-waste" />
+                <span className="h-8 w-12 rounded-lg border border-border hatch-reuse" />
               </div>
               Lancez l'optimisation pour voir les résultats
             </div>
@@ -288,11 +300,12 @@ function Index() {
       </main>
       <AppFooter aboveLaunchBar />
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur print:hidden">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-end gap-x-4 gap-y-2 pl-4 pr-[140px] py-3 sm:pl-8">
-          <span className="tabular-nums text-sm text-muted-foreground">{num(allPieces.reduce((n, p) => n + p.quantity, 0))} pièces</span>
-          <Button className="btn-primary h-10 max-w-full whitespace-normal px-4" disabled={running} onClick={run}>
-            {running ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}{running ? "Calcul en cours…" : "Lancer l'optimisation"}
+      {/* Barre de lancement : pastille flottante en bas, toujours a portee de main */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-5 z-40 flex justify-center px-4 print:hidden">
+        <div className="pointer-events-auto flex items-center gap-4 rounded-full bg-primary py-1.5 pl-5 pr-1.5 text-primary-foreground shadow-[0_12px_32px_-8px_rgb(0_0_0/0.35)]">
+          <span className="tabular-nums text-[13px] opacity-70">{num(allPieces.reduce((n, p) => n + p.quantity, 0))} pièces</span>
+          <Button className="h-9 rounded-full bg-signal px-4 text-[13px] font-semibold text-white hover:bg-signal/90" disabled={running} onClick={run} title="Raccourci : Ctrl + Entrée">
+            {running ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}{running ? "Calcul en cours…" : "Lancer l'optimisation"}
           </Button>
         </div>
       </div>

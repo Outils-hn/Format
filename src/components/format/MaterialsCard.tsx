@@ -129,7 +129,7 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
 
       <div className="mt-4 border-t border-border pt-4">
         <span className="field-label">Mode d'approvisionnement</span>
-        <div className="mb-3 grid grid-cols-3 gap-1 rounded-sm border border-border p-1">
+        <div className="mb-3 grid grid-cols-3 gap-1 rounded-lg border border-border p-1">
           {([
             ["single", "Format unique"],
             ["catalog", "Plusieurs formats catalogue"],

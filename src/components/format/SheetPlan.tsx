@@ -11,11 +11,11 @@ import { fitPieceLabel, pieceRowKey, type Measure } from "@/lib/pieceLabels";
 const INK = "var(--foreground)";
 
 let ctx: CanvasRenderingContext2D | null | undefined;
-/** Largeur réelle du texte en Inter (approximation si le canvas est indisponible). */
+/** Largeur réelle du texte en Geist (approximation si le canvas est indisponible). */
 const measure: Measure = (text, size, bold) => {
   if (ctx === undefined) ctx = typeof document !== "undefined" ? document.createElement("canvas").getContext("2d") : null;
   if (!ctx) return text.length * size * 0.6;
-  ctx.font = `${bold ? 600 : 400} 100px Inter, ui-sans-serif, system-ui, sans-serif`;
+  ctx.font = `${bold ? 600 : 400} 100px Geist, Inter, ui-sans-serif, system-ui, sans-serif`;
   return (ctx.measureText(text).width / 100) * size * 1.04;
 };
 
@@ -167,10 +167,10 @@ export function SheetPlan(props: Props) {
 );
 
   if (presentation === "thumb") return (
-    <div className="space-y-1.5 rounded-sm border border-border p-2">
-      <div className="flex flex-wrap items-center gap-1.5 text-xs">
+    <div className="space-y-2 rounded-xl border border-border p-3 transition-colors hover:border-foreground/30">
+      <div className="flex flex-wrap items-center gap-1.5 text-[13px]">
         <span className="font-semibold"><PanelGroupLabel indexes={group.indexes} /></span>
-        <span className="tabular-nums text-muted-foreground">{dims(s.width, s.length)}</span>
+        <span className="ml-auto font-mono text-[11px] tabular-nums text-muted-foreground">{dims(s.width, s.length)}</span>
       </div>
       <button type="button" aria-label="Agrandir le plan" className="block w-full cursor-zoom-in" onClick={() => setFull(true)}>{svg}</button>
       {full && fullView}
@@ -178,11 +178,11 @@ export function SheetPlan(props: Props) {
   );
 
   return (
-    <div className="space-y-3 rounded-sm border border-border p-3 break-inside-avoid">
+    <div className="space-y-3 rounded-xl border border-border p-4 break-inside-avoid">
       {presentation !== "tables" && <>
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="font-semibold"><PanelGroupLabel indexes={group.indexes} /></span>
-        <span className="tabular-nums text-muted-foreground">{dims(s.width, s.length)} mm</span>
+        <span className="font-mono text-xs tabular-nums text-muted-foreground">{dims(s.width, s.length)} mm</span>
         <button className="btn-ghost ml-auto h-7 px-2 text-xs print:hidden" onClick={() => setFull(true)}><Maximize2 size={13} /> Agrandir</button>
       </div>
       <div className="mx-auto max-w-[720px] cursor-zoom-in" onClick={() => setFull(true)}>{svg}</div>
@@ -190,7 +190,7 @@ export function SheetPlan(props: Props) {
 
       {cuts.length > 0 && (
         <div>
-          <h4 className="mb-1 text-xs font-semibold uppercase tracking-[0.14em]">Séquence de coupe</h4>
+          <h4 className="mb-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Séquence de coupe</h4>
           <ol className="space-y-0.5 text-xs tabular-nums">
             {cuts.map((c) => <li key={c.n}><span className="font-semibold">{c.n}.</span> {c.text}</li>)}
           </ol>
@@ -266,7 +266,7 @@ export function SheetPlan(props: Props) {
 
       </>}
       {hover && (
-        <div className="pointer-events-none fixed z-[60] rounded-sm border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow" style={{ left: hover.x + 14, top: hover.y + 14 }}>
+        <div className="pointer-events-none fixed z-[60] rounded-lg border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow" style={{ left: hover.x + 14, top: hover.y + 14 }}>
           <div className="font-semibold">N° {refOf(hover.p)} · {hover.p.label}{hover.p.rotated ? " ↻ tournée" : ""}</div>
           <div className="tabular-nums">{dims(hover.p.w, hover.p.h)} mm</div>
           <div className="tabular-nums text-muted-foreground">X {num(hover.p.x + material.trim, 1)} / Y {num(hover.p.y + material.trim, 1)}</div>
