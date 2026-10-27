@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/format/ThemeToggle";
-import { ArrowLeft, Download, Library, Upload } from "lucide-react";
+import { ArrowLeft, Download, Upload } from "lucide-react";
 import { toast } from "sonner";
 import type { Material } from "@/lib/types";
 import { exportLibrary, loadMaterials, parseLibrary, saveMaterials } from "@/lib/storage";
@@ -72,7 +72,7 @@ function LibraryPage() {
     </header>
     <main className="mx-auto w-full max-w-[1600px] flex-1 space-y-5 px-8 py-6">
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="mr-auto flex items-center gap-2 text-xl font-semibold"><Library size={20} /> Bibliothèque</h2>
+        <h2 className="mr-auto text-[32px] font-semibold leading-none tracking-[-0.03em]">Bibliothèque</h2>
         <Button variant="outline" className="btn-outline" disabled={!materials.length}
           onClick={() => download(new Blob([exportLibrary(materials)], { type: "application/json" }), "format-bibliotheque.json")}>
           <Download size={14} /> Exporter la bibliothèque (.json)</Button>

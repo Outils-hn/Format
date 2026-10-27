@@ -69,7 +69,7 @@ function Banner({ result, status, simple = false, typeOf }: { result: OptimizeRe
   const s = status ?? { status: "toOrder" as const };
   const title = s.status === "toOrder" ? "À commander" : s.status === "ordered" ? "Commandés" : "À prendre en stock";
   // Bandeau principal : ce qu'il faut commander, en grand, et le rendement a cote
-  return <div className="space-y-4 border-t border-foreground pt-5">
+  return <div className="space-y-4">
     <div className="flex flex-wrap items-start justify-between gap-x-10 gap-y-5">
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">{simple ? title : statusTitle(s)}{statusSuffix(s)}</p>
@@ -78,7 +78,7 @@ function Banner({ result, status, simple = false, typeOf }: { result: OptimizeRe
           {entry.estimate && <p className="mt-1 text-xs text-muted-foreground tabular-nums">{entry.estimate}</p>}
         </div>)}
       </div>
-      <div className="sm:text-right"><p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Rendement</p><p className="mt-1 tabular-nums text-[56px] font-semibold leading-none tracking-[-0.04em]">{num(i.yieldPct, 1)}<span className="text-2xl text-muted-foreground"> %</span></p></div>
+      <div className="sm:text-right"><p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Rendement</p><p className="mt-1 tabular-nums text-[56px] font-semibold leading-none tracking-[-0.04em]">{pct1(i.yieldPct).replace(/\s*%$/, "")}<span className="text-2xl text-muted-foreground"> %</span></p></div>
     </div>
     {!simple && <><p className="tabular-nums text-xs text-muted-foreground">Surface achetée {m2(i.purchased)} m² · pièces {m2(i.pieces)} m²{result.total.totalPrice != null ? ` · prix ${eur(result.total.totalPrice)}` : ""}</p><Split b={result.total.balance} /></>}
   </div>;
