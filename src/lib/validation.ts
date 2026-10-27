@@ -25,6 +25,7 @@ export function materialProblems(m: Material): string[] {
   if (!pos(m.thickness)) out.push("épaisseur");
   if (!posOrZero(m.kerf)) out.push("trait de coupe");
   if (!posOrZero(m.trim)) out.push("délignage");
+  if (m.reuseMin != null && !pos(m.reuseMin)) out.push("chute réutilisable mini (plus de 0 mm)");
   const s = m.supply;
   if (s.mode === "single" && !(pos(s.width) && pos(s.length))) out.push("format du panneau");
   if (s.mode === "catalog" && (s.formats.length === 0 || !s.formats.every((f) => pos(f.width) && pos(f.length)))) out.push("formats du catalogue");

@@ -102,7 +102,7 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
         <Num label="Épaisseur (mm)" invalid={bad(m.thickness)} value={m.thickness} onChange={(thickness) => set({ thickness })} />
         <Num label="Trait de coupe (mm)" invalid={badOrNeg(m.kerf)} value={m.kerf} onChange={(kerf) => set({ kerf })} />
         <Num label="Délignage (mm)" invalid={badOrNeg(m.trim)} value={m.trim} onChange={(trim) => set({ trim })} />
-        <Num label="Chute réutil. mini (mm)" value={m.reuseMin ?? 300} onChange={(reuseMin) => set({ reuseMin })} />
+        <Num label="Chute réutil. mini (mm)" invalid={bad(m.reuseMin ?? 300)} value={m.reuseMin ?? 300} onChange={(reuseMin) => set({ reuseMin })} />
         <label className="col-span-2 block sm:col-span-3">
           <span className="field-label">Type de découpe</span>
           <select className="input-tech" value={m.cutType} onChange={(e) => set({ cutType: e.target.value as Material["cutType"] })}>
