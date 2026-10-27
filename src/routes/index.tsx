@@ -8,6 +8,7 @@ import {
   exportProject, importProject, listProjects, loadCurrent, loadMaterials, saveCurrent, saveMaterials, saveProject,
 } from "@/lib/storage";
 import { uid } from "@/lib/ids";
+import { defaultOffcutSettings } from "@/lib/offcuts";
 import { Button } from "@/components/ui/button";
 import { Brand } from "@/components/format/Brand";
 import { AppFooter } from "@/components/format/AppFooter";
@@ -73,6 +74,8 @@ function Index() {
   const priceAvailable = usedMats.length > 0 && usedMats.every((m) => m.supply.mode === "catalog" && m.supply.formats.every((f) => f.price != null));
   const workshop = !!project.workshopMode;
   const typeOf = (id: string) => orderTypeOf(materials.find((m) => m.id === id), project);
+  // Chutes dans le PDF : le choix du projet, sinon masquees si tout est debite par le fournisseur
+  const offcutSettings = project.offcuts ?? defaultOffcutSettings(tabIds.map(typeOf));
   const checkInfo = () => (info.site.trim() && info.taskNumber.trim()) || confirm("Le chantier ou le numéro de tâche est vide. Générer le PDF quand même ?");
   const run = async () => {
     const emptyField = project.pieces.some((p) => !p.width || !p.height || !p.quantity)
@@ -187,7 +190,7 @@ function Index() {
             }}><FileText size={15} /> PDF commande</button>
             {workshop && <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"} onClick={async () => {
               if (!result || !checkInfo()) return;
-              try { const { exportWorkshopPdf } = await import("@/lib/export/pdf"); exportWorkshopPdf(result, materials, allPieces, info, recap, project.materialStatus, project.offcuts); }
+              try { const { exportWorkshopPdf } = await import("@/lib/export/pdf"); exportWorkshopPdf(result, materials, allPieces, info, recap, project.materialStatus, offcutSettings); }
               catch (e) { console.error(e); toast.error("Échec de la génération du PDF"); }
             }}><FileText size={15} /> PDF atelier</button>}
             <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"} onClick={async () => {
@@ -245,7 +248,7 @@ function Index() {
               : `${num(activeMaterial.supply.width)} × ${num(activeMaterial.supply.minLength)}–${num(activeMaterial.supply.maxLength)}`}
             {` · ${activeMaterial.cutType === "free" ? "CNC" : "scie"} · trait ${num(activeMaterial.kerf, 1)} · délign. ${num(activeMaterial.trim, 1)}${activeMaterial.grainLocked ? " · sens imposé" : ""} · ${orderTypeLabel(typeOf(activeMaterial.id)).toLowerCase()}${activeMaterial.supplier ? ` · ${activeMaterial.supplier}` : ""}`}
           </>}
-            settings={<ProjectSettings status={project.materialStatus} onStatus={(materialStatus) => setProject({ ...project, materialStatus })} offcuts={project.offcuts} onOffcuts={(offcuts) => setProject({ ...project, offcuts })}
+            settings={<ProjectSettings status={project.materialStatus} onStatus={(materialStatus) => setProject({ ...project, materialStatus })} offcuts={offcutSettings} onOffcuts={(offcuts) => setProject({ ...project, offcuts })}
               workshop={workshop} orderType={typeOf(selectedTab)} onOrderType={(t) => setProject({ ...project, orderTypes: { ...project.orderTypes, [selectedTab]: t } })}
               showEstimate={project.showEstimate} onShowEstimate={(showEstimate) => setProject({ ...project, showEstimate })}
               supplierRemarks={project.supplierRemarks?.[selectedTab] ?? ""} onSupplierRemarks={(remarks) => setProject({ ...project, supplierRemarks: { ...project.supplierRemarks, [selectedTab]: remarks } })}>
@@ -270,7 +273,7 @@ function Index() {
           )}
           {result ? <ResultsPanel result={result} materials={materials} materialId={selectedTab === "summary" ? undefined : selectedTab} summaryOnly={selectedTab === "summary"} workshop={workshop} orderTypeOf={typeOf}
             linears={selectedTab === "summary" ? recap : recap.filter((r) => linears.some((l) => l.id === r.id && l.materialId === selectedTab))}
-            pieces={allPieces} status={project.materialStatus} onStatus={(materialStatus) => setProject({ ...project, materialStatus })} offcuts={project.offcuts} onOffcuts={(offcuts) => setProject({ ...project, offcuts })} /> : (
+            pieces={allPieces} status={project.materialStatus} onStatus={(materialStatus) => setProject({ ...project, materialStatus })} offcuts={offcutSettings} onOffcuts={(offcuts) => setProject({ ...project, offcuts })} /> : (
             <div className="flex flex-col items-center gap-4 px-4 py-12 text-sm text-muted-foreground">
               <div className="flex gap-2">
                 <span className="h-8 w-12 rounded-sm border border-border hatch-waste" />

@@ -15,6 +15,17 @@ export function labeledOffcuts(sheet: SheetResult): LabeledOffcut[] {
 
 export const DEFAULT_OFFCUT_SETTINGS: OffcutSettings = { mode: "indicative", labelsPage: false, marks: {} };
 
+/**
+ * Reglage par defaut quand le projet n'a rien choisi : si toutes les pieces sont
+ * debitees par le fournisseur, les chutes ne restent pas a l'atelier, donc on ne les
+ * detaille pas dans le PDF (« sans qualification »). Un choix fait dans les reglages prime.
+ */
+export function defaultOffcutSettings(orderTypes: string[]): OffcutSettings {
+  return orderTypes.length > 0 && orderTypes.every((t) => t === "cut")
+    ? { ...DEFAULT_OFFCUT_SETTINGS, mode: "hide" }
+    : DEFAULT_OFFCUT_SETTINGS;
+}
+
 /** Clé d'une chute dessinée : matériau, premier panneau du dessin, repère. */
 export const offcutKey = (materialId: string, drawingIndex: number, label: string) => `${materialId}|${drawingIndex}|${label}`;
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compactOrigins, labeledOffcuts, retainedOffcuts } from "./offcuts";
+import { compactOrigins, defaultOffcutSettings, labeledOffcuts, retainedOffcuts } from "./offcuts";
 import type { OptimizeResult, SheetResult } from "./optimizer/types";
 
 const sheet: SheetResult = {
@@ -36,5 +36,17 @@ describe("origines des chutes compactées (PDF)", () => {
   it("repères différents, paires et trous", () => {
     expect(compactOrigins(["P101 / C1", "P102 / C1", "P103 / C2", "P104 / C2", "P5 / C1"])).toBe("P5, P101 et P102 / C1 · P103 et P104 / C2");
     expect(compactOrigins(["P3 / C1"])).toBe("P3 / C1");
+  });
+});
+
+describe("chutes dans le PDF : réglage par défaut", () => {
+  it("tout débité par le fournisseur : chutes masquées", () => {
+    expect(defaultOffcutSettings(["cut"]).mode).toBe("hide");
+    expect(defaultOffcutSettings(["cut", "cut"]).mode).toBe("hide");
+  });
+  it("panneaux entiers (même un seul matériau) ou projet vide : indicatif comme avant", () => {
+    expect(defaultOffcutSettings(["cut", "panels"]).mode).toBe("indicative");
+    expect(defaultOffcutSettings(["panels"]).mode).toBe("indicative");
+    expect(defaultOffcutSettings([]).mode).toBe("indicative");
   });
 });
