@@ -5,8 +5,9 @@ import { deleteProject, listProjects } from "@/lib/storage";
 import { Modal } from "./Modal";
 
 export function ProjectsDialog({
-  onClose, onOpen, onExport, onImport,
+  onClose, onOpen, onExport, onImport, currentId,
 }: {
+  currentId?: string | undefined;
   onClose: () => void;
   onOpen: (p: Project) => void;
   onExport: () => void;
@@ -20,7 +21,10 @@ export function ProjectsDialog({
         {projects.map((p) => (
           <li key={p.id} className="flex items-center gap-2 px-3 py-2">
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-medium">{p.info.site || "Sans nom"}</div>
+              <div className="truncate text-sm font-medium">
+                {p.info.site || "Sans nom"}
+                {p.id === currentId && <span className="ml-2 rounded-sm bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">ouvert</span>}
+              </div>
               <div className="mono text-xs text-muted-foreground">
                 {p.info.taskNumber && `#${p.info.taskNumber} · `}{p.info.date} · {p.pieces.length} pièce(s)
               </div>
