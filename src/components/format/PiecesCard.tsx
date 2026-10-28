@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import { naviguerClavier } from "@/lib/navigation-clavier";
 import { ChevronDown, ClipboardCopy, ClipboardPaste, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Linear, Material, Piece } from "@/lib/types";
@@ -10,6 +11,8 @@ import { planColor } from "@/lib/palette";
 import { Button } from "@/components/ui/button";
 import { PasteDialog } from "./PasteDialog";
 import { NumInput } from "./NumInput";
+
+const COLONNES = ["label", "w", "h", "q"] as const;
 
 export function PiecesCard({
   pieces, materials, onChange, linears = [], onLinearsChange, highlightEmpty = false, materialId, subtitle, settings,
@@ -113,16 +116,8 @@ export function PiecesCard({
             </tr>
           </thead>
           {/* Comme dans Excel : Tab passe a la cellule suivante (case a cocher et corbeille ignorees),
-              Entree descend a la meme colonne de la ligne suivante. */}
-          <tbody className="max-sm:block" onKeyDown={(e) => {
-            const el = e.target as HTMLElement;
-            const col = el.dataset["col"];
-            if (e.key !== "Enter" || e.ctrlKey || e.metaKey || !col) return;
-            e.preventDefault();
-            const cells = [...e.currentTarget.querySelectorAll<HTMLInputElement>(`[data-col="${col}"]`)];
-            const next = cells[cells.indexOf(el as HTMLInputElement) + (e.shiftKey ? -1 : 1)];
-            next?.focus();
-          }}>
+              Entree et les fleches deplacent d'une case (voir lib/navigation-clavier). */}
+          <tbody className="max-sm:block" onKeyDown={(e) => naviguerClavier(e, COLONNES)}>
             {visiblePieces.map((p) => {
               const i = pieces.findIndex((row) => row.id === p.id);
               const mat = materials.find((m) => m.id === p.materialId);

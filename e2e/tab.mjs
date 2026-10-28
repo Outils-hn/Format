@@ -32,6 +32,13 @@ for (const [name, engine] of [["chromium", chromium], ["webkit", webkit]]) {
   await page.getByLabel("Largeur de P1").click();
   await page.keyboard.press("Enter");
   seq.push("[Entree] " + await page.evaluate(() => document.activeElement?.getAttribute("aria-label")));
+  // Fleches : droite, bas, gauche, haut depuis Largeur de P1
+  await page.getByLabel("Largeur de P1").click();
+  await page.keyboard.press("Control+a");
+  for (const k of ["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"]) {
+    await page.keyboard.press(k); await page.waitForTimeout(100);
+    seq.push(`[${k}] ` + await page.evaluate(() => document.activeElement?.getAttribute("aria-label")));
+  }
   lines.push(`${name}: ${seq.join(" -> ")}`);
   await browser.close();
 }
