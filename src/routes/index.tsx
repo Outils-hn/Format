@@ -13,6 +13,7 @@ import {
 import { uid } from "@/lib/ids";
 import { defaultOffcutSettings } from "@/lib/offcuts";
 import { Button } from "@/components/ui/button";
+import { ConfirmHost, confirmer } from "@/components/format/Confirm";
 import { fusionner, lireBibliotheque, noterSynchro } from "@/lib/shared-library";
 import { Brand } from "@/components/format/Brand";
 import { AppFooter } from "@/components/format/AppFooter";
@@ -87,7 +88,8 @@ function Index() {
   const typeOf = (id: string) => orderTypeOf(materials.find((m) => m.id === id), project);
   // Chutes dans le PDF : le choix du projet, sinon masquees si tout est debite par le fournisseur
   const offcutSettings = project.offcuts ?? defaultOffcutSettings(tabIds.map(typeOf));
-  const checkInfo = () => (info.site.trim() && info.taskNumber.trim()) || confirm("Le chantier ou le numéro de tâche est vide. Générer le PDF quand même ?");
+  const checkInfo = async () => !!(info.site.trim() && info.taskNumber.trim()) || await confirmer({
+    titre: "Chantier ou tâche vide", message: "Le chantier ou le numéro de tâche est vide : il n'apparaîtra pas en haut du PDF. Générer le PDF quand même ?", ok: "Générer le PDF" });
   const run = async () => {
     const emptyField = project.pieces.some((p) => !p.width || !p.height || !p.quantity)
       || linears.some((l) => !l.bandWidth || !l.totalLength || (l.mode === "fixed" ? !l.segment : !l.min));
@@ -226,12 +228,12 @@ function Index() {
   </>;
 
   const exportOrder = async () => {
-    if (!result || stale || !checkInfo()) return;
+    if (!result || stale || !(await checkInfo())) return;
     try { const { exportOrderPdf } = await import("@/lib/export/orderPdf"); exportOrderPdf(result, materials, allPieces, info, project); }
     catch (e) { console.error(e); toast.error("Échec de la génération du PDF"); }
   };
   const exportWorkshop = async () => {
-    if (!result || stale || !checkInfo()) return;
+    if (!result || stale || !(await checkInfo())) return;
     try { const { exportWorkshopPdf } = await import("@/lib/export/pdf"); exportWorkshopPdf(result, materials, allPieces, info, recap, project.materialStatus, offcutSettings); }
     catch (e) { console.error(e); toast.error("Échec de la génération du PDF"); }
   };
@@ -241,8 +243,8 @@ function Index() {
     catch (e) { console.error(e); toast.error("Échec de l'export Excel"); }
   };
   // Nouveau projet : on garde les habitudes (mode atelier, estimation, chutes) mais pas les donnees du chantier
-  const startNew = () => {
-    if (!confirm("Commencer un nouveau projet ? Les modifications non sauvegardées seront perdues.")) return;
+  const startNew = async () => {
+    if (!await confirmer({ titre: "Nouveau projet", message: "Les modifications non sauvegardées du projet ouvert seront perdues.", ok: "Commencer un nouveau projet" })) return;
     const fresh = newProject();
     setProject({ ...fresh, workshopMode: project.workshopMode, showEstimate: project.showEstimate,
       offcuts: project.offcuts ? { ...project.offcuts, marks: {} } : undefined });
@@ -276,7 +278,7 @@ function Index() {
               </DropdownMenuContent>
             </DropdownMenu>
             <button className="btn-ghost" onClick={() => setShowProjects(true)}><FolderOpen size={15} /> Mes projets</button>
-            <button className="btn-ghost" onClick={startNew}><FilePlus2 size={15} /> Nouveau</button>
+            <button className="btn-ghost" onClick={() => void startNew()}><FilePlus2 size={15} /> Nouveau</button>
             <button className="btn-primary" onClick={save}><Save size={15} /> Sauvegarder</button>
             <ThemeToggle />
           </nav>
@@ -407,6 +409,7 @@ function Index() {
         </>}
       </main>
       <AppFooter aboveLaunchBar />
+      <ConfirmHost />
 
       {/* Barre de lancement : pastille flottante en bas a droite (au centre, elle cachait le contenu),
           avec le resume du dernier calcul ; un clic sur le resume amene aux resultats */}

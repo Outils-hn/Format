@@ -37,7 +37,10 @@ try {
   await page.keyboard.press("Escape");
   // 3. Enregistrer, puis nouveau projet, puis rouvrir
   await page.getByRole("banner").getByRole("button", { name: /^Sauvegarder$/ }).click(); await page.waitForTimeout(400);
-  await page.getByRole("button", { name: /^Nouveau$/ }).click(); await page.waitForTimeout(400);
+  await page.getByRole("button", { name: /^Nouveau$/ }).click(); await page.waitForTimeout(300);
+  verif("Nouveau : confirmation au style de l'appli", await page.getByRole("alertdialog").isVisible());
+  await page.screenshot({ path: `${OUT}/check-confirmation.png` });
+  await page.getByRole("button", { name: "Commencer un nouveau projet" }).click(); await page.waitForTimeout(400);
   verif("Nouveau projet : champs du chantier ouverts", await page.getByText("Numéro de tâche").isVisible());
   verif("Nouveau projet : mode atelier garde", (await page.getByRole("switch", { name: "Mode atelier" }).getAttribute("aria-checked")) === "true");
   await page.getByRole("button", { name: /Mes projets/ }).click(); await page.waitForTimeout(300);
@@ -104,6 +107,23 @@ try {
   verif("Resultat perime : bandeau affiche", await p3.getByText("Saisie modifiée depuis le calcul").isVisible());
   verif("Resultat perime : export bloque", await p3.getByRole("button", { name: /Exporter/ }).isDisabled());
   await p3.screenshot({ path: `${OUT}/check-resultat-perime.png` });
+  // Annuler la suppression d'une piece
+  await p3.getByRole("button", { name: "Supprimer" }).first().click(); await p3.waitForTimeout(300);
+  const avantAnnuler = await p3.getByLabel(/^Largeur de /).count();
+  await p3.getByRole("button", { name: "Annuler" }).click(); await p3.waitForTimeout(300);
+  verif("Suppression d'une piece : Annuler la remet", (await p3.getByLabel(/^Largeur de /).count()) === avantAnnuler + 1, `${avantAnnuler} puis ${await p3.getByLabel(/^Largeur de /).count()}`);
+  // Import d'un fichier Excel (genere a la volee)
+  const XLSX = (await import("xlsx-js-style")).default;
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Repère", "Largeur", "Hauteur", "Qté"], ["X1", 1200, 600, 3], ["X2", 800.5, 400, 2]]), "Pièces");
+  const chemin = `${OUT}/import-test.xlsx`;
+  XLSX.writeFile(wb, chemin);
+  await p3.locator('input[type="file"][aria-label="Fichier Excel à importer"]').setInputFiles(chemin); await p3.waitForTimeout(800);
+  const rolesXlsx = await p3.locator("thead select").evaluateAll((els) => els.map((e) => e.value));
+  verif("Import .xlsx : fenetre d'apercu avec les bonnes colonnes", rolesXlsx.join(",") === "label,width,height,quantity", rolesXlsx.join(","));
+  await p3.screenshot({ path: `${OUT}/check-import-xlsx.png` });
+  await p3.getByRole("button", { name: "Ajouter à la liste" }).click(); await p3.waitForTimeout(300);
+  verif("Import .xlsx : pieces ajoutees", (await p3.getByLabel("Largeur de X2").inputValue()).replace(/\s|\u202f/g, "") === "800,5");
   await c3.close();
 } catch (e) { verif("Deroulement des quick wins", false, e.message.split("\n")[0]); }
 // 7. Bibliotheque commune (Supabase simule) : reception, prix gardes sur le poste, PIN, hors ligne

@@ -7,14 +7,16 @@ import { loadPasteMapping, savePasteMapping } from "@/lib/storage";
 import { Modal } from "./Modal";
 
 export function PasteDialog({
-  materials, onClose, onApply, defaultMaterialId,
+  materials, onClose, onApply, defaultMaterialId, initialText = "",
 }: {
+  /** Texte deja lu (fichier Excel importe) : la fenetre s'ouvre directement sur l'apercu */
+  initialText?: string;
   materials: Material[];
   defaultMaterialId?: string | undefined;
   onClose: () => void;
   onApply: (pieces: Piece[], mode: "replace" | "append") => void;
 }) {
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialText);
   const [roles, setRoles] = useState<ColumnRole[] | null>(null);
   const [overrides, setOverrides] = useState<Record<string, string>>({});
   const [fallback, setFallback] = useState(defaultMaterialId ?? materials[0]?.id ?? "");

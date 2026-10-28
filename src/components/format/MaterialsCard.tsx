@@ -5,6 +5,7 @@ import { newMaterial } from "@/lib/defaults";
 import { materialProblems } from "@/lib/validation";
 import { uid } from "@/lib/ids";
 import { Modal } from "./Modal";
+import { confirmer } from "./Confirm";
 import { NumInput } from "./NumInput";
 import { Button } from "@/components/ui/button";
 import { dims, num } from "@/lib/format";
@@ -58,7 +59,10 @@ export function MaterialsCard({
             <Button variant="ghost"
               className="btn-danger h-7 px-1.5"
               aria-label="Supprimer"
-              onClick={() => confirm(`Supprimer « ${m.name} » ?`) && onChange(materials.filter((x) => x.id !== m.id))}
+              onClick={async () => {
+                if (await confirmer({ titre: "Supprimer le matériau", message: `« ${m.name} » sera retiré de la bibliothèque. Les projets qui l'utilisent le gardent sur leur poste.`, ok: "Supprimer", danger: true }))
+                  onChange(materials.filter((x) => x.id !== m.id));
+              }}
             ><Trash2 size={14} /></Button>
           </li>
         ))}
