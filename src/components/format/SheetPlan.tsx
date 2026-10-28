@@ -81,7 +81,7 @@ function PlanSvg({ group, material, colorOf, cuts, onHover, hovered, refOf, mode
       {s.placements.map((p, i) => {
         const x = p.x + t, y = p.y + t;
         const hl = hovered === p;
-        const fit = fitPieceLabel({ label: p.label, dims: dims(p.w, p.h), w: p.w, h: p.h, base: fs, min: minFs, ref: String(refOf(p)), measure, floor: lisible || undefined });
+        const fit = fitPieceLabel({ label: p.label, dims: dims(p.w, p.h), w: p.w, h: p.h, base: fs, min: minFs, ref: String(refOf(p)), measure, ...(lisible ? { floor: lisible } : {}) });
         const cx = x + p.w / 2, cy = y + p.h / 2;
         return (
           <g key={i} onMouseMove={(e) => onHover(p, e)} onMouseLeave={() => onHover(null)} style={{ cursor: "default" }}>
@@ -162,7 +162,7 @@ export function SheetPlan(props: Props) {
     return () => ro.disconnect();
   }, [presentation]);
   const vbW = s.width + 1.6 * Math.max(s.width, s.length) * 0.07;
-  const svg = <PlanSvg {...props} cuts={cuts} hovered={hover?.p ?? null} onHover={onHover} refOf={refOf} pxPerUnit={largeurPx ? largeurPx / vbW : undefined} />;
+  const svg = <PlanSvg {...props} cuts={cuts} hovered={hover?.p ?? null} onHover={onHover} refOf={refOf} {...(largeurPx ? { pxPerUnit: largeurPx / vbW } : {})} />;
   const svgPlein = <PlanSvg {...props} cuts={cuts} hovered={hover?.p ?? null} onHover={onHover} refOf={refOf} />;
   const bulle = hover && (
     <div className="pointer-events-none fixed z-[60] rounded-lg border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow" style={{ left: hover.x + 14, top: hover.y + 14 }}>
