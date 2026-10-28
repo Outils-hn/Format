@@ -61,6 +61,9 @@ await session("commande", false, async (page) => {
   await page.getByRole("button", { name: /Exporter/ }).first().click(); await page.waitForTimeout(300);
   await shot(page, "02c-menu-exporter", false);
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Changer d'application" }).click(); await page.waitForTimeout(300);
+  await shot(page, "02d-selecteur-applis", false);
+  await page.keyboard.press("Escape");
   await page.getByText("Synthèse").first().click(); await page.waitForTimeout(800);
   await shot(page, "03-synthese");
   await pdf(page, /PDF commande/, "10-pdf-commande");
