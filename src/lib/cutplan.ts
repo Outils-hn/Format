@@ -1,5 +1,5 @@
 // Analyse d'un panneau calcule pour l'affichage : panneaux identiques et sequence de coupe.
-import { num } from "./format";
+import { dims, num } from "./format";
 // Ne modifie pas le moteur : tout est deduit des placements.
 import type { Placement, SheetResult } from "./optimizer/types";
 
@@ -47,7 +47,12 @@ export function cutSequence(placements: Placement[], W: number, L: number, kerf:
     let c = find("h");
     if (c === undefined) { dir = "v"; c = find("v"); }
     if (c === undefined) return; // une seule piece aux dimensions de la region, ou disposition non guillotine
-    const where = dir === "h" ? `Coupe horizontale à ${num(Math.round(c + trim))} mm du bord haut` : `Coupe verticale à ${num(Math.round(c + trim))} mm du bord gauche`;
+    // Distance mesuree depuis le bord sur lequel on recale le morceau : le bord du panneau
+    // pour la premiere coupe, sinon le bord coupe juste avant (le bord d'origine n'y est plus).
+    const depuisPanneau = dir === "h" ? r.y0 === 0 : r.x0 === 0;
+    const d = (dir === "h" ? c - r.y0 : c - r.x0) + (depuisPanneau ? trim : 0);
+    const bord = dir === "h" ? (depuisPanneau ? "du bord haut" : "du bord coupé (haut)") : (depuisPanneau ? "du bord gauche" : "du bord coupé (gauche)");
+    const where = `Coupe ${dir === "h" ? "horizontale" : "verticale"} à ${num(Math.round(d * 10) / 10, 1)} mm ${bord}`;
     cuts.push({
       n: cuts.length + 1, dir, pos: c,
       from: dir === "h" ? r.x0 : r.y0, to: dir === "h" ? r.x1 : r.y1,
@@ -55,13 +60,18 @@ export function cutSequence(placements: Placement[], W: number, L: number, kerf:
     });
     const a = ps.filter((p) => (dir === "h" ? p.y + p.h <= c! : p.x + p.w <= c!));
     const b = ps.filter((p) => !a.includes(p));
-    const t = (v: number) => num(Math.round(v + trim));
+    // Taille reelle du morceau (delignage compris sur les bords du panneau)
+    const taille = (q: Omit<Region, "label">) => dims(
+      Math.round((q.x1 - q.x0 + (q.x0 === 0 ? trim : 0) + (q.x1 >= W ? trim : 0)) * 10) / 10,
+      Math.round((q.y1 - q.y0 + (q.y0 === 0 ? trim : 0) + (q.y1 >= L ? trim : 0)) * 10) / 10,
+    );
+    const sur = (q: Omit<Region, "label">) => ({ ...q, label: `Sur le morceau de ${taille(q)} mm` });
     if (dir === "h") {
-      walk({ ...r, y1: c, label: `Sur la bande ${t(r.y0)}–${t(c)} mm (depuis le haut)` }, a);
-      walk({ ...r, y0: c + kerf, label: `Sur la bande ${t(c + kerf)}–${t(Math.min(r.y1, L))} mm (depuis le haut)` }, b);
+      walk(sur({ x0: r.x0, x1: r.x1, y0: r.y0, y1: c }), a);
+      walk(sur({ x0: r.x0, x1: r.x1, y0: c + kerf, y1: r.y1 }), b);
     } else {
-      walk({ ...r, x1: c, label: `Sur la bande ${t(r.x0)}–${t(c)} mm (depuis la gauche)` }, a);
-      walk({ ...r, x0: c + kerf, label: `Sur la bande ${t(c + kerf)}–${t(Math.min(r.x1, W))} mm (depuis la gauche)` }, b);
+      walk(sur({ x0: r.x0, x1: c, y0: r.y0, y1: r.y1 }), a);
+      walk(sur({ x0: c + kerf, x1: r.x1, y0: r.y0, y1: r.y1 }), b);
     }
   };
   walk({ x0: 0, y0: 0, x1: W, y1: L, label: null }, placements);

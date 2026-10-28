@@ -461,7 +461,7 @@ function sheetPage(w: Writer, g: SheetGroup, mat: Material, r: { name: string; t
   });
   w.y += swH + 5;
   if (cuts.length) {
-    w.text("Séquence de coupe", 9, true, INK, 0.5);
+    w.text("Séquence de coupe (cote = pièce, la lame passe côté chute)", 9, true, INK, 0.5);
     for (const c of cuts) w.text(`${c.n}. ${c.text}`, 8, false, INK, 0);
     w.y += 2;
   }
