@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type InputHTMLAttributes } from "react";
+import { num } from "@/lib/format";
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange"> & {
   value: number | null | undefined;
@@ -8,16 +9,19 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange"> &
   invalid?: boolean;
 };
 
+// Separateurs de milliers acceptes a la saisie : espaces (dont insecables) et apostrophes suisses
 const parse = (s: string) => {
-  if (s.trim() === "") return null;
-  const n = parseFloat(s.replace(",", "."));
+  const c = s.replace(/[\s\u00a0\u202f'\u2019\u2018]/g, "").replace(",", ".");
+  if (c === "") return null;
+  const n = parseFloat(c);
   return Number.isFinite(n) ? n : null;
 };
 
-/** Champ numérique : reste vide pendant la saisie, sélectionne tout au clic. */
-export function NumInput({ value, onChange, zeroIsEmpty, invalid, className = "", onFocus, onMouseUp, ...rest }: Props) {
+/** Champ numérique : reste vide pendant la saisie, sélectionne tout au clic, remis en forme à la sortie. */
+export function NumInput({ value, onChange, zeroIsEmpty, invalid, className = "", onFocus, onMouseUp, onBlur, ...rest }: Props) {
   const empty = (v: number | null | undefined) => v == null || !Number.isFinite(v) || (zeroIsEmpty && v === 0);
-  const show = (v: number | null | undefined) => (empty(v) ? "" : String(v).replace(".", ","));
+  // Meme format que le reste de l'appli : « 2 010 », « 1 652,5 »
+  const show = (v: number | null | undefined) => (empty(v) ? "" : num(v, 3));
   const [draft, setDraft] = useState(() => show(value));
   const justFocused = useRef(false);
   useEffect(() => {
@@ -35,6 +39,7 @@ export function NumInput({ value, onChange, zeroIsEmpty, invalid, className = ""
       value={draft}
       onFocus={(e) => { e.currentTarget.select(); justFocused.current = true; onFocus?.(e); }}
       onMouseUp={(e) => { if (justFocused.current) { e.preventDefault(); justFocused.current = false; } onMouseUp?.(e); }}
+      onBlur={(e) => { const p = parse(draft); if (p != null) setDraft(show(p)); onBlur?.(e); }}
       onChange={(e) => { setDraft(e.target.value); onChange(parse(e.target.value)); }}
     />
   );

@@ -1,4 +1,4 @@
-import { useId, useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Maximize2, Minus, Plus, X } from "lucide-react";
 import type { Material, OffcutSettings } from "@/lib/types";
 import type { Placement } from "@/lib/optimizer/types";
@@ -27,15 +27,20 @@ interface Props {
   onMark?: (label: string, patch: Partial<Mark>) => void;
 }
 
-function PlanSvg({ group, material, colorOf, cuts, onHover, hovered, refOf, mode = "indicative", markOf }: Props & {
+function PlanSvg({ group, material, colorOf, cuts, onHover, hovered, refOf, mode = "indicative", markOf, pxPerUnit }: Props & {
   cuts: Cut[]; hovered: Placement | null; onHover: (p: Placement | null, e?: MouseEvent) => void; refOf: (p: Placement) => number;
+  /** Pixels d'ecran par mm du panneau (mesure de la largeur affichee) : garantit des textes lisibles. */
+  pxPerUnit?: number;
 }) {
   const uid = useId().replace(/:/g, "");
   const s = group.sheet, t = material.trim;
   const big = Math.max(s.width, s.length);
-  const m = big * 0.07; // marge pour les cotes
-  const fs = big / 55; // taille de texte de reference
-  const minFs = fs * 0.59; // équivalent de 6 pt pour une base d'environ 10 pt
+  // Textes jamais sous 10 px a l'ecran (11 px pour le texte de reference) : sur une vignette,
+  // une piece trop petite garde son numero de renvoi ou rien, le detail est au survol.
+  const lisible = pxPerUnit && pxPerUnit > 0 ? 10 / pxPerUnit : 0;
+  const fs = Math.max(big / 55, lisible * 1.15); // taille de texte de reference
+  const minFs = Math.max(fs * 0.59, lisible); // équivalent de 6 pt pour une base d'environ 10 pt
+  const m = Math.max(big * 0.07, fs * 2); // marge pour les cotes
   const sw = big / 900;
   return (
     <svg viewBox={`${-m} ${-m} ${s.width + 1.6 * m} ${s.length + 1.6 * m}`} className="h-auto w-full" style={{ fontFamily: "var(--font-sans)", fontVariantNumeric: "tabular-nums" }}>
@@ -56,13 +61,14 @@ function PlanSvg({ group, material, colorOf, cuts, onHover, hovered, refOf, mode
       {labeledOffcuts(s).map((o) => {
         const kept = mode === "retain" && o.reusable && (markOf?.(o.label).keep ?? true);
         const reuse = mode === "retain" ? kept : o.reusable;
-        const showDim = Math.min(o.w, o.h) > fs * 1.6 && o.w > fs * 6;
+        const showDim = Math.min(o.w, o.h) > fs * 2.6 && o.w > fs * 6;
         const labelSize = Math.min(fs * 0.9, o.h / 2.5, o.w / (o.label.length * 0.8));
+        const labelOk = labelSize > fs * 0.15 && labelSize >= lisible;
         return (
           <g key={o.label}>
             <title>{o.label} — {dims(o.w, o.h)} mm{reuse ? (mode === "retain" ? " — À conserver" : " — Conservable") : ""}</title>
             <rect x={o.x + t} y={o.y + t} width={o.w} height={o.h} fill={`url(#${reuse ? "r" : "w"}${uid})`} stroke={kept ? INK : "var(--muted-foreground)"} strokeWidth={kept ? sw * 4 : sw * 0.5} />
-            {labelSize > fs * 0.15 && <text x={o.x + t + o.w / 2} y={o.y + t + o.h / 2 - (showDim ? fs * 0.55 : 0)} fontSize={labelSize} fontWeight={600} textAnchor="middle" dominantBaseline="middle" fill={INK} paintOrder="stroke" stroke="var(--card)" strokeWidth={labelSize * 0.25}>{o.label}</text>}
+            {labelOk && <text x={o.x + t + o.w / 2} y={o.y + t + o.h / 2 - (showDim ? fs * 0.55 : 0)} fontSize={labelSize} fontWeight={600} textAnchor="middle" dominantBaseline="middle" fill={INK} paintOrder="stroke" stroke="var(--card)" strokeWidth={labelSize * 0.25}>{o.label}</text>}
             {showDim && (
               <text x={o.x + t + o.w / 2} y={o.y + t + o.h / 2 + fs * 0.55} fontSize={fs * 0.75} textAnchor="middle" dominantBaseline="middle" fill={INK} paintOrder="stroke" stroke="var(--card)" strokeWidth={fs * 0.25}>
                 {dims(Math.round(o.w), Math.round(o.h))}
@@ -75,7 +81,7 @@ function PlanSvg({ group, material, colorOf, cuts, onHover, hovered, refOf, mode
       {s.placements.map((p, i) => {
         const x = p.x + t, y = p.y + t;
         const hl = hovered === p;
-        const fit = fitPieceLabel({ label: p.label, dims: dims(p.w, p.h), w: p.w, h: p.h, base: fs, min: minFs, ref: String(refOf(p)), measure });
+        const fit = fitPieceLabel({ label: p.label, dims: dims(p.w, p.h), w: p.w, h: p.h, base: fs, min: minFs, ref: String(refOf(p)), measure, floor: lisible || undefined });
         const cx = x + p.w / 2, cy = y + p.h / 2;
         return (
           <g key={i} onMouseMove={(e) => onHover(p, e)} onMouseLeave={() => onHover(null)} style={{ cursor: "default" }}>
@@ -145,7 +151,26 @@ export function SheetPlan(props: Props) {
     return [...map.entries()];
   }, [s, material]);
   const refOf = (p: Placement) => rows.findIndex(([k]) => k === pieceRowKey(p)) + 1;
-  const svg = <PlanSvg {...props} cuts={cuts} hovered={hover?.p ?? null} onHover={onHover} refOf={refOf} />;
+  // Largeur reellement affichee du plan : sert a garder des textes lisibles (vignettes comprises)
+  const boite = useRef<HTMLDivElement>(null);
+  const [largeurPx, setLargeurPx] = useState(0);
+  useEffect(() => {
+    const el = boite.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([e]) => setLargeurPx(Math.round(e!.contentRect.width)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [presentation]);
+  const vbW = s.width + 1.6 * Math.max(s.width, s.length) * 0.07;
+  const svg = <PlanSvg {...props} cuts={cuts} hovered={hover?.p ?? null} onHover={onHover} refOf={refOf} pxPerUnit={largeurPx ? largeurPx / vbW : undefined} />;
+  const svgPlein = <PlanSvg {...props} cuts={cuts} hovered={hover?.p ?? null} onHover={onHover} refOf={refOf} />;
+  const bulle = hover && (
+    <div className="pointer-events-none fixed z-[60] rounded-lg border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow" style={{ left: hover.x + 14, top: hover.y + 14 }}>
+      <div className="font-semibold">N° {refOf(hover.p)} · {hover.p.label}{hover.p.rotated ? " ↻ tournée" : ""}</div>
+      <div className="tabular-nums">{dims(hover.p.w, hover.p.h)} mm</div>
+      <div className="tabular-nums text-muted-foreground">X {num(hover.p.x + material.trim, 1)} / Y {num(hover.p.y + material.trim, 1)}</div>
+    </div>
+  );
   const th = "px-2 py-1 font-medium";
   const fullView = (
         <div className="fixed inset-0 z-50 flex flex-col bg-background">
@@ -161,7 +186,7 @@ export function SheetPlan(props: Props) {
           </div>
           <div className="flex-1 overflow-auto p-6"
             onWheel={(e) => { if (e.ctrlKey || e.metaKey) { e.preventDefault(); setZoom((z) => Math.min(8, Math.max(0.5, z * (e.deltaY < 0 ? 1.1 : 0.9)))); } }}>
-            <div className="mx-auto" style={{ width: `min(${90 * zoom}vw, ${85 * zoom}vh * ${(s.width / s.length).toFixed(4)})` }}>{svg}</div>
+            <div className="mx-auto" style={{ width: `min(${90 * zoom}vw, ${85 * zoom}vh * ${(s.width / s.length).toFixed(4)})` }}>{svgPlein}</div>
           </div>
         </div>
 );
@@ -172,7 +197,8 @@ export function SheetPlan(props: Props) {
         <span className="font-semibold"><PanelGroupLabel indexes={group.indexes} /></span>
         <span className="ml-auto font-mono text-[11px] tabular-nums text-muted-foreground">{dims(s.width, s.length)}</span>
       </div>
-      <button type="button" aria-label="Agrandir le plan" className="block w-full cursor-zoom-in" onClick={() => setFull(true)}>{svg}</button>
+      <div ref={boite}><button type="button" aria-label="Agrandir le plan" className="block w-full cursor-zoom-in" onClick={() => setFull(true)}>{svg}</button></div>
+      {!full && bulle}
       {full && fullView}
     </div>
   );
@@ -185,7 +211,7 @@ export function SheetPlan(props: Props) {
         <span className="font-mono text-xs tabular-nums text-muted-foreground">{dims(s.width, s.length)} mm</span>
         <button className="btn-ghost ml-auto h-7 px-2 text-xs print:hidden" onClick={() => setFull(true)}><Maximize2 size={13} /> Agrandir</button>
       </div>
-      <div className="mx-auto max-w-[720px] cursor-zoom-in" onClick={() => setFull(true)}>{svg}</div>
+      <div ref={boite} className="mx-auto max-w-[720px] cursor-zoom-in" onClick={() => setFull(true)}>{svg}</div>
       <p className="text-center text-xs text-muted-foreground">Cotes mesurées depuis le coin brut haut gauche</p>
 
       {cuts.length > 0 && (
@@ -266,13 +292,7 @@ export function SheetPlan(props: Props) {
       </div>
 
       </>}
-      {hover && (
-        <div className="pointer-events-none fixed z-[60] rounded-lg border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow" style={{ left: hover.x + 14, top: hover.y + 14 }}>
-          <div className="font-semibold">N° {refOf(hover.p)} · {hover.p.label}{hover.p.rotated ? " ↻ tournée" : ""}</div>
-          <div className="tabular-nums">{dims(hover.p.w, hover.p.h)} mm</div>
-          <div className="tabular-nums text-muted-foreground">X {num(hover.p.x + material.trim, 1)} / Y {num(hover.p.y + material.trim, 1)}</div>
-        </div>
-      )}
+      {bulle}
 
       {full && fullView}
     </div>

@@ -15,6 +15,8 @@ const LINE = 1.2;
  */
 export function fitPieceLabel(o: {
   label: string; dims: string; w: number; h: number; base: number; min: number; ref: string; measure: Measure;
+  /** Taille sous laquelle on n'ecrit plus rien (le renvoi seul descend sinon jusqu'a min / 2). */
+  floor?: number;
 }): FittedLabel {
   const pad = o.base * 0.25;
   const aw = o.w - 2 * pad, ah = o.h - 2 * pad;
@@ -30,7 +32,7 @@ export function fitPieceLabel(o: {
   for (let s = o.base; s > o.min; s *= 0.9) sizes.push(s);
   sizes.push(o.min);
   for (const size of sizes) for (const lines of variants) if (fits(lines, size)) return { kind: "text", size, lines };
-  for (let s = o.min; s >= o.min * 0.5; s *= 0.9) {
+  for (let s = o.min; s >= (o.floor ?? o.min * 0.5); s *= 0.9) {
     if (s * LINE <= ah && o.measure(o.ref, s, true) <= aw) return { kind: "ref", size: s, text: o.ref };
   }
   return null;
