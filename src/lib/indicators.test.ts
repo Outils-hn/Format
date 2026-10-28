@@ -31,7 +31,7 @@ describe("libellés partagés", () => {
     expect(panelGroup(Array.from({ length: 26 }, (_, i) => i + 1))).toBe("Panneaux 1 à 26 - × 26");
     expect(panelGroup([7, 1, 3], false)).toBe("Panneaux 1, 3 et 7");
     expect(panelGroup([27])).toBe("Panneau 27");
-    expect(positionPair(1530, 10)).toBe("1 530\u00a0/\u00a010");
+    expect(positionPair(1530, 10)).toBe("1'530\u00a0/\u00a010");
     expect(["hide", "indicative", "retain"].map((m) => reuseCaption(m as "hide" | "indicative" | "retain")))
       .toEqual(["", "Réutilisables si besoin", "À conserver"]);
   });

@@ -18,7 +18,7 @@ describe("Order PDF supplier cuts", () => {
     exportOrderPdf(result, materials, pieces, newProject().info, { orderTypes: { "mat-mdf19": "cut" }, supplierRemarks: { "mat-mdf19": "Chants blancs, livraison vendredi" } });
     const call = table.mock.calls.find((c) => c[3]?.startsWith("Pièces débitées"));
     expect(call?.[0].map((c) => c.h)).not.toContain("Matériau");
-    expect(call?.[1][0]).toEqual(["A", "19", "1 000", "1 250", "4", "Libre"]);
+    expect(call?.[1][0]).toEqual(["A", "19", "1'000", "1'250", "4", "Libre"]);
     const remarksIndex = text.mock.calls.findIndex((c) => c[0].includes("Chants blancs, livraison vendredi"));
     expect(remarksIndex).toBeGreaterThanOrEqual(0);
     expect(text.mock.invocationCallOrder[remarksIndex]).toBeGreaterThan(table.mock.invocationCallOrder[0] ?? 0);

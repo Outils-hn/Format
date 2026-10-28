@@ -103,7 +103,7 @@ try {
   const plusPetit = Math.min(...tailles);
   verif("Plans : etiquettes lisibles a l'ecran (>= 9,5 px)", tailles.length > 0 && plusPetit >= 9.5, `${tailles.length} textes, plus petit ${plusPetit.toFixed(1)} px`);
   await p3.locator("#project-tab-panel svg").first().screenshot({ path: `${OUT}/check-plan-vignette.png` });
-  verif("Saisie : nombre affiche « 2 010 »", (await p3.getByLabel("Largeur de G2").inputValue()).replace(/[\u00a0\u202f]/g, " ") === "2 010");
+  verif("Saisie : nombre affiche « 2'010 »", (await p3.getByLabel("Largeur de G2").inputValue())=== "2'010");
   verif("Resultat perime : bandeau affiche", await p3.getByText("Saisie modifiée depuis le calcul").isVisible());
   verif("Resultat perime : export bloque", await p3.getByRole("button", { name: /Exporter/ }).isDisabled());
   await p3.screenshot({ path: `${OUT}/check-resultat-perime.png` });

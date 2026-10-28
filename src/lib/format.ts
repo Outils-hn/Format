@@ -1,5 +1,5 @@
-// Nombres au format français : virgule décimale, espace fine insécable pour les milliers.
-const THIN = "\u202f";
+// Nombres au format suisse de la famille d'applis : virgule décimale, apostrophe pour les milliers (« 1'200 »).
+const THIN = "'";
 // Valeur absente ou invalide (champ vide enregistre) : tiret au lieu d'un plantage de toute la page.
 const fmt = (n: number | null | undefined, min: number, max: number) =>
   n == null || !Number.isFinite(n) ? "—"
