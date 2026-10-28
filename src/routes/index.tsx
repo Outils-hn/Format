@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/format/ThemeToggle";
-import { FilePlus2, FileSpreadsheet, FileText, FolderOpen, Library, Loader2, Play, Plus, Save } from "lucide-react";
+import { ChevronDown, Download, FilePlus2, FileSpreadsheet, FileText, FolderOpen, Library, Loader2, Pencil, Play, Plus, Save } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { indicators, pct1 } from "@/lib/indicators";
 import { toast } from "sonner";
 import type { Material, Project } from "@/lib/types";
 import { newProject } from "@/lib/defaults";
@@ -43,6 +45,8 @@ function Index() {
   const [ready, setReady] = useState(false);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [project, setProject] = useState<Project>(newProject);
+  // Champs du chantier ouverts seulement pour un projet sans nom, ou a la demande
+  const [editInfo, setEditInfo] = useState(false);
   const [showProjects, setShowProjects] = useState(false);
   // Projet enregistre dont le chantier ou la tache a change : on demande avant d'ecraser
   const [saveChoice, setSaveChoice] = useState<Project | null>(null);
@@ -81,7 +85,17 @@ function Index() {
   const run = async () => {
     const emptyField = project.pieces.some((p) => !p.width || !p.height || !p.quantity)
       || linears.some((l) => !l.bandWidth || !l.totalLength || (l.mode === "fixed" ? !l.segment : !l.min));
-    if (emptyField) { setCheckInputs(true); toast.error("Complétez les champs entourés en rouge"); return; }
+    if (emptyField) {
+      setCheckInputs(true);
+      toast.error("Complétez les champs entourés en rouge");
+      // Amene directement le curseur sur le premier champ a completer
+      setTimeout(() => {
+        const first = document.querySelector<HTMLElement>('main [aria-invalid="true"]');
+        first?.scrollIntoView({ behavior: "smooth", block: "center" });
+        first?.focus({ preventScroll: true });
+      }, 60);
+      return;
+    }
     setCheckInputs(false);
     if (!allPieces.length) { toast.error("Ajoutez des pièces avant de lancer l'optimisation"); return; }
     if (linears.some((l) => typeof linearSegments(l, materials) === "string")) { toast.error("Un linéaire est incomplet ou impossible"); return; }
@@ -98,6 +112,11 @@ function Index() {
       if (!isCurrent()) return;
       setResult(baseline);
       setRunning(false);
+      // Resultats hors de l'ecran : on y descend en douceur pour voir l'effet du calcul
+      requestAnimationFrame(() => {
+        const panel = document.getElementById("project-tab-panel");
+        if (panel && panel.getBoundingClientRect().top > window.innerHeight * 0.6) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
       const ids = rotationCandidates(allPieces, materials).map((p) => p.id);
       if (!ids.length) return;
       try {
@@ -128,6 +147,7 @@ function Index() {
     setMaterials(loadMaterials());
     const cur = loadCurrent();
     if (cur) setProject(cur);
+    if (!cur?.info.site) setEditInfo(true);
     setReady(true);
   }, []);
   useEffect(() => { if (ready) saveMaterials(materials); }, [materials, ready]);
@@ -181,6 +201,31 @@ function Index() {
 
   </>;
 
+  const exportOrder = async () => {
+    if (!result || !checkInfo()) return;
+    try { const { exportOrderPdf } = await import("@/lib/export/orderPdf"); exportOrderPdf(result, materials, allPieces, info, project); }
+    catch (e) { console.error(e); toast.error("Échec de la génération du PDF"); }
+  };
+  const exportWorkshop = async () => {
+    if (!result || !checkInfo()) return;
+    try { const { exportWorkshopPdf } = await import("@/lib/export/pdf"); exportWorkshopPdf(result, materials, allPieces, info, recap, project.materialStatus, offcutSettings); }
+    catch (e) { console.error(e); toast.error("Échec de la génération du PDF"); }
+  };
+  const exportXlsx = async () => {
+    if (!result) return;
+    try { const { exportOrderXlsx } = await import("@/lib/export/xlsx"); exportOrderXlsx(result, materials, info, allPieces, project, workshop); }
+    catch (e) { console.error(e); toast.error("Échec de l'export Excel"); }
+  };
+  // Nouveau projet : on garde les habitudes (mode atelier, estimation, chutes) mais pas les donnees du chantier
+  const startNew = () => {
+    if (!confirm("Commencer un nouveau projet ? Les modifications non sauvegardées seront perdues.")) return;
+    const fresh = newProject();
+    setProject({ ...fresh, workshopMode: project.workshopMode, showEstimate: project.showEstimate,
+      offcuts: project.offcuts ? { ...project.offcuts, marks: {} } : undefined });
+    setEditInfo(true);
+  };
+  const summary = result ? `${num(result.total.sheets)} panneau${result.total.sheets > 1 ? "x" : ""} · ${pct1(indicators(result.total.balance).yieldPct)}` : null;
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md">
@@ -195,23 +240,19 @@ function Index() {
               </Button>
               Mode atelier
             </label>
-            <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"} onClick={async () => {
-              if (!result || !checkInfo()) return;
-              try { const { exportOrderPdf } = await import("@/lib/export/orderPdf"); exportOrderPdf(result, materials, allPieces, info, project); }
-              catch (e) { console.error(e); toast.error("Échec de la génération du PDF"); }
-            }}><FileText size={15} /> PDF commande</button>
-            {workshop && <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"} onClick={async () => {
-              if (!result || !checkInfo()) return;
-              try { const { exportWorkshopPdf } = await import("@/lib/export/pdf"); exportWorkshopPdf(result, materials, allPieces, info, recap, project.materialStatus, offcutSettings); }
-              catch (e) { console.error(e); toast.error("Échec de la génération du PDF"); }
-            }}><FileText size={15} /> PDF atelier</button>}
-            <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"} onClick={async () => {
-              if (!result) return;
-              try { const { exportOrderXlsx } = await import("@/lib/export/xlsx"); exportOrderXlsx(result, materials, info, allPieces, project, workshop); }
-              catch (e) { console.error(e); toast.error("Échec de l'export Excel"); }
-            }}><FileSpreadsheet size={15} /> Commande Excel</button>
+            {/* Un seul bouton pour toutes les sorties (PDF commande, PDF atelier, Excel) */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"}><Download size={15} /> Exporter <ChevronDown size={14} className="opacity-60" /></button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[220px]">
+                <DropdownMenuItem onSelect={exportOrder}><FileText size={15} /> PDF commande <span className="ml-auto text-xs text-muted-foreground">fournisseur</span></DropdownMenuItem>
+                {workshop && <DropdownMenuItem onSelect={exportWorkshop}><FileText size={15} /> PDF atelier <span className="ml-auto text-xs text-muted-foreground">plans</span></DropdownMenuItem>}
+                <DropdownMenuItem onSelect={exportXlsx}><FileSpreadsheet size={15} /> Commande Excel</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <button className="btn-ghost" onClick={() => setShowProjects(true)}><FolderOpen size={15} /> Mes projets</button>
-            <button className="btn-ghost" onClick={() => confirm("Commencer un nouveau projet ? Les modifications non sauvegardées seront perdues.") && setProject(newProject())}><FilePlus2 size={15} /> Nouveau</button>
+            <button className="btn-ghost" onClick={startNew}><FilePlus2 size={15} /> Nouveau</button>
             <button className="btn-primary" onClick={save}><Save size={15} /> Sauvegarder</button>
             <ThemeToggle />
           </nav>
@@ -219,22 +260,30 @@ function Index() {
       </header>
 
       <main className="mx-auto w-full max-w-[1440px] flex-1 space-y-6 px-8 pt-8 pb-6">
+        {/* Projet : titre + une ligne de resume ; les champs ne s'ouvrent que pour les modifier */}
         <section aria-labelledby="titre-projet">
-          <h2 id="titre-projet" className="text-[40px] font-semibold leading-none tracking-[-0.03em]">{info.site || "Nouveau projet"}</h2>
-          <p className="mt-2 text-[13px] text-muted-foreground">{[info.taskNumber, info.client].filter(Boolean).join(" · ") || "Renseignez le chantier ci-dessous"}</p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="min-w-0">
+              <h2 id="titre-projet" className="text-[40px] font-semibold leading-none tracking-[-0.03em]">{info.site || "Nouveau projet"}</h2>
+              <p className="mt-2 text-[13px] text-muted-foreground">{[info.taskNumber && `Tâche ${info.taskNumber}`, info.client, info.date && info.date.split("-").reverse().join(".")].filter(Boolean).join(" · ") || "Renseignez le chantier"}</p>
+            </div>
+            {!editInfo && <button className="btn-ghost" onClick={() => setEditInfo(true)}><Pencil size={14} /> Modifier le chantier</button>}
+          </div>
+          {editInfo && <div className="mt-5 grid gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto]">
             {([["site", "Chantier"], ["taskNumber", "Numéro de tâche"], ["client", "Client"]] as const).map(([k, l]) => (
               <label key={k} className="block">
                 <span className="field-label">{l}</span>
-                <input className="input-tech" value={info[k]} onChange={(e) => setInfo({ [k]: e.target.value })} />
+                <input className="input-tech" value={info[k]} autoFocus={k === "site"} onChange={(e) => setInfo({ [k]: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.ctrlKey && !e.metaKey) setEditInfo(false); }} />
               </label>
             ))}
             <label className="block">
               <span className="field-label">Date</span>
               <input type="date" className="input-tech mono" value={info.date} onChange={(e) => setInfo({ date: e.target.value })} />
             </label>
-            <p className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-4">Ces informations apparaissent en haut des PDF.</p>
-          </div>
+            <div className="flex items-end"><button className="btn-primary w-full" onClick={() => setEditInfo(false)}>OK</button></div>
+            <p className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-5">Ces informations apparaissent en haut des PDF.</p>
+          </div>}
         </section>
 
         <div className="flex items-center gap-2 pt-2">
@@ -300,12 +349,15 @@ function Index() {
       </main>
       <AppFooter aboveLaunchBar />
 
-      {/* Barre de lancement : pastille flottante en bas, toujours a portee de main */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-5 z-40 flex justify-center px-4 print:hidden">
-        <div className="pointer-events-auto flex items-center gap-4 rounded-full bg-primary py-1.5 pl-5 pr-1.5 text-primary-foreground shadow-[0_12px_32px_-8px_rgb(0_0_0/0.35)]">
-          <span className="tabular-nums text-[13px] opacity-70">{num(allPieces.reduce((n, p) => n + p.quantity, 0))} pièces</span>
+      {/* Barre de lancement : pastille flottante en bas a droite (ne cache plus les champs du milieu),
+          avec le resume du dernier calcul ; un clic sur le resume amene aux resultats */}
+      <div className="pointer-events-none fixed bottom-5 right-5 z-40 print:hidden">
+        <div className="pointer-events-auto flex items-center gap-3 rounded-full bg-primary py-1.5 pl-4 pr-1.5 text-primary-foreground shadow-[0_12px_32px_-8px_rgb(0_0_0/0.35)]">
+          {summary
+            ? <button className="tabular-nums text-[13px] opacity-80 hover:opacity-100" onClick={() => document.getElementById("project-tab-panel")?.scrollIntoView({ behavior: "smooth", block: "start" })} title="Voir les résultats">{summary}</button>
+            : <span className="tabular-nums text-[13px] opacity-70">{num(allPieces.reduce((n, p) => n + p.quantity, 0))} pièces</span>}
           <Button className="h-9 rounded-full bg-signal px-4 text-[13px] font-semibold text-white hover:bg-signal/90" disabled={running} onClick={run} title="Raccourci : Ctrl + Entrée">
-            {running ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}{running ? "Calcul en cours…" : "Lancer l'optimisation"}
+            {running ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}{running ? "Calcul…" : result ? "Relancer" : "Lancer l'optimisation"}
           </Button>
         </div>
       </div>
@@ -324,7 +376,7 @@ function Index() {
 
       {showProjects && (
         <ProjectsDialog currentId={project.id} onClose={() => setShowProjects(false)} onExport={doExport} onImport={doImport}
-          onOpen={(p) => { setProject(p); setShowProjects(false); }} />
+          onOpen={(p) => { setProject(p); setShowProjects(false); setEditInfo(!p.info.site); }} />
       )}
 
       {saveChoice && (
