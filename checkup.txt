@@ -1,0 +1,7 @@
+OK     Champ vide : le curseur va dessus (Largeur de P1)
+OK     Menu Exporter : PDF commande, PDF atelier, Excel ( PDF commande fournisseur /  PDF atelier plans /  Commande Excel)
+OK     Nouveau projet : champs du chantier ouverts
+OK     Nouveau projet : mode atelier garde
+OK     Projet enregistre puis rouvert (Chantier démo)
+OK     Mode sombre retenu apres rechargement
+OK     Sauvegarde complete : projets, materiaux et theme inclus (format.current, format.materials, format.projects, format.theme)
