@@ -228,7 +228,7 @@ function Index() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md">
+      <header className="border-b border-border bg-background">
         <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-4 px-8 py-3.5">
           <Brand />
           <nav className="ml-auto flex flex-wrap items-center gap-2">
