@@ -224,7 +224,7 @@ function Index() {
       offcuts: project.offcuts ? { ...project.offcuts, marks: {} } : undefined });
     setEditInfo(true);
   };
-  const summary = result ? `${num(result.total.sheets)} panneau${result.total.sheets > 1 ? "x" : ""} · ${pct1(indicators(result.total.balance).yieldPct)}` : null;
+  const summary = result ? `Projet : ${num(result.total.sheets)} panneau${result.total.sheets > 1 ? "x" : ""} · ${pct1(indicators(result.total.balance).yieldPct)}` : null;
 
   return (
     <div className="flex min-h-screen flex-col">
