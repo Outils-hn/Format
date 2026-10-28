@@ -12,7 +12,7 @@ import type { LinearRecap } from "@/lib/linear";
 import { orderEntries } from "@/lib/order";
 import type { OrderType } from "@/lib/types";
 
-import { dec, dims, eur, m2, num, panelOrder, reuseCaption } from "@/lib/format";
+import { dec, dims, chf, m2, num, panelOrder, reuseCaption } from "@/lib/format";
 import type { OffcutSettings } from "@/lib/types";
 import { DEFAULT_OFFCUT_SETTINGS, offcutKey } from "@/lib/offcuts";
 const pct = (r: number) => `${num(r * 100, 1)} %`;
@@ -80,7 +80,7 @@ function Banner({ result, status, simple = false, typeOf }: { result: OptimizeRe
       </div>
       <div className="sm:text-right"><p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Rendement</p><p className="mt-1 tabular-nums text-[56px] font-semibold leading-none tracking-[-0.04em]">{pct1(i.yieldPct).replace(/\s*%$/, "")}<span className="text-2xl text-muted-foreground"> %</span></p></div>
     </div>
-    {!simple && <><p className="tabular-nums text-xs text-muted-foreground">Surface achetée {m2(i.purchased)} m² · pièces {m2(i.pieces)} m²{result.total.totalPrice != null ? ` · prix ${eur(result.total.totalPrice)}` : ""}</p><Split b={result.total.balance} /></>}
+    {!simple && <><p className="tabular-nums text-xs text-muted-foreground">Surface achetée {m2(i.purchased)} m² · pièces {m2(i.pieces)} m²{result.total.totalPrice != null ? ` · prix ${chf(result.total.totalPrice)}` : ""}</p><Split b={result.total.balance} /></>}
   </div>;
 }
 
@@ -118,7 +118,7 @@ function Solutions({ list }: { list: SolutionSummary[] }) {
               <td className="tabular-nums px-3 py-1.5">{s.formats.map((f) => `${f.count} × ${dims(f.width, f.length)}`).join(" · ")}</td>
               <td className="tabular-nums px-3 py-1.5 text-right">{s.sheets}</td>
               <td className="tabular-nums px-3 py-1.5 text-right">{m2(s.purchased)}</td>
-              <td className="tabular-nums px-3 py-1.5 text-right">{eur(s.price)}</td>
+              <td className="tabular-nums px-3 py-1.5 text-right">{chf(s.price)}</td>
             </tr>
           ))}
         </tbody>
@@ -214,7 +214,7 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
           <p className="tabular-nums text-xs text-muted-foreground">Surface achetée {m2(r.balance.purchased)} m² · pièces {m2(r.balance.pieces)} m²</p>
           <Kpis b={r.balance} mode={oc.mode} />
           <p className="tabular-nums text-xs">
-            {r.formats.map((f) => `${panelOrder(f.count, f.width, f.length, r.name, r.thickness)}${f.price != null ? ` (${eur(f.count * f.price)})` : ""}`).join(" · ") || "Aucun panneau"}
+            {r.formats.map((f) => `${panelOrder(f.count, f.width, f.length, r.name, r.thickness)}${f.price != null ? ` (${chf(f.count * f.price)})` : ""}`).join(" · ") || "Aucun panneau"}
           </p>
           {r.formatChoice && (
             <p className="text-xs text-muted-foreground">
