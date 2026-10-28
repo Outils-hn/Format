@@ -191,6 +191,7 @@ export function SheetPlan(props: Props) {
       {cuts.length > 0 && (
         <div>
           <h4 className="mb-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Séquence de coupe</h4>
+          <p className="mb-1 text-xs text-muted-foreground">Cote à régler = cote de la pièce, la lame passe côté chute. Après chaque coupe, on mesure depuis le bord coupé.</p>
           <ol className="space-y-0.5 text-xs tabular-nums">
             {cuts.map((c) => <li key={c.n}><span className="font-semibold">{c.n}.</span> {c.text}</li>)}
           </ol>
