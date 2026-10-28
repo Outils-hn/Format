@@ -5,11 +5,9 @@ import { statusSuffix } from "../indicators";
 import { supplierSections } from "../order";
 import { num } from "../format";
 import { cleanName, download } from "./common";
-import { Writer } from "./pdf";
+import { Writer, pageFooters, pageHeader } from "./pdf";
 
-const M = 12;
-const GREY: [number, number, number] = [110, 115, 125];
-const fmtDate = (iso: string) => iso.split("-").reverse().join("/");
+const GREY: [number, number, number] = [112, 115, 121];
 export const statusLabel = (s?: MaterialStatus) =>
   `${s?.status === "ordered" ? "Commandée" : s?.status === "stock" ? "Matière déjà disponible" : "À commander"}${statusSuffix(s)}`;
 
@@ -18,18 +16,7 @@ export function exportOrderPdf(result: OptimizeResult, materials: Material[], pi
   const sections = supplierSections(result, materials, pieces, project);
   sections.forEach((sec, i) => {
     if (i > 0) w.newPage("portrait");
-    w.font(20, true); w.doc.text("FORMAT", M, w.y + 7);
-    w.font(8, false, GREY); w.doc.text("BON DE COMMANDE MATIÈRE", M, w.y + 12);
-    const fields: [string, string][] = [["Chantier", info.site], ["Numéro de tâche", info.taskNumber], ["Client", info.client], ["Date", fmtDate(info.date)]];
-    const cw = (w.W - 2 * M) / 4;
-    fields.forEach(([l, v], k) => {
-      w.font(7, false, GREY); w.doc.text(l, M + k * cw, w.y + 19);
-      w.font(10, true); w.doc.text(v || "—", M + k * cw, w.y + 24, { maxWidth: cw - 3 });
-    });
-    w.y += 28;
-    w.text(`Statut de la matière : ${statusLabel(project.materialStatus)}`, 8.5, false, GREY, 1);
-    w.doc.setDrawColor(20, 24, 32); w.doc.setLineWidth(0.5); w.doc.line(M, w.y, w.W - M, w.y);
-    w.y += 5;
+    pageHeader(w, "Bon de commande matière", info, statusLabel(project.materialStatus));
     w.text(`Fournisseur : ${sec.supplier}`, 14, true, undefined, 3);
     if (sec.panels.length) {
       w.table([{ h: "Matériau", w: 40 }, { h: "Épaisseur (mm)", w: 18, right: true }, { h: "Format (mm)", w: 28 }, { h: "Quantité de panneaux", w: 22, right: true }],
@@ -46,15 +33,7 @@ export function exportOrderPdf(result: OptimizeResult, materials: Material[], pi
     }
     if (sections.some((x) => x.cuts.length)) w.text("Sens du décor « Hauteur » : le fil ou le décor suit la hauteur de la pièce ; « Libre » : la pièce peut être tournée.", 7, false, GREY, 1);
   });
-  const n = w.doc.getNumberOfPages();
-  const foot = ["Format", info.site, info.taskNumber].filter(Boolean).join(" - ");
-  for (let i = 1; i <= n; i++) {
-    w.doc.setPage(i);
-    w.doc.setDrawColor(...GREY); w.doc.setLineWidth(0.2); w.doc.line(M, w.H - M - 4, w.W - M, w.H - M - 4);
-    w.font(7.5, false, GREY);
-    w.doc.text(foot, M, w.H - M);
-    w.doc.text(`Page ${i} / ${n}`, w.W - M, w.H - M, { align: "right" });
-  }
+  pageFooters(w, info);
   const name = ["Format_Commande", cleanName(info.site), cleanName(info.taskNumber), info.date].filter(Boolean).join("_");
   download(w.doc.output("blob"), `${name}.pdf`);
 }

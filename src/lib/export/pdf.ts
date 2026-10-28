@@ -15,8 +15,9 @@ import { INTER_BOLD, INTER_REGULAR } from "./interFont";
 import type { LinearRecap } from "../linear";
 
 type RGB = [number, number, number];
-const INK: RGB = [20, 24, 32];
-const GREY: RGB = [110, 115, 125];
+const INK: RGB = [17, 18, 20];
+const GREY: RGB = [112, 115, 121];
+const HAIR: RGB = [228, 228, 225]; // filets fins du style Epure
 const M = 12; // marge page (mm)
 const PT = 2.835; // mm -> pt
 
@@ -30,7 +31,9 @@ function resolveColor(cssVar: string): RGB {
   if (dark) root.classList.remove("dark");
   const val = getComputedStyle(root).getPropertyValue(name).trim() || "#ddd";
   if (dark) root.classList.add("dark");
-  const ctx = document.createElement("canvas").getContext("2d")!;
+  let ctx: CanvasRenderingContext2D | null = null;
+  try { ctx = document.createElement("canvas").getContext("2d"); } catch { /* environnement sans canvas (tests) */ }
+  if (!ctx) return [150, 150, 150];
   ctx.fillStyle = val;
   ctx.fillRect(0, 0, 1, 1);
   const d = ctx.getImageData(0, 0, 1, 1).data;
@@ -68,10 +71,12 @@ export class Writer {
   get bottom() { return this.H - M - 8; }
   ensure(h: number) { if (this.y + h > this.bottom) this.newPage(this.W > this.H ? "landscape" : "portrait"); }
   newPage(o: "portrait" | "landscape") { this.doc.addPage("a4", o); this.y = M; }
+  /** Couleur imposee pendant le dessin d'un en-tete de tableau (sinon null). */
+  headerColor: RGB | null = null;
   font(size: number, bold = false, color: RGB = INK) {
     this.doc.setFont("Inter", bold ? "bold" : "normal");
     this.doc.setFontSize(size);
-    this.doc.setTextColor(...color);
+    this.doc.setTextColor(...(this.headerColor ?? color));
   }
   text(s: string, size = 9, bold = false, color: RGB = INK, gap = 1.5) {
     this.font(size, bold, color);
@@ -101,13 +106,13 @@ export class Writer {
   badge(count: number, x: number, baseline: number) {
     if (count <= 1) return;
     this.font(8, true);
-    const label = `x ${num(count)}`;
+    const label = `×${num(count)}`;
     const width = this.doc.getTextWidth(label) + 4;
-    this.doc.setFillColor(232, 234, 238);
-    this.doc.setDrawColor(200, 203, 210);
-    this.doc.setLineWidth(0.15);
-    this.doc.roundedRect(x, baseline - 3.4, width, 5, 0.7, 0.7, "FD");
+    this.doc.setFillColor(...INK);
+    this.doc.roundedRect(x, baseline - 3.4, width, 4.8, 0.8, 0.8, "F");
+    this.font(8, true, [255, 255, 255]);
     this.doc.text(label, x + 2, baseline);
+    this.font(8, true);
   }
   table(cols: TableColumn[], rows: string[][], boldLast = false, title?: string, boldRow?: (i: number) => boolean, badgeCount = 1) {
     let size = 8;
@@ -146,15 +151,61 @@ export class Writer {
       this.badge(badgeCount, M + this.doc.getTextWidth(title) + 3, this.y + 4);
       this.y += titleHeight;
     }
-    this.doc.setFillColor(232, 234, 238);
-    this.doc.rect(M, this.y, this.W - 2 * M, layout.headerHeight * fit, "F");
-    drawCells(layout.header, layout.headerHeight, true);
+    // En-tete de tableau : texte gris, filet noir dessous ; lignes separees par des filets clairs
+    this.headerColor = GREY;
+    drawCells(layout.header, layout.headerHeight, false);
+    this.headerColor = null;
+    this.doc.setDrawColor(...INK); this.doc.setLineWidth(0.3);
+    this.doc.line(M, this.y, this.W - M, this.y);
     layout.body.forEach((r, i) => {
       drawCells(r.cells, r.height, (boldLast && i === rows.length - 1) || !!boldRow?.(i));
-      this.doc.setDrawColor(200, 203, 210); this.doc.setLineWidth(0.15);
+      this.doc.setDrawColor(...HAIR); this.doc.setLineWidth(0.2);
       this.doc.line(M, this.y, this.W - M, this.y);
     });
     this.y += 3;
+  }
+}
+
+/** Logo de l'ecran : panneau decoupe, chute reutilisable en couleur d'accent. */
+function logo(w: Writer, x: number, y: number, s = 6) {
+  w.doc.setDrawColor(...INK); w.doc.setLineWidth(0.35);
+  w.doc.rect(x, y, s, s);
+  w.doc.line(x + s * 0.5, y, x + s * 0.5, y + s); w.doc.line(x, y + s * 0.5, x + s * 0.5, y + s * 0.5);
+  w.doc.setFillColor(...resolveColor("var(--signal)"));
+  w.doc.rect(x + s * 0.5 + 0.35, y + s * 0.5 + 0.35, s * 0.5 - 0.7, s * 0.5 - 0.7, "F");
+}
+
+/** En-tete commun aux PDF (style Epure) : logo, titre du document, cartouche du projet. */
+export function pageHeader(w: Writer, docTitle: string, info: ProjectInfo, extra?: string) {
+  logo(w, M, w.y);
+  w.font(13, true); w.doc.text("Format", M + 8.5, w.y + 5);
+  w.font(7, false, GREY); w.doc.text(docTitle.toUpperCase(), w.W - M, w.y + 5, { align: "right", charSpace: 0.3 });
+  w.y += 14;
+  w.font(22, true); w.doc.text(info.site || "Chantier", M, w.y + 6, { maxWidth: w.W - 2 * M });
+  w.y += 11;
+  const fields: [string, string][] = [["Tâche", info.taskNumber], ["Client", info.client], ["Date", fmtDate(info.date)]];
+  if (extra) fields.push(["Matière", extra]);
+  const cw = (w.W - 2 * M) / 4;
+  fields.forEach(([l, v], i) => {
+    const x = M + i * cw;
+    w.font(6.5, false, GREY); w.doc.text(l.toUpperCase(), x, w.y + 2.5, { charSpace: 0.25 });
+    w.font(9.5, true); w.doc.text(v || "—", x, w.y + 7.5, { maxWidth: cw - 3 });
+  });
+  w.y += 12;
+  w.doc.setDrawColor(...INK); w.doc.setLineWidth(0.4); w.doc.line(M, w.y, w.W - M, w.y);
+  w.y += 5;
+}
+
+/** Pied de page : filet clair, rappel du projet, numero de page. */
+export function pageFooters(w: Writer, info: ProjectInfo) {
+  const n = w.doc.getNumberOfPages();
+  const foot = ["Format", info.site, info.taskNumber].filter(Boolean).join(" · ");
+  for (let i = 1; i <= n; i++) {
+    w.doc.setPage(i);
+    w.doc.setDrawColor(...HAIR); w.doc.setLineWidth(0.25); w.doc.line(M, w.H - M - 4, w.W - M, w.H - M - 4);
+    w.font(7, false, GREY);
+    w.doc.text(foot, M, w.H - M);
+    w.doc.text(`${i} / ${n}`, w.W - M, w.H - M, { align: "right" });
   }
 }
 
@@ -171,15 +222,13 @@ function kpis(w: Writer, b: Balance, sheets: number, mode: OffcutSettings["mode"
 function splitBar(w: Writer, b: Balance) {
   const i = indicators(b);
   w.ensure(10);
-  const bw = w.W - 2 * M, h = 3.5;
+  // Barre fine en trois aplats : pieces (encre), chutes reutilisables (accent), perte (gris)
+  const bw = w.W - 2 * M, h = 1.6, gap = 0.5;
   const x1 = M + bw * i.yieldPct / 100, x2 = x1 + bw * i.reusablePct / 100;
-  w.doc.setFillColor(...resolveColor("var(--primary)")); w.doc.rect(M, w.y, x1 - M, h, "F");
-  w.doc.setFillColor(...resolveColor("var(--offcut-reuse-bg)")); w.doc.rect(x1, w.y, x2 - x1, h, "F");
-  hatch(w.doc, x1, w.y, x2 - x1, h, 2.4, resolveColor("var(--offcut-reuse)"), true, 0.2);
-  w.doc.setFillColor(...resolveColor("var(--offcut-waste-bg)")); w.doc.rect(x2, w.y, M + bw - x2, h, "F");
-  hatch(w.doc, x2, w.y, M + bw - x2, h, 2.4, resolveColor("var(--offcut-waste)"), false, 0.2);
-  w.doc.setDrawColor(...INK); w.doc.setLineWidth(0.25); w.doc.rect(M, w.y, bw, h);
-  w.y += h + 1.5;
+  w.doc.setFillColor(...INK); w.doc.rect(M, w.y, Math.max(0, x1 - M - gap), h, "F");
+  w.doc.setFillColor(...resolveColor("var(--offcut-reuse)")); w.doc.rect(x1, w.y, Math.max(0, x2 - x1 - gap), h, "F");
+  w.doc.setFillColor(...resolveColor("var(--offcut-waste)")); w.doc.rect(x2, w.y, Math.max(0, M + bw - x2), h, "F");
+  w.y += h + 2;
   w.text(splitLine(i), 7.5, false, GREY, 1.5);
 }
 
@@ -188,15 +237,18 @@ function cards(w: Writer, i: ReturnType<typeof indicators>, mode: OffcutSettings
     ["Chutes réutilisables", `${m2(i.reusable)} m² · ${pct1(i.reusablePct)}`, reuseCaption(mode)],
     ["Perte définitive", `${m2(i.loss)} m² · ${pct1(i.lossPct)}`, "Matière réellement jetée"],
   ];
-  const gap = 2.5, h = 16;
+  // Deux chiffres cles cote a cote, separes par un simple filet en haut (pas de cadre)
+  const gap = 8, h = 17;
   const bw = (w.W - 2 * M - gap) / 2;
+  const tones = [resolveColor("var(--offcut-reuse)"), resolveColor("var(--offcut-waste)")];
   w.ensure(h + 2);
   items.forEach(([l, v, sub], k) => {
     const x = M + k * (bw + gap);
-    w.doc.setDrawColor(...INK); w.doc.setLineWidth(0.25); w.doc.rect(x, w.y, bw, h);
-    w.font(7, false, GREY); w.doc.text(l, x + 2, w.y + 3.8);
-    w.font(12, true); w.doc.text(v, x + 2, w.y + 10.5);
-    w.font(6.5, false, GREY); w.doc.text(sub, x + 2, w.y + 14);
+    w.doc.setDrawColor(...HAIR); w.doc.setLineWidth(0.3); w.doc.line(x, w.y, x + bw, w.y);
+    w.doc.setFillColor(...tones[k]!); w.doc.rect(x, w.y + 3, 2, 2, "F");
+    w.font(6.5, false, GREY); w.doc.text(l.toUpperCase(), x + 3.5, w.y + 4.8, { charSpace: 0.25 });
+    w.font(13, true); w.doc.text(v, x, w.y + 11.5);
+    w.font(6.5, false, GREY); w.doc.text(sub, x, w.y + 15.2);
   });
   w.y += h + 3;
 }
@@ -458,24 +510,21 @@ export function exportWorkshopPdf(result: OptimizeResult, materials: Material[],
   const color = (id: string) => palette[Math.max(0, order.indexOf(id)) % palette.length]!;
 
   // Page 1 : en-tete + synthese
-  w.font(20, true); w.doc.text("FORMAT", M, w.y + 7);
-  w.font(8, false, GREY); w.doc.text("FICHE DE DÉBIT — OPTIMISATION DE DÉCOUPE 2D", M, w.y + 12);
-  const fields: [string, string][] = [["Chantier", info.site], ["Numéro de tâche", info.taskNumber], ["Client", info.client], ["Date", fmtDate(info.date)]];
-  const cw = (w.W - 2 * M) / 4;
-  fields.forEach(([l, v], i) => {
-    const x = M + i * cw;
-    w.font(7, false, GREY); w.doc.text(l, x, w.y + 19);
-    w.font(10, true); w.doc.text(v || "—", x, w.y + 24, { maxWidth: cw - 3 });
-  });
-  w.y += 28;
-  w.doc.setDrawColor(...INK); w.doc.setLineWidth(0.5); w.doc.line(M, w.y, w.W - M, w.y);
-  w.y += 5;
+  pageHeader(w, "Fiche de débit", info);
 
-  // Bandeau principal
+  // Bandeau principal : ce qu'il faut commander a gauche, le rendement en grand a droite
   const ti = indicators(result.total.balance);
-  w.text(`${statusTitle(status)}${statusSuffix(status)}`, 8, true, GREY, 0.5);
-  for (const l of materialLines(result.materials)) w.text(l.text, 14, true, INK, 0.5);
-  w.text(`Rendement : ${pct1(ti.yieldPct)}`, 14, true, INK, 0.5);
+  const top = w.y;
+  w.font(6.5, false, GREY); w.doc.text(`${statusTitle(status)}${statusSuffix(status)}`.toUpperCase(), M, w.y + 2.5, { charSpace: 0.25 });
+  w.font(6.5, false, GREY); w.doc.text("RENDEMENT", w.W - M, w.y + 2.5, { align: "right", charSpace: 0.25 });
+  w.font(30, true); w.doc.text(pct1(ti.yieldPct), w.W - M, top + 15, { align: "right" });
+  w.y += 5;
+  for (const l of materialLines(result.materials)) {
+    w.font(14, true);
+    const lines = w.doc.splitTextToSize(l.text, w.W - 2 * M - 60) as string[];
+    for (const line of lines) { w.doc.text(line, M, w.y + 5); w.y += 6.5; }
+  }
+  w.y = Math.max(w.y, top + 19);
   w.text(`Surface achetée ${m2(ti.purchased)} m² · pièces ${m2(ti.pieces)} m²${result.total.totalPrice != null ? ` · prix ${eur(result.total.totalPrice)}` : ""}`, 7.5, false, GREY, 1.5);
   splitBar(w, result.total.balance);
   cards(w, ti, oc.mode);
@@ -548,15 +597,7 @@ export function exportWorkshopPdf(result: OptimizeResult, materials: Material[],
     labelsPage(w, result, mark, info);
   }
 
-  const n = w.doc.getNumberOfPages();
-  const foot = ["Format", info.site, info.taskNumber].filter(Boolean).join(" - ");
-  for (let i = 1; i <= n; i++) {
-    w.doc.setPage(i);
-    w.doc.setDrawColor(...GREY); w.doc.setLineWidth(0.2); w.doc.line(M, w.H - M - 4, w.W - M, w.H - M - 4);
-    w.font(7.5, false, GREY);
-    w.doc.text(foot, M, w.H - M);
-    w.doc.text(`Page ${i} / ${n}`, w.W - M, w.H - M, { align: "right" });
-  }
+  pageFooters(w, info);
   const name = ["Format", cleanName(info.site), cleanName(info.taskNumber), info.date].filter(Boolean).join("_");
   download(w.doc.output("blob"), `${name}.pdf`);
 }
