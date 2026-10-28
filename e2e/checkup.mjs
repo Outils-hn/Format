@@ -35,7 +35,7 @@ try {
   verif("Menu Exporter : PDF commande, PDF atelier, Excel", sorties.length === 3, sorties.join(" / "));
   await page.keyboard.press("Escape");
   // 3. Enregistrer, puis nouveau projet, puis rouvrir
-  await page.getByRole("button", { name: /^Sauvegarder$/ }).click(); await page.waitForTimeout(400);
+  await page.getByRole("banner").getByRole("button", { name: /^Sauvegarder$/ }).click(); await page.waitForTimeout(400);
   await page.getByRole("button", { name: /^Nouveau$/ }).click(); await page.waitForTimeout(400);
   verif("Nouveau projet : champs du chantier ouverts", await page.getByText("Numéro de tâche").isVisible());
   verif("Nouveau projet : mode atelier garde", (await page.getByRole("switch", { name: "Mode atelier" }).getAttribute("aria-checked")) === "true");
