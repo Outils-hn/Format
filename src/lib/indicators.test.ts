@@ -27,7 +27,7 @@ describe("borne minimale à orientation unique", () => {
 
 describe("libellés partagés", () => {
   it("commande et groupes lisibles", () => {
-    expect(panelOrder(27, 2070, 2800, "MDF", 19)).toBe("27 panneaux de 2 070 × 2 800 mm - MDF 19 mm");
+    expect(panelOrder(27, 2070, 2800, "MDF", 19)).toBe("27 panneaux de 2'070 × 2'800 mm - MDF 19 mm");
     expect(panelGroup(Array.from({ length: 26 }, (_, i) => i + 1))).toBe("Panneaux 1 à 26 - × 26");
     expect(panelGroup([7, 1, 3], false)).toBe("Panneaux 1, 3 et 7");
     expect(panelGroup([27])).toBe("Panneau 27");
