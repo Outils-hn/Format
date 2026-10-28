@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { naviguerClavier } from "@/lib/navigation-clavier";
-import { ChevronDown, ClipboardCopy, ClipboardPaste, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ClipboardCopy, ClipboardPaste, FileSpreadsheet, Plus, Trash2 } from "lucide-react";
+import { EXTENSIONS_TABLEUR, estTableur, lireFichierTableur } from "@/lib/lire-fichier-tableur";
 import { toast } from "sonner";
 import type { Linear, Material, Piece } from "@/lib/types";
 import { linearSegments, newLinear, segmentsText } from "@/lib/linear";
@@ -31,6 +32,40 @@ export function PiecesCard({
   const visibleLinears = materialId ? linears.filter((l) => l.materialId === materialId) : linears;
   const updL = (id: string, patch: Partial<Linear>) => onLinearsChange?.(linears.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   const [pasting, setPasting] = useState(false);
+  // Derniere liste connue : « Annuler » remet la piece a sa place sans effacer ce qui a ete saisi entre-temps
+  const actuel = useRef({ pieces, linears, onChange, onLinearsChange });
+  actuel.current = { pieces, linears, onChange, onLinearsChange };
+  const supprimerPiece = (p: Piece) => {
+    const i = pieces.findIndex((x) => x.id === p.id);
+    onChange(pieces.filter((x) => x.id !== p.id));
+    toast.success(`Pièce « ${p.label || "sans repère"} » supprimée`, { duration: 10000, action: { label: "Annuler", onClick: () => {
+      const cur = actuel.current.pieces;
+      if (cur.some((x) => x.id === p.id)) return;
+      actuel.current.onChange([...cur.slice(0, i), p, ...cur.slice(i)]);
+    } } });
+  };
+  const supprimerLineaire = (l: Linear) => {
+    const i = linears.findIndex((x) => x.id === l.id);
+    onLinearsChange?.(linears.filter((x) => x.id !== l.id));
+    toast.success(`Linéaire « ${l.label || "sans repère"} » supprimé`, { duration: 10000, action: { label: "Annuler", onClick: () => {
+      const cur = actuel.current.linears;
+      if (cur.some((x) => x.id === l.id)) return;
+      actuel.current.onLinearsChange?.([...cur.slice(0, i), l, ...cur.slice(i)]);
+    } } });
+  };
+  // Fichier Excel importe (bouton ou glisser-deposer) : son contenu ouvre la fenetre de collage
+  const [texteFichier, setTexteFichier] = useState("");
+  const [survol, setSurvol] = useState(false);
+  const fichierRef = useRef<HTMLInputElement>(null);
+  const importerFichier = async (f: File | undefined) => {
+    if (!f) return;
+    if (!estTableur(f)) { toast.error("Fichier non reconnu : déposez un fichier Excel (.xlsx) ou .csv"); return; }
+    try {
+      const t = await lireFichierTableur(f);
+      if (!t.trim()) { toast.error("La première feuille du fichier est vide"); return; }
+      setTexteFichier(t); setPasting(true);
+    } catch { toast.error("Lecture du fichier impossible"); }
+  };
   const [settingsOpen, setSettingsOpen] = useState(false);
   const grainLocked = !!materials.find((m) => m.id === materialId)?.grainLocked;
   const upd = (id: string, patch: Partial<Piece>) => onChange(pieces.map((p) => (p.id === id ? { ...p, ...patch } : p)));
@@ -64,7 +99,11 @@ export function PiecesCard({
   };
 
   return (
-    <section className="card-tech">
+    <section className={`card-tech relative ${survol ? "ring-2 ring-signal" : ""}`}
+      onDragOver={(e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setSurvol(true); } }}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setSurvol(false); }}
+      onDrop={(e) => { e.preventDefault(); setSurvol(false); void importerFichier(e.dataTransfer.files[0]); }}>
+      {survol && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/85 text-sm font-semibold">Déposez le fichier Excel pour importer ses pièces</div>}
       <div className="px-4 py-3 border-b border-border">
         <h2 className="card-title">Pièces à découper</h2>
         {(subtitle || settings) && <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
@@ -74,7 +113,10 @@ export function PiecesCard({
       </div>
       {settingsOpen && settings}
         <div className="flex flex-wrap gap-2 border-b border-border px-4 py-3">
-          <Button variant="outline" size="sm" className="btn-outline" onClick={() => setPasting(true)}><ClipboardPaste size={14} /> Coller depuis Excel</Button>
+          <Button variant="outline" size="sm" className="btn-outline" onClick={() => { setTexteFichier(""); setPasting(true); }}><ClipboardPaste size={14} /> Coller depuis Excel</Button>
+          <Button variant="outline" size="sm" className="btn-outline" title="Ou glissez le fichier sur ce cadre" onClick={() => fichierRef.current?.click()}><FileSpreadsheet size={14} /> Importer un fichier Excel</Button>
+          <input ref={fichierRef} type="file" accept={EXTENSIONS_TABLEUR} hidden aria-label="Fichier Excel à importer"
+            onChange={(e) => { void importerFichier(e.target.files?.[0]); e.target.value = ""; }} />
           <Button variant="outline" size="sm" className="btn-outline" onClick={copy} disabled={!visiblePieces.length}><ClipboardCopy size={14} /> Copier pour Excel</Button>
           <Button size="sm" className="btn-primary" disabled={!materials.length}
             onClick={add}>
@@ -146,7 +188,7 @@ export function PiecesCard({
                       title={locked ? "Sens imposé par le matériau" : undefined} onChange={(e) => upd(p.id, { canRotate: e.target.checked })} />}
                   </td>
                   <td className="text-center max-sm:col-span-2 max-sm:block max-sm:text-right">
-                    <Button variant="ghost" size="sm" className="btn-danger h-7 w-7 justify-center px-0" tabIndex={-1} aria-label="Supprimer" onClick={() => onChange(pieces.filter((x) => x.id !== p.id))}><Trash2 size={14} /></Button>
+                    <Button variant="ghost" size="sm" className="btn-danger h-7 w-7 justify-center px-0" tabIndex={-1} aria-label="Supprimer" onClick={() => supprimerPiece(p)}><Trash2 size={14} /></Button>
                   </td>
                 </tr>
               );
@@ -191,7 +233,7 @@ export function PiecesCard({
                     <td className="py-1.5"><NumInput aria-label="Longueur totale" invalid={!l.totalLength || l.totalLength < 0} className="input-num w-full px-3" value={l.totalLength} onChange={(n) => updL(l.id, { totalLength: n })} /></td>
                     <td />
                     <td className="pr-3 text-right">
-                      <Button variant="ghost" size="sm" className="btn-danger h-7 w-7 justify-center px-0" aria-label="Supprimer le linéaire" onClick={() => onLinearsChange?.(linears.filter((x) => x.id !== l.id))}><Trash2 size={14} /></Button>
+                      <Button variant="ghost" size="sm" className="btn-danger h-7 w-7 justify-center px-0" aria-label="Supprimer le linéaire" onClick={() => supprimerLineaire(l)}><Trash2 size={14} /></Button>
                     </td>
                   </tr>
                   <tr className="border-b border-border">
@@ -240,7 +282,7 @@ export function PiecesCard({
         </ul>
       )}
       {pasting && (
-        <PasteDialog materials={materials} defaultMaterialId={materialId} onClose={() => setPasting(false)}
+        <PasteDialog materials={materials} defaultMaterialId={materialId} initialText={texteFichier} onClose={() => setPasting(false)}
           onApply={(np, mode) => { const untouched = materialId ? pieces.filter((p) => p.materialId !== materialId && !np.some((n) => n.materialId === p.materialId)) : []; onChange(mergeDuplicates(mode === "replace" ? [...untouched, ...np] : [...pieces, ...np])); setPasting(false); }} />
       )}
     </section>

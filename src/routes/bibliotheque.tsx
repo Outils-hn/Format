@@ -5,6 +5,7 @@ import { ArrowLeft, CloudOff, Download, RefreshCw, Upload, Users } from "lucide-
 import { toast } from "sonner";
 import type { Material } from "@/lib/types";
 import { exportLibrary, loadMaterials, parseLibrary, saveMaterials, usedMaterialIds } from "@/lib/storage";
+import { ConfirmHost } from "@/components/format/Confirm";
 import { PinDialog, publierChangements, synchroniser, type Etat } from "@/components/format/SharedLibrary";
 import { lireDateSynchro } from "@/lib/shared-library";
 import { uid } from "@/lib/ids";
@@ -130,6 +131,7 @@ function LibraryPage() {
     </main>
     <AppFooter />
     <PinDialog />
+    <ConfirmHost />
     {conflict && <Modal title="Matériau déjà présent" onClose={() => setPending(null)}>
       <p className="text-sm">Un matériau nommé « {conflict.name} » existe déjà dans la bibliothèque.</p>
       <div className="mt-5 flex justify-end gap-2">

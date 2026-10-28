@@ -3,6 +3,7 @@ import { Download, FolderOpen, Trash2, Upload } from "lucide-react";
 import type { Project } from "@/lib/types";
 import { deleteProject, listProjects } from "@/lib/storage";
 import { Modal } from "./Modal";
+import { confirmer } from "./Confirm";
 
 export function ProjectsDialog({
   onClose, onOpen, onExport, onImport, currentId,
@@ -31,7 +32,10 @@ export function ProjectsDialog({
             </div>
             <button className="btn-outline" onClick={() => onOpen(p)}><FolderOpen size={14} /> Ouvrir</button>
             <button className="btn-danger h-8 px-2" aria-label="Supprimer"
-              onClick={() => { if (confirm("Supprimer ce projet ?")) { deleteProject(p.id); setProjects(listProjects()); } }}>
+              onClick={async () => {
+                if (!await confirmer({ titre: "Supprimer le projet", message: `« ${p.info.site || "Sans nom"} » sera supprimé de ce navigateur. Pensez à l'exporter (.json) si vous voulez le garder.`, ok: "Supprimer", danger: true })) return;
+                deleteProject(p.id); setProjects(listProjects());
+              }}>
               <Trash2 size={14} />
             </button>
           </li>
