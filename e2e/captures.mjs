@@ -43,7 +43,8 @@ async function session(name, workshop, fn) {
 }
 const shot = (page, file, full = true) => page.screenshot({ path: `${OUT}/${file}.png`, fullPage: full });
 const pdf = async (page, label, file) => {
-  const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }), page.getByRole("button", { name: label }).first().click()]);
+  await page.getByRole("button", { name: /Exporter/ }).first().click();
+  const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }), page.getByRole("menuitem", { name: label }).first().click()]);
   await dl.saveAs(`${OUT}/${file}.pdf`);
 };
 const run = async (page) => {
@@ -56,6 +57,13 @@ await session("commande", false, async (page) => {
   await shot(page, "01-projet-avant-calcul");
   await run(page);
   await shot(page, "02-projet-resultats-materiau1");
+  await shot(page, "02b-ecran-apres-calcul", false);
+  await page.getByRole("button", { name: /Exporter/ }).first().click(); await page.waitForTimeout(300);
+  await shot(page, "02c-menu-exporter", false);
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Changer d'application" }).click(); await page.waitForTimeout(300);
+  await shot(page, "02d-selecteur-applis", false);
+  await page.keyboard.press("Escape");
   await page.getByText("Synthèse").first().click(); await page.waitForTimeout(800);
   await shot(page, "03-synthese");
   await pdf(page, /PDF commande/, "10-pdf-commande");
