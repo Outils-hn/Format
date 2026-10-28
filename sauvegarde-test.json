@@ -1,0 +1,12 @@
+{
+  "app": "format",
+  "kind": "sauvegarde-complete",
+  "version": 1,
+  "createdAt": "2026-10-28T20:04:55.014Z",
+  "data": {
+    "format.current": "{\"id\":\"demo\",\"info\":{\"site\":\"Chantier démo\",\"taskNumber\":\"T-01\",\"client\":\"Client démo\",\"date\":\"2026-10-27\"},\"workshopMode\":true,\"pieces\":[{\"id\":\"P1\",\"label\":\"P1\",\"materialId\":\"fg\",\"width\":2010,\"height\":382,\"quantity\":24,\"canRotate\":true}],\"linears\":[],\"updatedAt\":\"2026-10-28T20:04:49.656Z\"}",
+    "format.materials": "[{\"id\":\"fg\",\"name\":\"Fibres-Gypse\",\"thickness\":15,\"kerf\":4,\"trim\":0,\"grainLocked\":false,\"cutType\":\"free\",\"supplier\":\"A\",\"orderType\":\"cut\",\"supply\":{\"mode\":\"single\",\"width\":2500,\"length\":1250}}]",
+    "format.projects": "[{\"id\":\"demo\",\"info\":{\"site\":\"Chantier démo\",\"taskNumber\":\"T-01\",\"client\":\"Client démo\",\"date\":\"2026-10-27\"},\"workshopMode\":true,\"pieces\":[{\"id\":\"P1\",\"label\":\"P1\",\"materialId\":\"fg\",\"width\":2010,\"height\":382,\"quantity\":24,\"canRotate\":true}],\"linears\":[],\"updatedAt\":\"2026-10-28T20:04:49.656Z\"}]",
+    "format.theme": "dark"
+  }
+}
