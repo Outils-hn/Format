@@ -23,8 +23,8 @@ export function AppFooter({ aboveLaunchBar = false }: { aboveLaunchBar?: boolean
         <span>· {APP_INFO.year} ·</span>
         <BackupLink cfg={BACKUP_CONFIG} appName={APP_INFO.name} />
       </p>
-      {/* Au-dessus de la barre de lancement fixe sur la page projet */}
-      <BackupReminder cfg={BACKUP_CONFIG} className={aboveLaunchBar ? "bottom-36" : "bottom-4"} />
+      {/* En bas a gauche, a cote de la pastille de calcul (centree) */}
+      <BackupReminder cfg={BACKUP_CONFIG} className="bottom-5" />
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/30 print:hidden" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-card p-6 text-left shadow-lg print:hidden">
