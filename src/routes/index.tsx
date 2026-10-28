@@ -349,9 +349,9 @@ function Index() {
       </main>
       <AppFooter aboveLaunchBar />
 
-      {/* Barre de lancement : pastille flottante centree en bas, avec le resume du dernier calcul ;
-          un clic sur le resume amene aux resultats */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-5 z-40 flex justify-center px-4 print:hidden">
+      {/* Barre de lancement : pastille flottante en bas a droite (au centre, elle cachait le contenu),
+          avec le resume du dernier calcul ; un clic sur le resume amene aux resultats */}
+      <div className="pointer-events-none fixed bottom-5 right-5 z-40 print:hidden">
         <div className="pointer-events-auto flex items-center gap-3 rounded-full bg-primary py-1.5 pl-4 pr-1.5 text-primary-foreground shadow-[0_12px_32px_-8px_rgb(0_0_0/0.35)]">
           {summary
             ? <button className="tabular-nums text-[13px] opacity-80 hover:opacity-100" onClick={() => document.getElementById("project-tab-panel")?.scrollIntoView({ behavior: "smooth", block: "start" })} title="Voir les résultats">{summary}</button>
