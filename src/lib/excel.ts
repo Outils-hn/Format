@@ -65,6 +65,33 @@ export function detectHeader(row: string[]): ColumnRole[] | null {
   return roles.some((r) => r !== "ignore") ? roles : null;
 }
 
+/**
+ * Colonnes devinees d'apres leur contenu, pour un collage sans ligne d'en-tete :
+ * les colonnes de nombres deviennent Largeur, Hauteur, Quantite (dans cet ordre),
+ * la premiere colonne de texte le Repere, la suivante le Materiau.
+ * `materialLocked` (collage dans l'onglet d'un materiau) : jamais de colonne Materiau.
+ */
+export function guessRoles(rows: string[][], materialLocked: boolean): ColumnRole[] {
+  const cols = Math.max(0, ...rows.map((r) => r.length));
+  const numeric = Array.from({ length: cols }, (_, i) => {
+    const cells = rows.map((r) => r[i] ?? "").filter((c) => c.trim() !== "");
+    return cells.length > 0 && cells.filter((c) => parseNumber(c) != null).length >= cells.length * 0.8;
+  });
+  const numberRoles: ColumnRole[] = ["width", "height", "quantity"];
+  const textRoles: ColumnRole[] = materialLocked ? ["label"] : ["label", "material"];
+  return numeric.map((isNum) => (isNum ? numberRoles.shift() : textRoles.shift()) ?? "ignore");
+}
+
+/** Une correspondance de colonnes est-elle coherente avec le contenu (nombres sous les cotes) ? */
+export function rolesFitContent(roles: ColumnRole[], rows: string[][], materialLocked: boolean): boolean {
+  if (materialLocked && roles.includes("material")) return false;
+  return roles.every((r, i) => {
+    if (r !== "width" && r !== "height" && r !== "quantity") return true;
+    const cells = rows.map((row) => row[i] ?? "").filter((c) => c.trim() !== "");
+    return cells.length > 0 && cells.every((c) => parseNumber(c) != null);
+  });
+}
+
 export function matchMaterial(text: string, materials: Material[]): string | null {
   const t = normalize(text);
   if (!t) return null;
