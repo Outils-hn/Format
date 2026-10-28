@@ -54,6 +54,46 @@ try {
   const json = JSON.parse(readFileSync(chemin, "utf8"));
   verif("Sauvegarde complete : projets, materiaux et theme inclus", json.app === "format" && ["format.projects", "format.materials", "format.theme"].every((k) => k in json.data), Object.keys(json.data).join(", "));
 } catch (e) { verif("Deroulement du check-up", false, e.message.split("\n")[0]); }
+// 6. Quick wins : premier lancement guide, collage sans en-tete, piece impossible, resultat perime
+try {
+  const vierge = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const p2 = await vierge.newPage();
+  p2.on("dialog", (d) => d.accept());
+  await p2.goto(BASE, { waitUntil: "networkidle" });
+  verif("Premier lancement : guide « Pour commencer »", await p2.getByText("Pour commencer").isVisible());
+  await p2.screenshot({ path: `${OUT}/check-premier-lancement.png` });
+  await vierge.close();
+
+  const c3 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const p3 = await c3.newPage();
+  p3.on("dialog", (d) => d.accept());
+  await p3.addInitScript((m) => { if (!sessionStorage.getItem("s")) { localStorage.setItem("format.materials", JSON.stringify(m)); sessionStorage.setItem("s", "1"); } }, materials);
+  await p3.goto(BASE, { waitUntil: "networkidle" });
+  await p3.keyboard.press("Enter");
+  await p3.getByRole("button", { name: "Ajouter un matériau" }).click();
+  await p3.getByRole("button", { name: /Fibres-Gypse/ }).click();
+  await p3.getByRole("button", { name: "Coller depuis Excel" }).click();
+  await p3.locator("textarea").fill("G1\t150\t120\t1\nG2\t2'010\t382\t24");
+  await p3.waitForTimeout(400);
+  const roles = await p3.locator("thead select").evaluateAll((els) => els.map((e) => e.value));
+  verif("Collage sans en-tete : Repere, Largeur, Hauteur, Quantite", roles.join(",") === "label,width,height,quantity", roles.join(","));
+  await p3.screenshot({ path: `${OUT}/check-collage-sans-entete.png` });
+  await p3.getByRole("button", { name: "Remplacer la liste" }).click(); await p3.waitForTimeout(300);
+  verif("Collage sans en-tete : largeur de G2 = 2010", (await p3.getByLabel("Largeur de G2").inputValue()).replace(/\D/g, "") === "2010");
+  await p3.getByLabel("Largeur de G1").fill("5000"); await p3.waitForTimeout(200);
+  await p3.keyboard.press("Control+Enter"); await p3.waitForTimeout(600);
+  const t = (await p3.locator("[data-sonner-toast]").allInnerTexts()).join(" ");
+  verif("Piece impossible : calcul bloque avec la raison", /Plus grande que le plus grand format/.test(t), t.replace(/\s+/g, " "));
+  await p3.screenshot({ path: `${OUT}/check-piece-impossible.png` });
+  await p3.getByLabel("Largeur de G1").fill("150");
+  await p3.keyboard.press("Control+Enter");
+  await p3.getByText(/Plans de découpe/i).first().waitFor({ timeout: 60000 });
+  await p3.getByLabel("Quantité de G2").fill("40"); await p3.waitForTimeout(300);
+  verif("Resultat perime : bandeau affiche", await p3.getByText("Saisie modifiée depuis le calcul").isVisible());
+  verif("Resultat perime : export bloque", await p3.getByRole("button", { name: /Exporter/ }).isDisabled());
+  await p3.screenshot({ path: `${OUT}/check-resultat-perime.png` });
+  await c3.close();
+} catch (e) { verif("Deroulement des quick wins", false, e.message.split("\n")[0]); }
 await browser.close();
 writeFileSync(`${OUT}/checkup.txt`, lignes.join("\n"));
 console.log(lignes.join("\n"));

@@ -231,10 +231,13 @@ export function PiecesCard({
         )}
         {visiblePieces.length === 0 && visibleLinears.length === 0 && <p className="px-4 py-10 text-center text-sm text-muted-foreground">Ajoutez des pièces ou un linéaire</p>}
       </div>
+      {/* Le detail de chaque piece impossible, lisible sans survoler la ligne */}
       {visiblePieces.some((p) => validatePiece(p, materials)) && (
-        <p className="px-4 py-2 text-xs text-destructive">
-          {visiblePieces.filter((p) => validatePiece(p, materials)).length} pièce(s) impossible(s) — survolez une ligne pour le détail.
-        </p>
+        <ul role="alert" className="space-y-0.5 px-4 py-2 text-xs text-destructive">
+          {visiblePieces.filter((p) => validatePiece(p, materials)).map((p) => (
+            <li key={p.id}><b className="font-semibold">{p.label || "Pièce sans repère"}</b> : {validatePiece(p, materials)}</li>
+          ))}
+        </ul>
       )}
       {pasting && (
         <PasteDialog materials={materials} defaultMaterialId={materialId} onClose={() => setPasting(false)}

@@ -64,7 +64,11 @@ function Index() {
   const linears = project.linears ?? [];
   const allPieces = [...project.pieces, ...linearPieces(linears, materials)];
   const recap = result ? linearRecap(linears, materials, allPieces, result) : [];
-  const inputKey = JSON.stringify({ materials, pieces: project.pieces, linears, objective, projectId: project.id });
+  const keyOf = (pieces: typeof project.pieces) => JSON.stringify({ materials, pieces, linears, objective, projectId: project.id });
+  const inputKey = keyOf(project.pieces);
+  // Empreinte de la saisie au moment du calcul : si elle a change, le resultat affiche est perime
+  const [resultKey, setResultKey] = useState<string | null>(null);
+  const stale = !!result && resultKey !== null && resultKey !== inputKey;
   const latestInput = useRef(inputKey);
   latestInput.current = inputKey;
   const visibleSuggestion = suggestion?.key === inputKey ? suggestion : null;
@@ -73,7 +77,8 @@ function Index() {
   const activeMaterial = materials.find((m) => m.id === selectedTab);
   const invalidTab = (id: string) => project.pieces.some((p) => p.materialId === id && validatePiece(p, materials))
     || linears.some((l) => l.materialId === id && (!l.bandWidth || !l.totalLength || (l.mode === "fixed" ? !l.segment : !l.min) || typeof linearSegments(l, materials) === "string"));
-  useEffect(() => { setAddedMaterials([]); setActiveTab(""); }, [project.id]);
+  // Autre projet ouvert : on repart sans le resultat du precedent
+  useEffect(() => { setAddedMaterials([]); setActiveTab(""); setResult(null); setResultKey(null); }, [project.id]);
 
   const usedMats = materials.filter((m) => project.pieces.some((p) => p.materialId === m.id));
   const priceAvailable = usedMats.length > 0 && usedMats.every((m) => m.supply.mode === "catalog" && m.supply.formats.every((f) => f.price != null));
@@ -97,7 +102,17 @@ function Index() {
       return;
     }
     setCheckInputs(false);
+    if (!materials.length) { toast.error("Créez d'abord un matériau dans la Bibliothèque"); return; }
     if (!allPieces.length) { toast.error("Ajoutez des pièces avant de lancer l'optimisation"); return; }
+    // Piece impossible (plus grande que le panneau, cote suspecte...) : on bloque avec la raison,
+    // au lieu d'un resultat « 0 piece, 0 % » sans explication
+    const impossibles = project.pieces.map((p) => ({ p, err: validatePiece(p, materials) })).filter((x) => x.err);
+    if (impossibles.length) {
+      const first = impossibles[0]!;
+      setActiveTab(first.p.materialId);
+      toast.error(`Optimisation impossible : ${impossibles.slice(0, 3).map((x) => `${x.p.label || "pièce sans repère"} : ${x.err}`).join(" ; ")}${impossibles.length > 3 ? ` ; et ${impossibles.length - 3} autre(s)` : ""}.`);
+      return;
+    }
     if (linears.some((l) => typeof linearSegments(l, materials) === "string")) { toast.error("Un linéaire est incomplet ou impossible"); return; }
     const withLinearCheck = (r: OptimizeResult) => ({ ...r, errors: [...r.errors, ...linearErrors(linearRecap(linears, materials, allPieces, r))] });
     const runId = ++calculation.current;
@@ -111,6 +126,7 @@ function Index() {
       const baseline = withLinearCheck(await runOptimization({ materials, pieces: allPieces, options }));
       if (!isCurrent()) return;
       setResult(baseline);
+      setResultKey(key);
       setRunning(false);
       // Resultats hors de l'ecran : on y descend en douceur pour voir l'effet du calcul
       requestAnimationFrame(() => {
@@ -202,17 +218,17 @@ function Index() {
   </>;
 
   const exportOrder = async () => {
-    if (!result || !checkInfo()) return;
+    if (!result || stale || !checkInfo()) return;
     try { const { exportOrderPdf } = await import("@/lib/export/orderPdf"); exportOrderPdf(result, materials, allPieces, info, project); }
     catch (e) { console.error(e); toast.error("Échec de la génération du PDF"); }
   };
   const exportWorkshop = async () => {
-    if (!result || !checkInfo()) return;
+    if (!result || stale || !checkInfo()) return;
     try { const { exportWorkshopPdf } = await import("@/lib/export/pdf"); exportWorkshopPdf(result, materials, allPieces, info, recap, project.materialStatus, offcutSettings); }
     catch (e) { console.error(e); toast.error("Échec de la génération du PDF"); }
   };
   const exportXlsx = async () => {
-    if (!result) return;
+    if (!result || stale) return;
     try { const { exportOrderXlsx } = await import("@/lib/export/xlsx"); exportOrderXlsx(result, materials, info, allPieces, project, workshop); }
     catch (e) { console.error(e); toast.error("Échec de l'export Excel"); }
   };
@@ -243,7 +259,7 @@ function Index() {
             {/* Un seul bouton pour toutes les sorties (PDF commande, PDF atelier, Excel) */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="btn-outline" disabled={!result} title={result ? "" : "Lancez d'abord l'optimisation"}><Download size={15} /> Exporter <ChevronDown size={14} className="opacity-60" /></button>
+                <button className="btn-outline" disabled={!result || stale} title={!result ? "Lancez d'abord l'optimisation" : stale ? "Relancez d'abord : la saisie a changé depuis le calcul" : ""}><Download size={15} /> Exporter <ChevronDown size={14} className="opacity-60" /></button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[220px]">
                 <DropdownMenuItem onSelect={exportOrder}><FileText size={15} /> PDF commande <span className="ml-auto text-xs text-muted-foreground">fournisseur</span></DropdownMenuItem>
@@ -286,6 +302,31 @@ function Index() {
           </div>}
         </section>
 
+        {/* Premier lancement (bibliotheque vide) : on explique par ou commencer */}
+        {ready && materials.length === 0 && (
+          <section aria-labelledby="titre-demarrage" className="card-tech px-6 py-8">
+            <h2 id="titre-demarrage" className="text-[22px] font-semibold tracking-[-0.02em]">Pour commencer</h2>
+            <ol className="mt-5 grid gap-4 sm:grid-cols-3">
+              {[
+                ["Créez un matériau", "Nom, épaisseur, format du panneau et trait de coupe, une seule fois dans la Bibliothèque."],
+                ["Collez vos pièces", "Copiez les lignes dans Excel (repère, largeur, hauteur, quantité), puis « Coller depuis Excel »."],
+                ["Lancez le calcul", "Ctrl + Entrée, puis exportez le PDF de commande ou le PDF atelier."],
+              ].map(([titre, texte], i) => (
+                <li key={titre} className="rounded-xl border border-border p-4">
+                  <span className="text-[13px] font-semibold tabular-nums text-signal">{i + 1}</span>
+                  <p className="mt-1 font-semibold">{titre}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{texte}</p>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Button asChild className="btn-primary"><Link to="/bibliotheque"><Plus size={15} /> Créer un matériau</Link></Button>
+              <Button asChild variant="outline" className="btn-outline"><Link to="/bibliotheque"><Library size={15} /> Importer la bibliothèque d'un collègue (.json)</Link></Button>
+            </div>
+          </section>
+        )}
+
+        {materials.length > 0 && <>
         <div className="flex items-center gap-2 pt-2">
           <div role="tablist" aria-label="Matériaux du projet" className="flex min-w-0 flex-1 flex-wrap items-center gap-1 rounded-xl bg-muted p-1">
             {tabIds.map((id) => {
@@ -297,10 +338,11 @@ function Index() {
                 {invalid && <span role="img" aria-label="Saisie invalide" title="Saisie invalide" className="h-2 w-2 shrink-0 rounded-full bg-destructive" />}
               </Button>;
             })}
-            <Button variant="ghost" size="icon" aria-label="Ajouter un matériau" title="Ajouter un matériau" className="h-9 w-9 rounded-lg text-muted-foreground hover:bg-card hover:text-foreground" onClick={() => setChoosingMaterial(true)}><Plus size={16} /></Button>
             <Button id="tab-summary" role="tab" aria-selected={selectedTab === "summary"} aria-controls="project-tab-panel" variant="ghost"
               className={`ml-auto h-9 rounded-lg px-4 text-[13px] ${selectedTab === "summary" ? "bg-card text-foreground shadow-sm hover:bg-card" : "text-muted-foreground hover:bg-transparent hover:text-foreground"}`} onClick={() => setActiveTab("summary")}>Synthèse</Button>
           </div>
+          {/* Hors de la liste d'onglets (accessibilite : une liste d'onglets ne contient que des onglets) */}
+          <Button variant="outline" size="icon" aria-label="Ajouter un matériau" title="Ajouter un matériau" className="btn-outline h-11 w-11 shrink-0 rounded-xl text-muted-foreground hover:text-foreground" onClick={() => setChoosingMaterial(true)}><Plus size={16} /></Button>
         </div>
 
         {selectedTab !== "summary" && <div className="space-y-4">
@@ -327,16 +369,24 @@ function Index() {
               <p>Autoriser la rotation de ces pièces économiserait {visibleSuggestion.saved} panneau(x)</p>
               <button className="btn-primary" onClick={() => {
                 calculation.current++;
-                setProject({ ...project, pieces: allowRotation(project.pieces, visibleSuggestion.ids) });
+                const rotated = allowRotation(project.pieces, visibleSuggestion.ids);
+                setProject({ ...project, pieces: rotated });
                 setResult(visibleSuggestion.result);
+                setResultKey(keyOf(rotated));
                 setSuggestion(null);
                 setRunning(false);
               }}>Appliquer</button>
             </div>
           )}
-          {result ? <ResultsPanel result={result} materials={materials} materialId={selectedTab === "summary" ? undefined : selectedTab} summaryOnly={selectedTab === "summary"} workshop={workshop} orderTypeOf={typeOf}
+          {stale && (
+            <div role="status" className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-accent px-4 py-3 text-sm text-accent-foreground">
+              <p><b className="font-semibold">Saisie modifiée depuis le calcul.</b> Ces résultats ne correspondent plus à la liste : relancez avant d'exporter.</p>
+              <button className="btn-primary" onClick={run}>Relancer <span className="font-normal opacity-70">Ctrl + Entrée</span></button>
+            </div>
+          )}
+          {result ? <div className={stale ? "opacity-40 transition-opacity" : undefined} aria-hidden={stale || undefined}><ResultsPanel result={result} materials={materials} materialId={selectedTab === "summary" ? undefined : selectedTab} summaryOnly={selectedTab === "summary"} workshop={workshop} orderTypeOf={typeOf}
             linears={selectedTab === "summary" ? recap : recap.filter((r) => linears.some((l) => l.id === r.id && l.materialId === selectedTab))}
-            pieces={allPieces} status={project.materialStatus} onStatus={(materialStatus) => setProject({ ...project, materialStatus })} offcuts={offcutSettings} onOffcuts={(offcuts) => setProject({ ...project, offcuts })} /> : (
+            pieces={allPieces} status={project.materialStatus} onStatus={(materialStatus) => setProject({ ...project, materialStatus })} offcuts={offcutSettings} onOffcuts={(offcuts) => setProject({ ...project, offcuts })} /></div> : (
             <div className="flex flex-col items-center gap-4 px-4 py-12 text-sm text-muted-foreground">
               <div className="flex gap-2">
                 <span className="h-8 w-12 rounded-lg border border-border hatch-waste" />
@@ -346,6 +396,7 @@ function Index() {
             </div>
           )}
         </section>
+        </>}
       </main>
       <AppFooter aboveLaunchBar />
 

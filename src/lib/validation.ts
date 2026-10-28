@@ -1,4 +1,5 @@
 import type { Material, Piece } from "./types";
+import { dims } from "./format";
 
 /** Formats utilisables (apres delignage) d'un materiau. */
 export function usableSizes(m: Material): { w: number; l: number }[] {
@@ -51,5 +52,8 @@ export function validatePiece(p: Piece, materials: Material[]): string | null {
     ({ w, l }) =>
       (p.width! <= w && p.height! <= l) || (rotate && p.width! <= l && p.height! <= w),
   );
-  return fits ? null : "Plus grande que le plus grand format";
+  if (fits) return null;
+  // On dit de combien : la cote saisie et le plus grand format utilisable (apres delignage)
+  const max = usableSizes(m).reduce((a, b) => (b.w * b.l > a.w * a.l ? b : a));
+  return `Plus grande que le plus grand format (${dims(p.width!, p.height!)} mm pour ${dims(max.w, max.l)} mm utiles)`;
 }

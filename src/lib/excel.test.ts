@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseNumber, quantityError } from "./excel";
+import { guessRoles, parseNumber, quantityError, rolesFitContent } from "./excel";
 import { MIN_DIMENSION, materialProblems, validatePiece } from "./validation";
 import { num } from "./format";
 import { normalizeMaterial } from "./storage";
@@ -77,5 +77,19 @@ describe("seuil de chute réutilisable", () => {
   it("au chargement, un seuil à 0 repasse au défaut (300 mm)", () => {
     expect(normalizeMaterial(mat(0)).reuseMin).toBeUndefined();
     expect(normalizeMaterial(mat(250)).reuseMin).toBe(250);
+  });
+});
+
+describe("collage sans en-tete : colonnes devinees d'apres le contenu", () => {
+  const rows = [["G1", "150", "120", "1"], ["G2", "247", "173", "2"]];
+  it("dans l'onglet d'un materiau : Repere, Largeur, Hauteur, Quantite", () => {
+    expect(guessRoles(rows, true)).toEqual(["label", "width", "height", "quantity"]);
+  });
+  it("liste multi-materiaux : la 2e colonne de texte devient le materiau", () => {
+    expect(guessRoles([["A1", "MDF", "600", "400", "2"]], false)).toEqual(["label", "material", "width", "height", "quantity"]);
+  });
+  it("un ancien choix qui met du texte dans une cote est ecarte", () => {
+    expect(rolesFitContent(["label", "material", "width", "height"], rows, true)).toBe(false);
+    expect(rolesFitContent(["label", "width", "height", "quantity"], rows, true)).toBe(true);
   });
 });

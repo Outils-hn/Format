@@ -1,12 +1,10 @@
 import { useMemo, useState } from "react";
 import type { Material, Piece } from "@/lib/types";
 import {
-  COLUMN_ROLES, detectHeader, matchMaterial, parseTable, quantityError, rowsToPieces, type ColumnRole,
+  COLUMN_ROLES, detectHeader, guessRoles, matchMaterial, parseTable, quantityError, rolesFitContent, rowsToPieces, type ColumnRole,
 } from "@/lib/excel";
 import { loadPasteMapping, savePasteMapping } from "@/lib/storage";
 import { Modal } from "./Modal";
-
-const DEFAULT_ROLES: ColumnRole[] = ["label", "material", "width", "height", "quantity"];
 
 export function PasteDialog({
   materials, onClose, onApply, defaultMaterialId,
@@ -24,9 +22,16 @@ export function PasteDialog({
   const table = useMemo(() => parseTable(text), [text]);
   const header = useMemo(() => (table[0] ? detectHeader(table[0]) : null), [table]);
   const cols = Math.max(0, ...table.map((r) => r.length));
-  const effRoles: ColumnRole[] = Array.from({ length: cols }, (_, i) =>
-    roles?.[i] ?? header?.[i] ?? ((loadPasteMapping() as ColumnRole[] | null) ?? DEFAULT_ROLES)[i] ?? "ignore");
   const dataRows = header ? table.slice(1) : table;
+  // Sans en-tete : le dernier choix de colonnes s'il colle au contenu, sinon une lecture du contenu.
+  // Dans l'onglet d'un materiau, aucune colonne n'est prise pour le materiau.
+  const locked = !!defaultMaterialId;
+  const guessed = useMemo(() => {
+    const saved = loadPasteMapping() as ColumnRole[] | null;
+    const fits = saved && saved.length >= cols && rolesFitContent(saved.slice(0, cols), table, locked);
+    return fits ? saved.slice(0, cols) : guessRoles(table, locked);
+  }, [table, cols, locked]);
+  const effRoles: ColumnRole[] = Array.from({ length: cols }, (_, i) => roles?.[i] ?? header?.[i] ?? guessed[i] ?? "ignore");
 
   const matCol = effRoles.indexOf("material");
   const unmatched = matCol < 0 ? [] : [...new Set(dataRows.map((r) => r[matCol] ?? ""))]
