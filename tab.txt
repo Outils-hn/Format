@@ -1,0 +1,2 @@
+chromium: Repère de pièce -> Largeur de P1 -> Hauteur de P1 -> Quantité de P1 -> Autoriser la rotation de P1 -> Supprimer
+webkit: Repère de pièce -> Largeur de P1 -> Hauteur de P1 -> Quantité de P1 -> Autoriser la rotation de P1 -> Supprimer
