@@ -27,6 +27,7 @@ const browser = await chromium.launch();
 
 async function session(name, workshop, fn) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
+  await ctx.route(/supabase\.co/, (r) => r.abort()); // jamais la vraie bibliotheque commune
   const page = await ctx.newPage();
   page.on("pageerror", (e) => errors.push(`[${name}] ${e.message}`));
   // Erreurs affichees dans la console du navigateur (souvent invisibles a l'ecran)

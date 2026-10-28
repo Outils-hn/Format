@@ -20,9 +20,12 @@ const supplyLabel = (s: Supply) =>
 export function MaterialsCard({
   materials,
   onChange,
+  localOnly,
 }: {
   materials: Material[];
   onChange: (m: Material[]) => void;
+  /** Materiaux pas encore envoyes a la bibliotheque commune */
+  localOnly?: Set<string>;
 }) {
   const [editing, setEditing] = useState<Material | null>(null);
 
@@ -44,6 +47,7 @@ export function MaterialsCard({
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-medium">
                 {m.name} <span className="mono text-muted-foreground">{num(m.thickness, 1)} mm</span>
+                {localOnly?.has(m.id) && <span className="ml-2 rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">ce poste</span>}
               </div>
               <div className="mono overflow-x-auto text-xs leading-5 text-muted-foreground">
                 <p className="whitespace-nowrap">{supplyLabel(m.supply)} · {m.cutType === "free" ? "CNC" : "scie"}</p>

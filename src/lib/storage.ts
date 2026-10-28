@@ -84,3 +84,12 @@ export function parseLibrary(json: string): Material[] {
   if (f?.app !== "format" || !Array.isArray(f.materials)) throw new Error("Fichier non reconnu");
   return f.materials.map(normalizeMaterial);
 }
+
+/** Materiaux utilises par le projet ouvert ou un projet enregistre sur ce poste. */
+export function usedMaterialIds(): Set<string> {
+  const ids = new Set<string>();
+  const cur = loadCurrent();
+  for (const p of [...(cur ? [cur] : []), ...listProjects()])
+    for (const x of [...p.pieces, ...(p.linears ?? [])]) ids.add(x.materialId);
+  return ids;
+}

@@ -8,11 +8,12 @@ import { toast } from "sonner";
 import type { Material, Project } from "@/lib/types";
 import { newProject } from "@/lib/defaults";
 import {
-  exportProject, importProject, listProjects, loadCurrent, loadMaterials, saveCurrent, saveMaterials, saveProject,
+  exportProject, importProject, listProjects, loadCurrent, loadMaterials, saveCurrent, saveMaterials, saveProject, usedMaterialIds,
 } from "@/lib/storage";
 import { uid } from "@/lib/ids";
 import { defaultOffcutSettings } from "@/lib/offcuts";
 import { Button } from "@/components/ui/button";
+import { fusionner, lireBibliotheque, noterSynchro } from "@/lib/shared-library";
 import { Brand } from "@/components/format/Brand";
 import { AppFooter } from "@/components/format/AppFooter";
 import { ProjectSettings } from "@/components/format/ProjectSettings";
@@ -160,7 +161,14 @@ function Index() {
   }, []);
 
   useEffect(() => {
-    setMaterials(loadMaterials());
+    const locaux = loadMaterials();
+    setMaterials(locaux);
+    // Bibliotheque commune : on recupere les materiaux de l'equipe en arriere-plan
+    // (fusion faite sur l'etat du moment : un import fait entre-temps n'est pas perdu)
+    void lireBibliotheque().then((remote) => {
+      if (!remote) return;
+      setMaterials((cur) => { const f = fusionner(cur, remote, usedMaterialIds()); noterSynchro(f.known); return f.materials; });
+    });
     const cur = loadCurrent();
     if (cur) setProject(cur);
     if (!cur?.info.site) setEditInfo(true);
