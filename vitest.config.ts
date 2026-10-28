@@ -9,6 +9,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    // Les calculs de debit complets prennent parfois plus de 5 s sur les machines de GitHub
+    testTimeout: 30000,
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
