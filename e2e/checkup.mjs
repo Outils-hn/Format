@@ -40,7 +40,7 @@ try {
   verif("Nouveau projet : champs du chantier ouverts", await page.getByText("Numéro de tâche").isVisible());
   verif("Nouveau projet : mode atelier garde", (await page.getByRole("switch", { name: "Mode atelier" }).getAttribute("aria-checked")) === "true");
   await page.getByRole("button", { name: /Mes projets/ }).click(); await page.waitForTimeout(300);
-  await page.getByText("Chantier démo").first().click(); await page.waitForTimeout(400);
+  await page.locator("li", { hasText: "Chantier démo" }).getByRole("button", { name: /Ouvrir/ }).click(); await page.waitForTimeout(400);
   const titre = await page.locator("#titre-projet").textContent();
   verif("Projet enregistre puis rouvert", titre === "Chantier démo", titre ?? "");
   // 4. Theme sombre retenu
