@@ -116,7 +116,7 @@ export function PiecesCard({
               Entree descend a la meme colonne de la ligne suivante. */}
           <tbody className="max-sm:block" onKeyDown={(e) => {
             const el = e.target as HTMLElement;
-            const col = el.dataset.col;
+            const col = el.dataset["col"];
             if (e.key !== "Enter" || e.ctrlKey || e.metaKey || !col) return;
             e.preventDefault();
             const cells = [...e.currentTarget.querySelectorAll<HTMLInputElement>(`[data-col="${col}"]`)];
