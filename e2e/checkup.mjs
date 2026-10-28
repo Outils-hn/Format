@@ -13,6 +13,7 @@ const projet = { id: "demo", info: { site: "Chantier démo", taskNumber: "T-01",
   pieces: [{ id: "P1", label: "P1", materialId: "fg", width: 2010, height: 382, quantity: 24, canRotate: true }], linears: [], updatedAt: "2026-10-27T00:00:00Z" };
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
+  await ctx.route(/supabase\.co/, (r) => r.abort()); // jamais la vraie bibliotheque commune
 const page = await ctx.newPage();
 page.on("dialog", (d) => d.accept());
 await page.addInitScript(([m, p]) => {
@@ -57,6 +58,7 @@ try {
 // 6. Quick wins : premier lancement guide, collage sans en-tete, piece impossible, resultat perime
 try {
   const vierge = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await vierge.route(/supabase\.co/, (r) => r.abort()); // jamais la vraie bibliotheque commune
   const p2 = await vierge.newPage();
   p2.on("dialog", (d) => d.accept());
   await p2.goto(BASE, { waitUntil: "networkidle" });
@@ -65,6 +67,7 @@ try {
   await vierge.close();
 
   const c3 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await c3.route(/supabase\.co/, (r) => r.abort()); // jamais la vraie bibliotheque commune
   const p3 = await c3.newPage();
   p3.on("dialog", (d) => d.accept());
   await p3.addInitScript((m) => { if (!sessionStorage.getItem("s")) { localStorage.setItem("format.materials", JSON.stringify(m)); sessionStorage.setItem("s", "1"); } }, materials);
@@ -94,6 +97,45 @@ try {
   await p3.screenshot({ path: `${OUT}/check-resultat-perime.png` });
   await c3.close();
 } catch (e) { verif("Deroulement des quick wins", false, e.message.split("\n")[0]); }
+// 7. Bibliotheque commune (Supabase simule) : reception, prix gardes sur le poste, PIN, hors ligne
+try {
+  const envois = [];
+  const c4 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await c4.route(/supabase\.co/, async (route) => {
+    const url = route.request().url();
+    if (url.includes("/rest/v1/format_materiaux")) return route.fulfill({ json: [{ id: "eq1", data: { id: "eq1", name: "MDF équipe", thickness: 19, kerf: 4, trim: 10, grainLocked: false, cutType: "guillotine", supply: { mode: "single", width: 2800, length: 2070 } }, updated_at: "2026-10-28T10:00:00Z", deleted_at: null }] });
+    const body = JSON.parse(route.request().postData() || "{}");
+    if (url.endsWith("/rpc/verify_pin")) return route.fulfill({ json: body.p_pin === "1234" ? { ok: true } : { ok: false, error: "PIN incorrect (4 essai(s) restant(s))." } });
+    if (url.endsWith("/rpc/format_save_material")) { envois.push(body); return route.fulfill({ json: { ok: true } }); }
+    return route.fulfill({ json: { ok: true } });
+  });
+  const p4 = await c4.newPage();
+  const avecPrix = [{ ...materials[0], supply: { mode: "catalog", formats: [{ id: "f1", width: 2500, length: 1250, price: 42 }] } }];
+  await p4.addInitScript((m) => { if (!sessionStorage.getItem("s")) { localStorage.setItem("format.materials", JSON.stringify(m)); sessionStorage.setItem("s", "1"); } }, avecPrix);
+  await p4.goto(BASE + "bibliotheque", { waitUntil: "networkidle" }); await p4.waitForTimeout(500);
+  verif("Bibliotheque commune : etat « a jour »", await p4.getByText(/Bibliothèque commune à l'équipe · à jour/).isVisible());
+  verif("Bibliotheque commune : materiau de l'equipe recu", await p4.getByText("MDF équipe").isVisible());
+  verif("Bibliotheque commune : materiau local signale", await p4.getByText(/1 matériau\(x\) seulement sur ce poste/).isVisible());
+  await p4.screenshot({ path: `${OUT}/check-bibliotheque-commune.png` });
+  await p4.getByRole("button", { name: /Envoyer à l'équipe/ }).click(); await p4.waitForTimeout(300);
+  verif("Bibliotheque commune : PIN demande", await p4.getByText("Code PIN requis").isVisible());
+  await p4.getByLabel("Code PIN").fill("0000"); await p4.getByRole("button", { name: "Déverrouiller" }).click(); await p4.waitForTimeout(300);
+  verif("Bibliotheque commune : PIN faux refuse", envois.length === 0 && await p4.getByText("Code PIN requis").isVisible());
+  await p4.getByLabel("Code PIN").fill("1234"); await p4.getByRole("button", { name: "Déverrouiller" }).click(); await p4.waitForTimeout(800);
+  verif("Bibliotheque commune : envoi apres PIN", envois.length === 1, `${envois.length} envoi(s)`);
+  verif("Bibliotheque commune : aucun prix envoye", envois.length > 0 && !JSON.stringify(envois).includes("price"), JSON.stringify(envois[0]?.p?.supply ?? {}));
+  const local = await p4.evaluate(() => localStorage.getItem("format.materials") ?? "");
+  verif("Bibliotheque commune : prix garde sur le poste", local.includes('"price":42'));
+  await c4.close();
+
+  const c5 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await c5.route(/supabase\.co/, (r) => r.abort());
+  const p5 = await c5.newPage();
+  await p5.addInitScript((m) => { if (!sessionStorage.getItem("s")) { localStorage.setItem("format.materials", JSON.stringify(m)); sessionStorage.setItem("s", "1"); } }, materials);
+  await p5.goto(BASE + "bibliotheque", { waitUntil: "networkidle" }); await p5.waitForTimeout(500);
+  verif("Hors ligne : copie locale affichee", await p5.getByText(/injoignable/).isVisible() && await p5.getByText("Fibres-Gypse").first().isVisible());
+  await c5.close();
+} catch (e) { verif("Deroulement bibliotheque commune", false, e.message.split("\n")[0]); }
 await browser.close();
 writeFileSync(`${OUT}/checkup.txt`, lignes.join("\n"));
 console.log(lignes.join("\n"));
