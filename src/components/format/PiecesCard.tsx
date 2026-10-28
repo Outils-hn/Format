@@ -112,7 +112,17 @@ export function PiecesCard({
               <th aria-label="Actions" />
             </tr>
           </thead>
-          <tbody className="max-sm:block">
+          {/* Comme dans Excel : Tab passe a la cellule suivante (case a cocher et corbeille ignorees),
+              Entree descend a la meme colonne de la ligne suivante. */}
+          <tbody className="max-sm:block" onKeyDown={(e) => {
+            const el = e.target as HTMLElement;
+            const col = el.dataset["col"];
+            if (e.key !== "Enter" || e.ctrlKey || e.metaKey || !col) return;
+            e.preventDefault();
+            const cells = [...e.currentTarget.querySelectorAll<HTMLInputElement>(`[data-col="${col}"]`)];
+            const next = cells[cells.indexOf(el as HTMLInputElement) + (e.shiftKey ? -1 : 1)];
+            next?.focus();
+          }}>
             {visiblePieces.map((p) => {
               const i = pieces.findIndex((row) => row.id === p.id);
               const mat = materials.find((m) => m.id === p.materialId);
@@ -123,7 +133,7 @@ export function PiecesCard({
                   <td className="py-1.5 max-sm:col-span-2 max-sm:block"><span className="field-label sm:hidden">Repère</span>
                     <div className="relative">
                       <span className="entry-repere-swatch pointer-events-none absolute left-3 h-3 w-3 rounded-[2px] border border-foreground/20" style={{ background: planColor(i) }} />
-                      <input aria-label="Repère de pièce" aria-invalid={!p.label.trim() || undefined} className="entry-label-input input-tech w-full pl-8 pr-3" value={p.label} onChange={(e) => upd(p.id, { label: e.target.value })} />
+                      <input data-col="label" aria-label="Repère de pièce" aria-invalid={!p.label.trim() || undefined} className="entry-label-input input-tech w-full pl-8 pr-3" value={p.label} onChange={(e) => upd(p.id, { label: e.target.value })} />
                     </div>
                   </td>
                   {!materialId && <td className="py-1.5 max-sm:col-span-2 max-sm:block"><span className="field-label sm:hidden">Matériau</span>
@@ -133,15 +143,15 @@ export function PiecesCard({
                       {materials.map((m) => <option key={m.id} value={m.id}>{m.name} {m.thickness}</option>)}
                     </select>
                   </td>}
-                  <td className="py-1.5 max-sm:block"><span className="field-label sm:hidden">Largeur (mm)</span><NumInput aria-label={`Largeur de ${p.label}`} invalid={!p.width || p.width < 0} className="input-num w-full px-3" value={p.width} onChange={(n) => upd(p.id, { width: n })} /></td>
-                  <td className="py-1.5 max-sm:block"><span className="field-label sm:hidden">Hauteur (mm)</span><NumInput aria-label={`Hauteur de ${p.label}`} invalid={!p.height || p.height < 0} className="input-num w-full px-3" value={p.height} onChange={(n) => upd(p.id, { height: n })} /></td>
-                  <td className="py-1.5 max-sm:block"><span className="field-label sm:hidden">Qté</span><NumInput aria-label={`Quantité de ${p.label}`} zeroIsEmpty invalid={!p.quantity || p.quantity < 0} className="input-num w-full px-3" value={p.quantity} onChange={(n) => upd(p.id, { quantity: n == null ? 0 : Math.max(0, Math.round(n)) })} /></td>
+                  <td className="py-1.5 max-sm:block"><span className="field-label sm:hidden">Largeur (mm)</span><NumInput data-col="w" aria-label={`Largeur de ${p.label}`} invalid={!p.width || p.width < 0} className="input-num w-full px-3" value={p.width} onChange={(n) => upd(p.id, { width: n })} /></td>
+                  <td className="py-1.5 max-sm:block"><span className="field-label sm:hidden">Hauteur (mm)</span><NumInput data-col="h" aria-label={`Hauteur de ${p.label}`} invalid={!p.height || p.height < 0} className="input-num w-full px-3" value={p.height} onChange={(n) => upd(p.id, { height: n })} /></td>
+                  <td className="py-1.5 max-sm:block"><span className="field-label sm:hidden">Qté</span><NumInput data-col="q" aria-label={`Quantité de ${p.label}`} zeroIsEmpty invalid={!p.quantity || p.quantity < 0} className="input-num w-full px-3" value={p.quantity} onChange={(n) => upd(p.id, { quantity: n == null ? 0 : Math.max(0, Math.round(n)) })} /></td>
                   <td className="px-2 py-1.5 text-center max-sm:block max-sm:px-0 max-sm:text-left"><span className="field-label sm:hidden">Peut tourner</span>
-                    {locked ? <span className="whitespace-nowrap text-xs text-muted-foreground">Sens imposé</span> : <input type="checkbox" aria-label={`Autoriser la rotation de ${p.label}`} className="accent-primary disabled:opacity-40" disabled={locked} checked={!locked && p.canRotate}
+                    {locked ? <span className="whitespace-nowrap text-xs text-muted-foreground">Sens imposé</span> : <input type="checkbox" tabIndex={-1} aria-label={`Autoriser la rotation de ${p.label}`} className="accent-primary disabled:opacity-40" disabled={locked} checked={!locked && p.canRotate}
                       title={locked ? "Sens imposé par le matériau" : undefined} onChange={(e) => upd(p.id, { canRotate: e.target.checked })} />}
                   </td>
                   <td className="text-center max-sm:col-span-2 max-sm:block max-sm:text-right">
-                    <Button variant="ghost" size="sm" className="btn-danger h-7 w-7 justify-center px-0" aria-label="Supprimer" onClick={() => onChange(pieces.filter((x) => x.id !== p.id))}><Trash2 size={14} /></Button>
+                    <Button variant="ghost" size="sm" className="btn-danger h-7 w-7 justify-center px-0" tabIndex={-1} aria-label="Supprimer" onClick={() => onChange(pieces.filter((x) => x.id !== p.id))}><Trash2 size={14} /></Button>
                   </td>
                 </tr>
               );

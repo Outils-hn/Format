@@ -1,11 +1,9 @@
 import { Logo } from "./Logo";
 
 export function Brand() {
-  return <div className="flex items-center gap-3">
+  return <div className="flex items-center gap-2.5">
     <Logo />
-    <div>
-      <h1 className="text-lg font-bold leading-none">F O R M A T</h1>
-      <p className="mt-1 text-[10px] font-medium text-muted-foreground">OPTIMISATION DE DÉCOUPE 2D</p>
-    </div>
+    <h1 className="text-[17px] font-semibold leading-none tracking-tight">Format</h1>
+    <span className="sr-only">Optimisation de découpe 2D</span>
   </div>;
 }

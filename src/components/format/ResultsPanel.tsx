@@ -17,12 +17,13 @@ import type { OffcutSettings } from "@/lib/types";
 import { DEFAULT_OFFCUT_SETTINGS, offcutKey } from "@/lib/offcuts";
 const pct = (r: number) => `${num(r * 100, 1)} %`;
 
+/** Chiffre cle : petite etiquette en capitales, grand nombre, ligne d'explication. */
 function Card({ label, value, sub, tone }: { label: string; value: string; sub: string; tone: string }) {
   return (
-    <div className="rounded-sm border border-border p-3">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground"><span className={`inline-block h-3 w-4 rounded-[1px] border border-foreground ${tone}`} />{label}</div>
-      <div className="tabular-nums mt-1 text-xl font-semibold">{value}</div>
-      <div className="text-xs text-muted-foreground">{sub}</div>
+    <div className="border-t border-border pt-4">
+      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground"><span className={`inline-block h-2.5 w-2.5 rounded-[2px] ${tone}`} />{label}</div>
+      <div className="tabular-nums mt-2 text-[28px] font-semibold leading-none tracking-[-0.02em]">{value}</div>
+      <div className="mt-2 text-xs text-muted-foreground">{sub}</div>
     </div>
   );
 }
@@ -31,10 +32,10 @@ function Split({ b }: { b: Balance }) {
   const i = indicators(b);
   return (
     <div className="space-y-1.5">
-      <div className="flex h-3 w-full overflow-hidden rounded-sm border border-foreground">
-        <div className="bg-primary" style={{ width: `${i.yieldPct}%` }} />
-        <div className="hatch-reuse" style={{ width: `${i.reusablePct}%` }} />
-        <div className="hatch-waste" style={{ width: `${i.lossPct}%` }} />
+      <div className="flex h-1.5 w-full gap-0.5 overflow-hidden">
+        <div className="rounded-l-full bg-foreground" style={{ width: `${i.yieldPct}%` }} />
+        <div className="bg-signal" style={{ width: `${i.reusablePct}%` }} />
+        <div className="rounded-r-full bg-offcut-waste" style={{ width: `${i.lossPct}%` }} />
       </div>
       <p className="tabular-nums text-xs text-muted-foreground">{splitLine(i)}</p>
     </div>
@@ -44,9 +45,9 @@ function Split({ b }: { b: Balance }) {
 function Kpis({ b, mode }: { b: Balance; mode: OffcutSettings["mode"] }) {
   const i = indicators(b);
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <Card label="Chutes réutilisables" value={`${m2(i.reusable)} m² · ${pct1(i.reusablePct)}`} sub={reuseCaption(mode)} tone="hatch-reuse" />
-      <Card label="Perte définitive" value={`${m2(i.loss)} m² · ${pct1(i.lossPct)}`} sub="Matière réellement jetée" tone="hatch-waste" />
+    <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+      <Card label="Chutes réutilisables" value={`${m2(i.reusable)} m² · ${pct1(i.reusablePct)}`} sub={reuseCaption(mode)} tone="bg-signal" />
+      <Card label="Perte définitive" value={`${m2(i.loss)} m² · ${pct1(i.lossPct)}`} sub="Matière réellement jetée" tone="bg-offcut-waste" />
     </div>
   );
 }
@@ -67,16 +68,17 @@ function Banner({ result, status, simple = false, typeOf }: { result: OptimizeRe
   const i = indicators(result.total.balance);
   const s = status ?? { status: "toOrder" as const };
   const title = s.status === "toOrder" ? "À commander" : s.status === "ordered" ? "Commandés" : "À prendre en stock";
-  return <div className="space-y-3 rounded-sm border border-primary/40 bg-primary/5 p-4">
-    <div className="flex flex-wrap items-start justify-between gap-4">
+  // Bandeau principal : ce qu'il faut commander, en grand, et le rendement a cote
+  return <div className="space-y-4">
+    <div className="flex flex-wrap items-start justify-between gap-x-10 gap-y-5">
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-muted-foreground">{simple ? `${title} :` : statusTitle(s)}{statusSuffix(s)}</p>
-        {orderEntries(result.materials, typeOf).map((entry, k) => <div key={k} className="mt-1">
-          <p className="text-xl font-semibold tabular-nums">{entry.title}</p>
+        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">{simple ? title : statusTitle(s)}{statusSuffix(s)}</p>
+        {orderEntries(result.materials, typeOf).map((entry, k) => <div key={k} className="mt-2.5">
+          <p className="text-xl font-semibold leading-tight tracking-[-0.02em] tabular-nums md:text-[26px]">{entry.title}</p>
           {entry.estimate && <p className="mt-1 text-xs text-muted-foreground tabular-nums">{entry.estimate}</p>}
         </div>)}
       </div>
-      <div><p className="text-xs font-semibold text-muted-foreground">Rendement</p><p className="tabular-nums text-3xl font-semibold text-primary">{pct1(i.yieldPct)}</p></div>
+      <div className="sm:text-right"><p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Rendement</p><p className="mt-1 tabular-nums text-[56px] font-semibold leading-none tracking-[-0.04em]">{pct1(i.yieldPct).replace(/\s*%$/, "")}<span className="text-2xl text-muted-foreground"> %</span></p></div>
     </div>
     {!simple && <><p className="tabular-nums text-xs text-muted-foreground">Surface achetée {m2(i.purchased)} m² · pièces {m2(i.pieces)} m²{result.total.totalPrice != null ? ` · prix ${eur(result.total.totalPrice)}` : ""}</p><Split b={result.total.balance} /></>}
   </div>;
@@ -85,8 +87,8 @@ function Banner({ result, status, simple = false, typeOf }: { result: OptimizeRe
 function Legend({ entries }: { entries: { id: string; label: string; color: string }[] }) {
   const sw = "inline-block h-3.5 w-5 rounded-[1px] border border-foreground align-middle";
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-sm border border-border p-3 text-xs">
-      <span className="font-semibold uppercase tracking-[0.14em]">Légende</span>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-muted/60 px-3 py-2.5 text-xs">
+      <span className="font-medium uppercase tracking-[0.08em] text-muted-foreground">Légende</span>
       {entries.map((e) => <span key={e.id} className="flex items-center gap-1.5"><span className={sw} style={{ background: e.color }} />{e.label}</span>)}
       <span className="flex items-center gap-1.5"><span className={`${sw} hatch-reuse`} />Chute réutilisable</span>
       <span className="flex items-center gap-1.5"><span className={`${sw} hatch-waste`} />Perte</span>
@@ -99,7 +101,7 @@ function Legend({ entries }: { entries: { id: string; label: string; color: stri
 function Solutions({ list }: { list: SolutionSummary[] }) {
   if (list.length < 2) return null;
   return (
-    <details className="rounded-sm border border-border text-xs">
+    <details className="rounded-lg border border-border text-xs">
       <summary className="cursor-pointer select-none px-3 py-2 font-medium">Solutions comparées ({list.length})</summary>
       <table className="w-full">
         <thead className="text-left text-muted-foreground">
@@ -161,7 +163,7 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
     })}</div>;
   };
   return (
-    <div className="space-y-6 p-4">
+    <div className="space-y-8 p-5 md:p-6">
       {!ok && <div role="alert" className="flex items-center gap-2 rounded-sm border border-destructive bg-destructive-soft p-3 text-sm font-semibold text-destructive"><AlertTriangle size={18} />La vérification a échoué : consultez les détails avant de découper.</div>}
       <Banner result={displayResult} status={status} simple={!summaryOnly} typeOf={orderTypeOf} />
       {summaryOnly && <Kpis b={result.total.balance} mode={oc.mode} />}
@@ -181,7 +183,7 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
 
       {!summaryOnly && linears.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.14em]">Linéaires</h3>
+          <h3 className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Linéaires</h3>
           <table className="w-full text-sm">
             <thead className="text-left text-xs text-muted-foreground">
               <tr className="border-b border-border">
@@ -260,7 +262,7 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
         </div>
       </details>}
       {!summaryOnly && visibleMaterials.map((r) => <div key={r.materialId} className="space-y-3">
-        <h4 className="text-xs font-semibold uppercase">Plans de découpe</h4>
+        <h4 className="text-lg font-semibold tracking-[-0.01em]">Plans de découpe</h4>
         {renderSheets(r, workshop ? "plan" : "thumb")}
       </div>)}
     </div>

@@ -17,7 +17,7 @@ export function ProjectsDialog({
   const file = useRef<HTMLInputElement>(null);
   return (
     <Modal title="Mes projets" onClose={onClose}>
-      <ul className="divide-y divide-border rounded-sm border border-border">
+      <ul className="divide-y divide-border rounded-lg border border-border">
         {projects.map((p) => (
           <li key={p.id} className="flex items-center gap-2 px-3 py-2">
             <div className="min-w-0 flex-1">
