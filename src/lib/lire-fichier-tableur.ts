@@ -9,7 +9,7 @@ export const estTableur = (f: File) => /\.(xlsx|xlsm|xls|ods|csv|tsv|txt)$/i.tes
 export function lignesEnTexte(lignes: unknown[][]): string {
   return lignes
     .map((l) => {
-      const c = l.map((v) => (v == null ? "" : typeof v === "number" ? String(v) : String(v).replace(/[\t\r\n]+/g, " ").trim()));
+      const c = l.map((v) => (v == null ? "" : typeof v === "number" ? String(v).replace(".", ",") : String(v).replace(/[\t\r\n]+/g, " ").trim()));
       while (c.length && c[c.length - 1] === "") c.pop();
       return c.join("\t");
     })
