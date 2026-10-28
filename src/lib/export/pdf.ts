@@ -9,7 +9,7 @@ import { cleanName, download, pieceOrder } from "./common";
 import { DEFAULT_OFFCUT_SETTINGS, compactOrigins, labeledOffcuts, markResolver, retainedOffcuts, reusableOffcutItems, type MarkOf } from "../offcuts";
 import type { OffcutSettings } from "../types";
 import { DEFAULT_REUSE_MIN } from "../optimizer/engine";
-import { dims, eur, m2, num, panelGroup, panelOrder, positionPair, reuseCaption } from "../format";
+import { dims, chf, m2, num, panelGroup, panelOrder, positionPair, reuseCaption } from "../format";
 import { fitPieceLabel, pieceRowKey } from "../pieceLabels";
 import { INTER_BOLD, INTER_REGULAR } from "./interFont";
 import type { LinearRecap } from "../linear";
@@ -264,7 +264,7 @@ function formatsLine(m: Material, used: { width: number; length: number }[]) {
 function supplyText(m: Material) {
   const s = m.supply;
   if (s.mode === "single") return `${dims(s.width, s.length)} mm`;
-  if (s.mode === "catalog") return s.formats.map((f) => `${dims(f.width, f.length)}${f.price != null ? ` (${eur(f.price)})` : ""}`).join(", ");
+  if (s.mode === "catalog") return s.formats.map((f) => `${dims(f.width, f.length)}${f.price != null ? ` (${chf(f.price)})` : ""}`).join(", ");
   return `largeur ${num(s.width)} mm, longueur ${num(s.minLength)} à ${num(s.maxLength)} mm par pas de ${num(s.step)} mm`;
 }
 
@@ -528,7 +528,7 @@ export function exportWorkshopPdf(result: OptimizeResult, materials: Material[],
     for (const line of lines) { w.doc.text(line, M, w.y + 5); w.y += 6.5; }
   }
   w.y = Math.max(w.y, top + 19);
-  w.text(`Surface achetée ${m2(ti.purchased)} m² · pièces ${m2(ti.pieces)} m²${result.total.totalPrice != null ? ` · prix ${eur(result.total.totalPrice)}` : ""}`, 7.5, false, GREY, 1.5);
+  w.text(`Surface achetée ${m2(ti.purchased)} m² · pièces ${m2(ti.pieces)} m²${result.total.totalPrice != null ? ` · prix ${chf(result.total.totalPrice)}` : ""}`, 7.5, false, GREY, 1.5);
   splitBar(w, result.total.balance);
   cards(w, ti, oc.mode);
   w.y += 2;
@@ -545,7 +545,7 @@ export function exportWorkshopPdf(result: OptimizeResult, materials: Material[],
     }
     kpis(w, r.balance, r.sheets.length, oc.mode, mat, pieces, r.unplaced.length, single);
     if (r.formats.length && !single)
-      w.text(`${statusTitle(status)} : ${r.formats.map((f) => `${panelOrder(f.count, f.width, f.length, r.name, r.thickness)}${f.price != null ? ` (${eur(f.count * f.price)})` : ""}`).join(" · ")}${statusSuffix(status)}`, 8.5, true, INK, 2);
+      w.text(`${statusTitle(status)} : ${r.formats.map((f) => `${panelOrder(f.count, f.width, f.length, r.name, r.thickness)}${f.price != null ? ` (${chf(f.count * f.price)})` : ""}`).join(" · ")}${statusSuffix(status)}`, 8.5, true, INK, 2);
     if (r.unplaced.length) w.text(`Pièces impossibles à placer : ${r.unplaced.map((u) => `${u.label} × ${u.quantity} (${u.reason})`).join(" ; ")}`, 8.5, true, INK, 2);
     const list = pieces.filter((p) => p.materialId === r.materialId);
     const qty = list.reduce((a, p) => a + p.quantity, 0);

@@ -12,7 +12,8 @@ export const dec = (n: number | null | undefined, d: number) => fmt(n, d, d);
 export const dims = (w: number, h: number) => `${num(w, 1)} × ${num(h, 1)}`;
 export const m2 = (mm2: number) => dec(mm2 / 1e6, 2);
 export const pct1 = (n: number) => `${dec(n, 1)} %`;
-export const eur = (n: number | null | undefined) => (n == null ? "—" : `${num(n, 2)} €`);
+// Prix en francs suisses (meme unite que la saisie dans la Bibliotheque)
+export const chf = (n: number | null | undefined) => (n == null ? "—" : `${num(n, 2)} CHF`);
 
 /** Une paire X/Y reste indivisible ; les listes se séparent par « · ». */
 export const positionPair = (x: number, y: number) => `${num(x, 1)}\u00a0/\u00a0${num(y, 1)}`;
