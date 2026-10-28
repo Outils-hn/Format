@@ -11,8 +11,8 @@ describe("Material editor", () => {
     fireEvent.change(screen.getByLabelText("Largeur (mm)"), { target: { value: "1000" } });
     fireEvent.change(screen.getByLabelText("Longueur (mm)"), { target: { value: "2000" } });
     fireEvent.click(screen.getByRole("button", { name: "Plusieurs formats catalogue" }));
-    expect(screen.getByLabelText("Largeur du format")).toHaveValue("1000");
-    expect(screen.getByLabelText("Longueur du format")).toHaveValue("2000");
+    expect(screen.getByLabelText("Largeur du format")).toHaveValue("1\u202f000");
+    expect(screen.getByLabelText("Longueur du format")).toHaveValue("2\u202f000");
     fireEvent.change(screen.getByLabelText("Prix du format"), { target: { value: "42,5" } });
     expect(screen.getByText("CHF")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /^Format$/ }));
@@ -29,10 +29,10 @@ describe("Material editor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Longueur à la demande" }));
     fireEvent.change(screen.getByLabelText("Long. mini"), { target: { value: "777" } });
     fireEvent.click(screen.getByRole("button", { name: "Format unique" }));
-    expect(screen.getByLabelText("Largeur (mm)")).toHaveValue("1000");
-    expect(screen.getByLabelText("Longueur (mm)")).toHaveValue("2000");
+    expect(screen.getByLabelText("Largeur (mm)")).toHaveValue("1\u202f000");
+    expect(screen.getByLabelText("Longueur (mm)")).toHaveValue("2\u202f000");
     fireEvent.click(screen.getByRole("button", { name: "Format unique" }));
-    expect(screen.getByLabelText("Longueur (mm)")).toHaveValue("2000");
+    expect(screen.getByLabelText("Longueur (mm)")).toHaveValue("2\u202f000");
     fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
     expect(save.mock.calls[0]?.[0][0]).toMatchObject({
       supply: { mode: "single", width: 1000, length: 2000 },
