@@ -384,7 +384,10 @@ function drawPlan(doc: jsPDF, s: SheetResult, mat: Material, cuts: Cut[], color:
   doc.text(num(s.width), X(s.width / 2), oy - a - 1, { align: "center" });
   doc.line(ox - a, Y(0), ox - a, Y(s.length));
   doc.line(ox - a - 1.5, Y(0), ox - 1, Y(0)); doc.line(ox - a - 1.5, Y(s.length), ox - 1, Y(s.length));
-  doc.text(num(s.length), ox - a - 1, Y(s.length / 2), { align: "center", angle: 90 });
+  // Texte vertical : jsPDF centre mal un texte tourne (il le decale loin de la ligne),
+  // on le centre donc a la main : il monte depuis le milieu + la moitie de sa longueur.
+  const hauteurTexte = num(s.length);
+  doc.text(hauteurTexte, ox - a - 1, Y(s.length / 2) + doc.getTextWidth(hauteurTexte) / 2, { angle: 90 });
 }
 
 function sheetPage(w: Writer, g: SheetGroup, mat: Material, r: { name: string; thickness: number }, color: (id: string) => RGB, mode: OffcutSettings["mode"], mark: MarkOf) {
