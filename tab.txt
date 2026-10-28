@@ -1,0 +1,2 @@
+chromium: Repère de pièce -> Largeur de P1 -> Hauteur de P1 -> Quantité de P1 -> Repère de pièce -> Largeur de P2 -> [Entree] Largeur de P2
+webkit: Repère de pièce -> Largeur de P1 -> Hauteur de P1 -> Quantité de P1 -> Repère de pièce -> Largeur de P2 -> [Entree] Largeur de P2
