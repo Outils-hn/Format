@@ -7,6 +7,7 @@ import { Logo } from "./Logo";
  * Chaque appli reste independante (ses donnees restent dans son propre navigateur/site).
  */
 const APPLIS = [
+  { nom: "Access", role: "Annuaire fournisseurs", url: "https://access-hn.lovable.app", couleur: "#C2255C" },
   { nom: "Format", role: "Débit de panneaux", url: "https://format-hn.lovable.app", couleur: "#FF4D00" },
   { nom: "Index", role: "Fiches techniques", url: "https://index-hn.lovable.app", couleur: "#6D4AFF" },
   { nom: "Linear", role: "Mise en barre", url: "https://linear-hn.lovable.app", couleur: "#2B50FF" },
