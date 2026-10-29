@@ -188,7 +188,7 @@
 
 @utility card-tech { @apply rounded-xl border border-border bg-card; }
 @utility card-tech-head { @apply flex items-center justify-between gap-2 border-b border-border px-5 py-3.5; }
-@utility card-title { @apply text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground; }
+@utility card-title { @apply text-xs font-medium uppercase tracking-[0.08em]; color: var(--app-ink); }
 @utility field-label { @apply mb-1 block text-xs font-medium text-muted-foreground; }
 @utility input-tech { @apply h-9 w-full rounded-lg border border-input bg-card px-2.5 text-sm outline-none transition-[border-color,box-shadow] focus:border-primary focus:ring-4 focus:ring-ring/10 disabled:opacity-50; }
 @utility input-num { @apply input-tech text-right font-mono tabular-nums; }
@@ -275,3 +275,28 @@ select.input-tech option { text-decoration: none; font-style: normal; font-weigh
   background-color: var(--offcut-reuse-bg);
   background-image: repeating-linear-gradient(-45deg, var(--offcut-reuse) 0 var(--hatch-width), transparent var(--hatch-width) var(--hatch-spacing));
 }
+
+/* ===== Famille Epure : fond « papier » et couleur de l'appli bien presente =====
+   Meme regles dans les 6 applis : filet de couleur en haut de l'ecran, onglet actif souligne,
+   choix actifs en couleur, petits titres en couleur. --app = couleur de l'appli,
+   --app-ink = sa version lisible en texte, --app-fill / --app-on = fond et texte d'un choix actif. */
+:root {
+  --app: #FF4D00; --app-ink: #C43A00; --app-fill: #C43A00; --app-on: #FFFFFF;
+}
+.dark {
+  --app: #FF6A2B; --app-ink: #FF8A57; --app-fill: #FF6A2B; --app-on: #17181C;
+}
+/* Fond papier en mode clair : moins eblouissant que le blanc, cartes mieux detachees */
+:root:not(.dark) {
+  --background: #F1F0EC;
+  --card: #FAFAF8;
+  --popover: #FAFAF8;
+  --secondary: #E8E7E2;
+  --muted: #E8E7E2;
+  --accent: #E8E7E2;
+  --border: #E0DFD9;
+  --input: #D3D2CB;
+  --muted-foreground: #5D6068; /* un cran plus fonce : reste lisible sur le fond papier */
+}
+body { border-top: 3px solid var(--app); }
+[role="tab"][data-state="active"] { box-shadow: inset 0 -2px 0 var(--app), 0 1px 2px rgb(0 0 0 / 0.06); }
