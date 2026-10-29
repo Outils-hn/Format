@@ -176,6 +176,7 @@ try {
     return route.abort();
   });
   const p6 = await c6.newPage();
+  await p6.addInitScript((m) => { if (!sessionStorage.getItem("s")) { localStorage.setItem("format.materials", JSON.stringify(m)); sessionStorage.setItem("s", "1"); } }, materials);
   await p6.goto(BASE + "bibliotheque", { waitUntil: "networkidle" }); await p6.waitForTimeout(500);
   await p6.getByRole("button", { name: "Modifier" }).first().click(); await p6.waitForTimeout(300);
   await p6.getByRole("button", { name: "Lier une fiche Index" }).click(); await p6.waitForTimeout(400);
