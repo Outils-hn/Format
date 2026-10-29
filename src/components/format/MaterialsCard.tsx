@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FicheIndexLien } from "@/components/famille/FicheIndexLien";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import type { Material, OrderType, Supply } from "@/lib/types";
 import { newMaterial } from "@/lib/defaults";
@@ -54,6 +55,7 @@ export function MaterialsCard({
                 <p className="whitespace-nowrap">{supplyLabel(m.supply)} · {m.cutType === "free" ? "CNC" : "scie"}</p>
                 <p className="whitespace-nowrap">trait {m.kerf} · délign. {m.trim}{m.grainLocked && " · sens"}</p>
               </div>
+              {m.indexFiche && <div className="mt-1"><FicheIndexLien value={m.indexFiche} /></div>}
             </div>
             <Button variant="ghost" className="btn-ghost h-7 px-1.5" aria-label="Modifier" onClick={() => setEditing(m)}><Pencil size={14} /></Button>
             <Button variant="ghost"
@@ -133,6 +135,10 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
           <input type="checkbox" className="accent-primary" checked={m.grainLocked} onChange={(e) => set({ grainLocked: e.target.checked })} />
           Sens imposé <span className="text-muted-foreground">— les pièces ne tournent pas (décor, fil du bois, laquage)</span>
         </label>
+        <div className="col-span-2 sm:col-span-3">
+          <span className="field-label">Fiche technique (Index)</span>
+          <FicheIndexLien value={m.indexFiche ?? null} onChange={(f) => set({ indexFiche: f ?? undefined })} />
+        </div>
       </div>
 
       <div className="mt-4 border-t border-border pt-4">

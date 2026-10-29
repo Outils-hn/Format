@@ -165,6 +165,28 @@ try {
   verif("Hors ligne : copie locale affichee", await p5.getByText(/injoignable/).isVisible() && await p5.getByText("Fibres-Gypse").first().isVisible());
   await c5.close();
 } catch (e) { verif("Deroulement bibliotheque commune", false, e.message.split("\n")[0]); }
+
+// Lien d'un materiau vers sa fiche technique Index (base d'Index simulee)
+try {
+  const c6 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await c6.route(/supabase\.co/, (route) => {
+    const u = new URL(route.request().url());
+    if (u.hostname.startsWith("ngfzwfbraqkdcocdcmib") && u.pathname.endsWith("/products"))
+      return route.fulfill({ json: [{ id: "fiche-fg", name: "Fermacell Fibres-Gypse", supplier: "James Hardie", category: "Panneaux", deleted_at: null }] });
+    return route.abort();
+  });
+  const p6 = await c6.newPage();
+  await p6.addInitScript((m) => { if (!sessionStorage.getItem("s")) { localStorage.setItem("format.materials", JSON.stringify(m)); sessionStorage.setItem("s", "1"); } }, materials);
+  await p6.goto(BASE + "bibliotheque", { waitUntil: "networkidle" }); await p6.waitForTimeout(500);
+  await p6.getByRole("button", { name: "Modifier" }).first().click(); await p6.waitForTimeout(300);
+  await p6.getByRole("button", { name: "Lier une fiche Index" }).click(); await p6.waitForTimeout(400);
+  await p6.getByLabel("Rechercher une fiche dans Index").fill("fermacell");
+  await p6.getByRole("button", { name: /Fermacell Fibres-Gypse/ }).click();
+  const href = await p6.getByRole("link", { name: /Fermacell Fibres-Gypse/ }).getAttribute("href");
+  verif("Lien vers la fiche Index dans le materiau", href === "https://index-hn.lovable.app/?fiche=fiche-fg", href ?? "");
+  await p6.screenshot({ path: `${OUT}/40-lien-index.png` });
+  await c6.close();
+} catch (e) { verif("Lien vers une fiche Index", false, e.message.split("\n")[0]); }
 await browser.close();
 writeFileSync(`${OUT}/checkup.txt`, lignes.join("\n"));
 console.log(lignes.join("\n"));

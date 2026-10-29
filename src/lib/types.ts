@@ -31,6 +31,8 @@ export interface Material {
   supplyValues?: SupplyValues | undefined; // valeurs conservées des modes inactifs
   supplier?: string | undefined;
   orderType?: OrderType | undefined;
+  /** Fiche technique liee dans Index (partagee avec la bibliotheque commune). */
+  indexFiche?: { id: string; name: string } | undefined;
 }
 
 export interface Piece {
