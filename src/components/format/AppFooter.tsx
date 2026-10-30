@@ -1,3 +1,4 @@
+import { LienRetour } from "./LienRetour";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,8 @@ export function AppFooter({ aboveLaunchBar = false }: { aboveLaunchBar?: boolean
         </Dialog.Trigger>
         <span>· {APP_INFO.year} ·</span>
         <BackupLink cfg={BACKUP_CONFIG} appName={APP_INFO.name} />
+        <span>·</span>
+        <LienRetour app="Format" version={APP_INFO.version} className="rounded-sm px-0.5 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline" />
       </p>
       {/* En bas a gauche, a cote de la pastille de calcul (centree) */}
       <BackupReminder cfg={BACKUP_CONFIG} className="bottom-5" />
