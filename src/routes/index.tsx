@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmHost, confirmer } from "@/components/format/Confirm";
 import { fusionner, lireBibliotheque, noterSynchro } from "@/lib/shared-library";
 import { Brand } from "@/components/format/Brand";
+import { Bandeau } from "@/components/format/Bandeau";
 import { AppFooter } from "@/components/format/AppFooter";
 import { ProjectSettings } from "@/components/format/ProjectSettings";
 import { Modal } from "@/components/format/Modal";
@@ -254,38 +255,39 @@ function Index() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-border bg-background">
-        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-4 px-8 py-3.5">
-          <Brand />
-          <nav className="ml-auto flex flex-wrap items-center gap-2">
-            <Button asChild variant="ghost" className="btn-ghost"><Link to="/bibliotheque"><Library size={15} /> Bibliothèque</Link></Button>
-            <label className="mr-1 flex items-center gap-2 px-2 text-[13px] text-muted-foreground">
-              <Button type="button" role="switch" variant="ghost" size="icon" aria-checked={workshop} aria-label="Mode atelier" onClick={() => setProject({ ...project, workshopMode: !workshop })}
-                className={`relative h-5 w-9 rounded-full transition-colors ${workshop ? "bg-primary" : "bg-input"}`}>
-                <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow transition-all ${workshop ? "left-[18px]" : "left-0.5"}`} />
-              </Button>
-              Mode atelier
-            </label>
-            {/* Un seul bouton pour toutes les sorties (PDF commande, PDF atelier, Excel) */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="btn-outline" disabled={!result || stale} title={!result ? "Lancez d'abord l'optimisation" : stale ? "Relancez d'abord : la saisie a changé depuis le calcul" : ""}><Download size={15} /> Exporter <ChevronDown size={14} className="opacity-60" /></button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[220px]">
-                <DropdownMenuItem onSelect={exportOrder}><FileText size={15} /> PDF commande <span className="ml-auto text-xs text-muted-foreground">fournisseur</span></DropdownMenuItem>
-                {workshop && <DropdownMenuItem onSelect={exportWorkshop}><FileText size={15} /> PDF atelier <span className="ml-auto text-xs text-muted-foreground">plans</span></DropdownMenuItem>}
-                <DropdownMenuItem onSelect={exportXlsx}><FileSpreadsheet size={15} /> Commande Excel</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <button className="btn-ghost" onClick={() => setShowProjects(true)}><FolderOpen size={15} /> Mes projets</button>
-            <button className="btn-ghost" onClick={() => void startNew()}><FilePlus2 size={15} /> Nouveau</button>
-            <button className="btn-primary" onClick={save}><Save size={15} /> Sauvegarder</button>
-            <ThemeToggle />
-          </nav>
-        </div>
-      </header>
+      <Bandeau
+        marque={<Brand />}
+        onglets={<>
+          <Link to="/" className="bandeau-onglet" activeOptions={{ exact: true }}>Projet</Link>
+          <Link to="/bibliotheque" className="bandeau-onglet">Bibliothèque</Link>
+        </>}
+        actions={<>
+          <label className="mr-1 flex items-center gap-2 text-[13px] text-muted-foreground">
+            <Button type="button" role="switch" variant="ghost" size="icon" aria-checked={workshop} aria-label="Mode atelier" onClick={() => setProject({ ...project, workshopMode: !workshop })}
+              className={`relative h-5 w-9 rounded-full transition-colors ${workshop ? "bg-primary" : "bg-input"}`}>
+              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow transition-all ${workshop ? "left-[18px]" : "left-0.5"}`} />
+            </Button>
+            Mode atelier
+          </label>
+          {/* Un seul bouton pour toutes les sorties (PDF commande, PDF atelier, Excel) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="bandeau-btn" disabled={!result || stale} title={!result ? "Lancez d'abord l'optimisation" : stale ? "Relancez d'abord : la saisie a changé depuis le calcul" : ""}><Download size={15} /> Exporter <ChevronDown size={14} className="opacity-60" /></button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[220px]">
+              <DropdownMenuItem onSelect={exportOrder}><FileText size={15} /> PDF commande <span className="ml-auto text-xs text-muted-foreground">fournisseur</span></DropdownMenuItem>
+              {workshop && <DropdownMenuItem onSelect={exportWorkshop}><FileText size={15} /> PDF atelier <span className="ml-auto text-xs text-muted-foreground">plans</span></DropdownMenuItem>}
+              <DropdownMenuItem onSelect={exportXlsx}><FileSpreadsheet size={15} /> Commande Excel</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <button className="bandeau-btn" onClick={() => setShowProjects(true)}><FolderOpen size={15} /> Mes projets</button>
+          <button className="bandeau-btn" onClick={() => void startNew()}><FilePlus2 size={15} /> Nouveau</button>
+          <button className="bandeau-btn primaire" onClick={save}><Save size={15} /> Sauvegarder</button>
+        </>}
+        theme={<ThemeToggle />}
+      />
 
-      <main className="mx-auto w-full max-w-[1440px] flex-1 space-y-6 px-8 pt-8 pb-6">
+      <main className="page flex-1 space-y-6 pt-8 pb-6">
         {/* Projet : titre + une ligne de resume ; les champs ne s'ouvrent que pour les modifier */}
         <section aria-labelledby="titre-projet">
           <div className="flex flex-wrap items-end justify-between gap-3">

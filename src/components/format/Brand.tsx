@@ -20,7 +20,7 @@ const APPLIS = [
 
 export function Brand() {
   return <div className="flex items-center gap-2.5">
-    <Logo />
+    <Logo className="h-[22px] w-[22px]" />
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center gap-1 rounded-md px-1 py-0.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/30" aria-label="Changer d'application">
         <h1 className="text-[17px] font-semibold leading-none tracking-tight">Format</h1>

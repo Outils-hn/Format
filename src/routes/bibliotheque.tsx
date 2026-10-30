@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/format/ThemeToggle";
-import { ArrowLeft, CloudOff, Download, RefreshCw, Upload, Users } from "lucide-react";
+import { CloudOff, Download, RefreshCw, Upload, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { Material } from "@/lib/types";
 import { exportLibrary, loadMaterials, parseLibrary, saveMaterials, usedMaterialIds } from "@/lib/storage";
 import { ConfirmHost } from "@/components/format/Confirm";
+import { Bandeau } from "@/components/format/Bandeau";
 import { PinDialog, publierChangements, synchroniser, type Etat } from "@/components/format/SharedLibrary";
 import { lireDateSynchro } from "@/lib/shared-library";
 import { uid } from "@/lib/ids";
@@ -97,14 +98,15 @@ function LibraryPage() {
   const conflict = pending?.queue[0];
 
   return <div className="flex min-h-screen flex-col">
-    <header className="border-b border-border bg-card/90 backdrop-blur">
-      <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-4 px-8 py-3">
-        <Brand />
-        <Button asChild variant="ghost" className="btn-ghost ml-auto"><Link to="/"><ArrowLeft size={15} /> Retour au projet</Link></Button>
-        <ThemeToggle />
-      </div>
-    </header>
-    <main className="mx-auto w-full max-w-[1600px] flex-1 space-y-5 px-8 py-6">
+    <Bandeau
+      marque={<Brand />}
+      onglets={<>
+        <Link to="/" className="bandeau-onglet" activeOptions={{ exact: true }}>Projet</Link>
+        <Link to="/bibliotheque" className="bandeau-onglet">Bibliothèque</Link>
+      </>}
+      theme={<ThemeToggle />}
+    />
+    <main className="page flex-1 space-y-5 py-6">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="mr-auto text-[32px] font-semibold leading-none tracking-[-0.03em]">Bibliothèque</h2>
         <Button variant="outline" className="btn-outline" disabled={!materials.length}

@@ -24,7 +24,7 @@ export function ThemeToggle() {
   };
 
   return (
-    <button type="button" className="btn-ghost px-2" onClick={toggle} aria-label="Basculer le thème" title={dark ? "Passer en mode clair" : "Passer en mode sombre"}>
+    <button type="button" className="bandeau-icone" onClick={toggle} aria-label="Basculer le thème" title={dark ? "Passer en mode clair" : "Passer en mode sombre"}>
       {dark ? <Sun size={15} /> : <Moon size={15} />}
     </button>
   );
