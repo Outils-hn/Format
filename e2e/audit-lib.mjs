@@ -7,9 +7,10 @@ export const BASE = process.env.APP_URL || "http://127.0.0.1:8080/";
 fs.mkdirSync(OUT, { recursive: true });
 
 export const rapport = { constats: [], erreurs: [], metriques: {} };
-export const note = (cle, valeur) => { rapport.metriques[cle] = valeur; };
+export const note = (cle, valeur) => { rapport.metriques[cle] = valeur; try { ecrire(); } catch {} };
+export const tenter = async (nom, fn) => { try { await fn(); } catch (e) { rapport.erreurs.push(`[${nom}] script : ${String(e.message).split("\n")[0]}`); try { ecrire(); } catch {} } };
 export const constat = (txt) => { rapport.constats.push(txt); console.log("•", txt); };
-export const ecrire = () => { fs.writeFileSync(`${OUT}/audit.json`, JSON.stringify(rapport, null, 2)); fs.writeFileSync(`${OUT}/audit.txt`, ["# Constats", ...rapport.constats, "", "# Erreurs navigateur", ...(rapport.erreurs.length ? rapport.erreurs : ["aucune"]), "", "# Metriques", JSON.stringify(rapport.metriques, null, 2)].join("\n")); };
+export function ecrire() { fs.writeFileSync(`${OUT}/audit.json`, JSON.stringify(rapport, null, 2)); fs.writeFileSync(`${OUT}/audit.txt`, ["# Constats", ...rapport.constats, "", "# Erreurs navigateur", ...(rapport.erreurs.length ? rapport.erreurs : ["aucune"]), "", "# Metriques", JSON.stringify(rapport.metriques, null, 2)].join("\n")); };
 
 export async function lancer() {
   const b = await chromium.launch();

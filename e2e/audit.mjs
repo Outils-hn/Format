@@ -1,5 +1,5 @@
 // Audit UX de Format : premier lancement vide, parcours complet, cas limites, mobile, accessibilite (donnees fictives).
-import { lancer, ouvrir, photo, mesures, axe, tabsJusqua, focusVisible, note, ecrire } from "./audit-lib.mjs";
+import { lancer, ouvrir, photo, mesures, axe, tabsJusqua, focusVisible, note, ecrire, tenter } from "./audit-lib.mjs";
 import fs from "node:fs";
 const b = await lancer();
 const formats = [[2500, 1250], [3000, 1250], [2000, 1250]];
@@ -49,6 +49,7 @@ for (const [nom, pieces] of Object.entries(limites)) {
   await photo(q, `04-${nom}-apres`, nom !== "mille-pieces");
   await q.context().close();
 }
+await tenter("Saisie reelle", async () => {
 // 4. Saisie reelle : ajouter une ligne, taper des valeurs bizarres
 p = await ouvrir(b, "saisie", { init: semer([]), brancher: coupe });
 await p.getByRole("button", { name: "Ajouter" }).first().click(); await p.waitForTimeout(400);
@@ -60,18 +61,25 @@ await p.getByRole("button", { name: "Coller depuis Excel" }).click(); await p.wa
 const lignes = ["Repère\tMatériau\tLargeur\tHauteur\tQuantité", "A1\tMDF\t600\t400\t2", "A2\tInconnu\t500\t300\t1", "A3\tMDF\tabc\t300\t1", "A4\tMDF\t500\t300\t0", "A5\tMDF\t500\t300\t1,5"].join("\n");
 await p.locator("textarea").first().fill(lignes); await p.waitForTimeout(600); await photo(p, "05b-collage-erreurs", false);
 note("collage-erreurs", (await txt(p, "[role=dialog], .modal, body")).slice(0, 600));
+});
+await tenter("Retour arriere", async () => {
 // 5. Retour arriere / projets / sauvegarde
 await p.keyboard.press("Escape");
 await p.getByRole("button", { name: /^Sauvegarde$/ }).click().catch(() => {}); await p.waitForTimeout(400); await photo(p, "06-sauvegarde", false);
 await p.keyboard.press("Escape");
 await p.getByRole("button", { name: "Mes projets" }).click().catch(() => {}); await p.waitForTimeout(400); await photo(p, "06b-mes-projets", false);
+});
+await tenter("Bibliotheque", async () => {
 // 6. Bibliotheque
 const bib = await ouvrir(b, "bibliotheque", { init: semer(piecesDemo), brancher: coupe, url: "http://127.0.0.1:8080/bibliotheque" });
 await photo(bib, "07-bibliotheque"); await axe(bib, "bibliotheque");
+});
+await tenter("Mobile, tablette, sombre", async () => {
 // 7. Mobile, tablette, sombre
 for (const [nom, w, h] of [["mobile", 390, 844], ["tablette", 768, 1024]]) {
   const m = await ouvrir(b, nom, { w, h, init: semer(piecesDemo), brancher: coupe }); await photo(m, `08-${nom}`); await mesures(m, nom);
   await calcul(m); await photo(m, `08-${nom}-resultats`);
 }
 const d = await ouvrir(b, "sombre", { dark: true, init: semer(piecesDemo), brancher: coupe }); await d.getByRole("button", { name: "Basculer le thème" }).click(); await calcul(d); await photo(d, "09-sombre-resultats", false); await axe(d, "sombre");
+});
 ecrire(); await b.close();
