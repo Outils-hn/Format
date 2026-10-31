@@ -1,0 +1,32 @@
+# Audit UX : parcours reel + cas limites avec valeurs fictives ; resultat publie sur la branche captures/audit-ux
+name: Audit UX
+on:
+  push:
+    branches: [audit-ux]
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+      - run: bun add -d playwright@1.48.2 @axe-core/playwright && bunx playwright install --with-deps chromium
+      - name: Lancer l'appli et auditer
+        run: |
+          NO_COLOR=1 bun run build
+          cp .output/public/_shell.html .output/public/index.html
+          cp .output/public/index.html .output/public/404.html
+          (node e2e/serve.mjs .output/public 8080 > serve.log 2>&1 &)
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8080/ >/dev/null && break; sleep 1; done
+          mkdir -p out
+          node e2e/audit.mjs out || echo "audit termine avec erreur" > out/ERREUR.txt
+      - name: Publier
+        run: |
+          cd out
+          git init -q -b captures/audit-ux
+          git config user.name "github-actions"; git config user.email "github-actions@users.noreply.github.com"
+          git add -A && git commit -qm "Audit UX ($GITHUB_SHA)"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/captures/audit-ux
