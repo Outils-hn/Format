@@ -6,7 +6,7 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-// Publication sur GitHub Pages : le workflow « Pages » definit PAGES_BASE=/Trame/ (et NITRO_PRESET=static).
+// Publication sur GitHub Pages : le workflow « Pages » definit PAGES_BASE=/Format/.
 // Sans cette variable (dev, Tests, Captures, Lovable), l'appli reste servie a la racine « / ».
 const base = process.env["PAGES_BASE"] ?? "/";
 
