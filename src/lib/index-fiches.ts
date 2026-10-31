@@ -1,7 +1,7 @@
 // Liens vers les fiches techniques d'Index (bibliotheque commune du bureau).
 // Lecture seule et publique : la liste des fiches (nom, fournisseur, categorie) est lue dans la base
 // d'Index ; on ne garde ici que l'identifiant et le nom de la fiche choisie.
-export const INDEX_URL = "https://index-hn.lovable.app";
+export const INDEX_URL = "https://outils-hn.github.io/Index";
 const INDEX_DB = "https://ngfzwfbraqkdcocdcmib.supabase.co";
 // Cle PUBLIQUE d'Index (faite pour etre visible dans une page web)
 const INDEX_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5nZnp3ZmJyYXFrZGNvY2RjbWliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2Mzg2NTcsImV4cCI6MjA5NTIxNDY1N30.Ikovcm4eWkLvPO_PvkI8C8DJebBT011Rz87k_EYFdbU";
