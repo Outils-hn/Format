@@ -53,7 +53,7 @@ await tenter("Saisie reelle", async () => {
 // 4. Saisie reelle : ajouter une ligne, taper des valeurs bizarres
 p = await ouvrir(b, "saisie", { init: semer([]), brancher: coupe });
 await p.getByRole("button", { name: "Ajouter" }).first().click(); await p.waitForTimeout(400);
-const champ = p.locator("[data-col=w]").first();
+await photo(p, "05-apres-ajouter", false); const champ = p.locator("[data-col=w]").first();
 for (const v of ["600,5", "6 000", "abc", "-20", "1e5"]) { await champ.fill(v); await p.keyboard.press("Tab"); await p.waitForTimeout(200); note(`saisie-largeur:${v}`, { champ: await champ.inputValue(), invalide: await champ.getAttribute("aria-invalid") }); }
 await photo(p, "05-saisie-valeurs", false);
 // collage Excel : 300 lignes + lignes defectueuses
