@@ -183,7 +183,7 @@ try {
   await p6.getByLabel("Rechercher une fiche dans Index").fill("fermacell");
   await p6.getByRole("button", { name: /Fermacell Fibres-Gypse/ }).click();
   const href = await p6.getByRole("link", { name: /Fermacell Fibres-Gypse/ }).getAttribute("href");
-  verif("Lien vers la fiche Index dans le materiau", href === "https://index-hn.lovable.app/?fiche=fiche-fg", href ?? "");
+  verif("Lien vers la fiche Index dans le materiau", href === "https://outils-hn.github.io/Index/?fiche=fiche-fg", href ?? "");
   await p6.screenshot({ path: `${OUT}/40-lien-index.png` });
   await c6.close();
 } catch (e) { verif("Lien vers une fiche Index", false, e.message.split("\n")[0]); }

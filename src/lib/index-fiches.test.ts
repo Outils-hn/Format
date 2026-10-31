@@ -13,5 +13,5 @@ describe("liens vers Index", () => {
     expect(chercherFiches(F, "etancheite").map((f) => f.id)).toEqual(["3"]);
     expect(chercherFiches(F, "").length).toBe(3);
   });
-  it("lien direct vers la fiche", () => expect(lienFiche("a b")).toBe("https://index-hn.lovable.app/?fiche=a%20b"));
+  it("lien direct vers la fiche", () => expect(lienFiche("a b")).toBe("https://outils-hn.github.io/Index/?fiche=a%20b"));
 });
