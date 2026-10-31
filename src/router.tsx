@@ -9,6 +9,8 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
+    // Sous-dossier de publication (GitHub Pages : « /Format/ ») ; « / » partout ailleurs
+    basepath: import.meta.env.BASE_URL.replace(/\/+$/, "") || "/",
     defaultPreloadStaleTime: 0,
   });
 
