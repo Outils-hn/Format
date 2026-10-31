@@ -2,6 +2,10 @@
 
 Le numéro de version se met à jour dans `src/lib/appInfo.ts` (pied de page et fenêtre « À propos » le lisent).
 
+## 2.4 — 31 octobre 2026
+
+- Disparition de l'avertissement technique « React #418 » dans la console du navigateur : le contenu s'affiche une fois la page chargée, au lieu de se télescoper avec la page de départ générée au build. Aucun changement visible.
+
 ## 2.3 — 31 octobre 2026
 
 - Toutes les applis sont maintenant sur GitHub Pages : le sélecteur d'applis pointe vers `https://outils-hn.github.io/<Appli>/` à la place des adresses Lovable. Les liens vers les fiches d'Index (`?fiche=`, `?q=`, création de compte) ouvrent `https://outils-hn.github.io/Index/`.
