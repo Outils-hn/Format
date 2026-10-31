@@ -33,7 +33,7 @@ jobs:
         # En cas d'echec, les 60 dernieres lignes sont affichees en annotation
         run: |
           set -o pipefail
-          NO_COLOR=1 bun run build 2>&1 | tee build-output.txt || { echo "::error title=Build::$(tr '\r' '\n' < build-output.txt | sed 's/\x1b\[[0-9;?]*[A-Za-z]//g' | grep -v '^\s*$' | tail -60 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"; exit 1; }
+          NO_COLOR=1 bun run build 2>&1 | tee build-output.txt || { tr '\r' '\n' < build-output.txt | sed 's/\x1b\[[0-9;?]*[A-Za-z]//g' | grep -v '^\s*$' > build-clean.txt; { grep -nE "rror|not defined|undefined|Cannot" build-clean.txt | grep -vE "Symbol|statusText" | head -25; echo "--- fin du journal ---"; tail -15 build-clean.txt; } > build-resume.txt; echo "::error title=Build::$(sed 's/%/%25/g' build-resume.txt | awk '{printf "%s%%0A", $0}')"; exit 1; }
       - name: Contenu de la sortie (diagnostic)
         if: always()
         run: echo "::notice title=Sortie::$(find .output -maxdepth 3 -not -path '*/node_modules/*' 2>/dev/null | head -50 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
