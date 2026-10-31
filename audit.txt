@@ -1,0 +1,311 @@
+# Constats
+
+# Erreurs navigateur
+[vide] console : Failed to load resource: net::ERR_FAILED
+[demo] console : Failed to load resource: net::ERR_FAILED
+[lim-trop-grande] console : Failed to load resource: net::ERR_FAILED
+[lim-zero-negatif] console : Failed to load resource: net::ERR_FAILED
+[lim-quantite-folle] console : Failed to load resource: net::ERR_FAILED
+[lim-mille-pieces] console : Failed to load resource: net::ERR_FAILED
+[saisie] console : Failed to load resource: net::ERR_FAILED
+[Saisie reelle] script : locator.fill: Timeout 30000ms exceeded.
+[bibliotheque] console : Failed to load resource: net::ERR_FAILED
+[mobile] console : Failed to load resource: net::ERR_FAILED
+[tablette] console : Failed to load resource: net::ERR_FAILED
+[sombre] console : Failed to load resource: net::ERR_FAILED
+
+# Metriques
+{
+  "mesures:vide": {
+    "titre": "Format — Optimisation de découpe 2D",
+    "lang": "fr",
+    "viewportMeta": true,
+    "h1": 1,
+    "h2": 2,
+    "debordementHorizontal": false,
+    "largeurDoc": 1440,
+    "largeurFenetre": 1440,
+    "champs": 4,
+    "champsSansEtiquette": [],
+    "interactifs": 16,
+    "sansNom": [],
+    "cibles_sous_24px": 5,
+    "taillesTexte": {
+      "12": 11,
+      "13": 12,
+      "14": 7,
+      "16": 4,
+      "17": 1,
+      "22": 1,
+      "40": 1
+    },
+    "tailleMin": 12,
+    "octetsTransferes": 725847,
+    "octetsJS": 622588,
+    "nbRequetes": 9,
+    "domContentLoaded": 223,
+    "load": 229,
+    "chargement_ms": 1619
+  },
+  "axe:vide": [
+    {
+      "regle": "color-contrast",
+      "impact": "serious",
+      "aide": "Elements must meet minimum color contrast ratio thresholds",
+      "occurrences": 1,
+      "exemple": "<button class=\"inline-flex items-ce...\" title=\"Raccourci : Ctrl + E...\">",
+      "cible": ".bg-signal"
+    },
+    {
+      "regle": "label-content-name-mismatch",
+      "impact": "serious",
+      "aide": "Elements must have their visible text as part of their accessible name",
+      "occurrences": 1,
+      "exemple": "<button type=\"button\" id=\"radix-_r_0_\" aria-haspopup=\"menu\" aria-expanded=\"false\" data-state=\"closed\" class=\"flex items-center gap-1 rounded",
+      "cible": "#radix-_r_0_"
+    },
+    {
+      "regle": "region",
+      "impact": "moderate",
+      "aide": "All page content should be contained by landmarks",
+      "occurrences": 1,
+      "exemple": "<span class=\"tabular-nums text-[13px] opacity-70\">0 pièces</span>",
+      "cible": ".opacity-70"
+    }
+  ],
+  "vide:texte": "Format Optimisation de découpe 2D Projet Bibliothèque Mode atelier Exporter Mes projets Nouveau Sauvegarder Nouveau projet 31.10.2026 Chantier Numéro de tâche Client Date OK Ces informations apparaissent en haut des PDF. Pour commencer 1 Créez un matériau Nom, épaisseur, format du panneau et trait de coupe, une seule fois dans la Bibliothèque. 2 Collez vos pièces Copiez les lignes dans Excel (repère, largeur, hauteur, quantité), puis « Coller depuis Excel ». 3 Lancez le calcul Ctrl + Entrée, puis exportez le PDF de commande ou le PDF atelier. Créer un matériau Importer la bibliothèque d'un collègue (.json) Format v2.4 · Conçu par Hugo N. · 2026 · Sauvegarde · Suggestion / bug 0 pièces Lancer",
+  "vide:lancer-sans-pieces": "Format Optimisation de découpe 2D Projet Bibliothèque Mode atelier Exporter Mes projets Nouveau Sauvegarder Nouveau projet 31.10.2026 Chantier Numéro de tâche Client Date OK Ces informations apparaissent en haut des PDF. Pour commencer 1 Créez un matériau Nom, épaisseur, format du panneau et trait d",
+  "mesures:demo": {
+    "titre": "Format — Optimisation de découpe 2D",
+    "lang": "fr",
+    "viewportMeta": true,
+    "h1": 1,
+    "h2": 3,
+    "debordementHorizontal": false,
+    "largeurDoc": 1440,
+    "largeurFenetre": 1440,
+    "champs": 21,
+    "champsSansEtiquette": [],
+    "interactifs": 28,
+    "sansNom": [],
+    "cibles_sous_24px": 6,
+    "taillesTexte": {
+      "12": 19,
+      "13": 12,
+      "14": 5,
+      "16": 1,
+      "17": 1,
+      "40": 1
+    },
+    "tailleMin": 12,
+    "octetsTransferes": 725847,
+    "octetsJS": 622588,
+    "nbRequetes": 9,
+    "domContentLoaded": 104,
+    "load": 110,
+    "chargement_ms": 1492
+  },
+  "axe:demo": [
+    {
+      "regle": "color-contrast",
+      "impact": "serious",
+      "aide": "Elements must meet minimum color contrast ratio thresholds",
+      "occurrences": 1,
+      "exemple": "<button class=\"inline-flex items-ce...\" title=\"Raccourci : Ctrl + E...\">",
+      "cible": ".bg-signal"
+    },
+    {
+      "regle": "empty-table-header",
+      "impact": "minor",
+      "aide": "Table header text should not be empty",
+      "occurrences": 1,
+      "exemple": "<th aria-label=\"Actions\"></th>",
+      "cible": "th[aria-label=\"Actions\"]"
+    },
+    {
+      "regle": "label-content-name-mismatch",
+      "impact": "serious",
+      "aide": "Elements must have their visible text as part of their accessible name",
+      "occurrences": 1,
+      "exemple": "<button type=\"button\" id=\"radix-_r_0_\" aria-haspopup=\"menu\" aria-expanded=\"false\" data-state=\"closed\" class=\"flex items-center gap-1 rounded",
+      "cible": "#radix-_r_0_"
+    },
+    {
+      "regle": "region",
+      "impact": "moderate",
+      "aide": "All page content should be contained by landmarks",
+      "occurrences": 1,
+      "exemple": "<span class=\"tabular-nums text-[13px] opacity-70\">66 pièces</span>",
+      "cible": ".opacity-70"
+    }
+  ],
+  "focus:demo": {
+    "total": 25,
+    "sansIndicateur": 5,
+    "exemples": [
+      "Repère de pièce",
+      "Largeur de P1",
+      "Hauteur de P1",
+      "Quantité de P1",
+      "Repère de pièce"
+    ]
+  },
+  "tabs-jusqu-a-lancer": 15,
+  "calcul-demo-ms": 1443,
+  "axe:resultats": [
+    {
+      "regle": "color-contrast",
+      "impact": "serious",
+      "aide": "Elements must meet minimum color contrast ratio thresholds",
+      "occurrences": 1,
+      "exemple": "<button class=\"inline-flex items-ce...\" title=\"Raccourci : Ctrl + E...\">",
+      "cible": ".bg-signal"
+    },
+    {
+      "regle": "empty-table-header",
+      "impact": "minor",
+      "aide": "Table header text should not be empty",
+      "occurrences": 1,
+      "exemple": "<th aria-label=\"Actions\"></th>",
+      "cible": "th[aria-label=\"Actions\"]"
+    },
+    {
+      "regle": "heading-order",
+      "impact": "moderate",
+      "aide": "Heading levels should only increase by one",
+      "occurrences": 1,
+      "exemple": "<h4 class=\"text-lg font-semibold tracking-[-0.01em]\">Plans de découpe</h4>",
+      "cible": "h4"
+    },
+    {
+      "regle": "label-content-name-mismatch",
+      "impact": "serious",
+      "aide": "Elements must have their visible text as part of their accessible name",
+      "occurrences": 4,
+      "exemple": "<button type=\"button\" id=\"radix-_r_0_\" aria-haspopup=\"menu\" aria-expanded=\"false\" data-state=\"closed\" class=\"flex items-center gap-1 rounded",
+      "cible": "#radix-_r_0_"
+    }
+  ],
+  "resultats:texte": "Format Optimisation de découpe 2D Projet Bibliothèque Mode atelier Exporter Mes projets Nouveau Sauvegarder Chantier démo Tâche T-01 · Client démo · 27.10.2026 Modifier le chantier Fibres-Gypse 15 mm MDF 19 mm Synthèse PIÈCES À DÉCOUPER 2'500 × 1'250 · 3'000 × 1'250 · 2'000 × 1'250 · CNC · trait 4 · délign. 0 · pièces débitées par le fournisseur · Fournisseur A Réglages Coller depuis Excel Importer un fichier Excel Copier pour Excel Ajouter Ajouter un linéaire Pièces Repère Largeur (mm) Hauteur (mm) Qté Peut tourner RÉSULTATS Ctrl + Entrée pour relancer À COMMANDER 60 pièces à faire débiter - Fibres-Gypse 15 mm Estimation : environ 15 panneaux de 2'500 × 1'250 mm RENDEMENT 77,1 % Plans de découpe Panneaux 1 à 12 ×12 2'500 × 1'250 C1 P1 · 2'010 × 382 P1 · 2'010 × 382 P4 · 2'010 × 237 P4 · 2'010 × 237 2'500 1'250 Panneaux 13 à 14 ×2 2'500 × 1'250 C1 C2 P2 · 2'045 × 382 P2 · 2'045 × 382 P3 ",
+  "menu-exporter": "PDF commande\nfournisseur | Commande Excel",
+  "limite:trop-grande": {
+    "ms": 90644,
+    "apercu": "Format Optimisation de découpe 2D Projet Bibliothèque Mode atelier Exporter Mes projets Nouveau Sauvegarder Chantier démo Tâche T-01 · Client démo · 27.10.2026 Modifier le chantier Fibres-Gypse 15 mm Synthèse PIÈCES À DÉCOUPER 2'500 × 1'250 · 3'000 × 1'250 · 2'000 × 1'250 · CNC · trait 4 · délign. 0 · pièces débitées par le fournisseur · Fournisseur A Réglages Coller depuis Excel Importer un fichier Excel Copier pour Excel Ajouter Ajouter un linéaire Pièces Repère Largeur (mm) Hauteur (mm) Qté P"
+  },
+  "limite:zero-negatif": {
+    "ms": 90662,
+    "apercu": "Format Optimisation de découpe 2D Projet Bibliothèque Mode atelier Exporter Mes projets Nouveau Sauvegarder Chantier démo Tâche T-01 · Client démo · 27.10.2026 Modifier le chantier MDF 19 mm Synthèse PIÈCES À DÉCOUPER 2'800 × 2'070 · scie · trait 4 · délign. 10 · panneaux entiers · Fournisseur B Réglages Coller depuis Excel Importer un fichier Excel Copier pour Excel Ajouter Ajouter un linéaire Pièces Repère Largeur (mm) Hauteur (mm) Qté Peut tourner Z1 : Dimensions manquantes Z2 : Dimensions ma"
+  },
+  "limite:quantite-folle": {
+    "ms": 90659,
+    "apercu": "Format Optimisation de découpe 2D Projet Bibliothèque Mode atelier Exporter Mes projets Nouveau Sauvegarder Chantier démo Tâche T-01 · Client démo · 27.10.2026 Modifier le chantier MDF 19 mm Synthèse PIÈCES À DÉCOUPER 2'800 × 2'070 · scie · trait 4 · délign. 10 · panneaux entiers · Fournisseur B Réglages Coller depuis Excel Importer un fichier Excel Copier pour Excel Ajouter Ajouter un linéaire Pièces Repère Largeur (mm) Hauteur (mm) Qté Peut tourner RÉSULTATS Lancez l'optimisation pour voir les"
+  },
+  "limite:mille-pieces": {
+    "ms": 7619,
+    "apercu": "Format Optimisation de découpe 2D Projet Bibliothèque Mode atelier Exporter Mes projets Nouveau Sauvegarder Chantier démo Tâche T-01 · Client démo · 27.10.2026 Modifier le chantier MDF 19 mm Synthèse PIÈCES À DÉCOUPER 2'800 × 2'070 · scie · trait 4 · délign. 10 · panneaux entiers · Fournisseur B Réglages Coller depuis Excel Importer un fichier Excel Copier pour Excel Ajouter Ajouter un linéaire Pièces Repère Largeur (mm) Hauteur (mm) Qté Peut tourner RÉSULTATS Ctrl + Entrée pour relancer À COMMA"
+  },
+  "axe:bibliotheque": [
+    {
+      "regle": "label-content-name-mismatch",
+      "impact": "serious",
+      "aide": "Elements must have their visible text as part of their accessible name",
+      "occurrences": 1,
+      "exemple": "<button type=\"button\" id=\"radix-_r_0_\" aria-haspopup=\"menu\" aria-expanded=\"false\" data-state=\"closed\" class=\"flex items-center gap-1 rounded",
+      "cible": "#radix-_r_0_"
+    }
+  ],
+  "mesures:mobile": {
+    "titre": "Format — Optimisation de découpe 2D",
+    "lang": "fr",
+    "viewportMeta": true,
+    "h1": 1,
+    "h2": 3,
+    "debordementHorizontal": true,
+    "largeurDoc": 813,
+    "largeurFenetre": 390,
+    "champs": 21,
+    "champsSansEtiquette": [],
+    "interactifs": 28,
+    "sansNom": [],
+    "cibles_sous_24px": 6,
+    "taillesTexte": {
+      "12": 34,
+      "13": 12,
+      "14": 6,
+      "16": 1,
+      "17": 1,
+      "40": 1
+    },
+    "tailleMin": 12,
+    "octetsTransferes": 725847,
+    "octetsJS": 622588,
+    "nbRequetes": 9,
+    "domContentLoaded": 96,
+    "load": 102,
+    "chargement_ms": 1503
+  },
+  "mesures:tablette": {
+    "titre": "Format — Optimisation de découpe 2D",
+    "lang": "fr",
+    "viewportMeta": true,
+    "h1": 1,
+    "h2": 3,
+    "debordementHorizontal": true,
+    "largeurDoc": 813,
+    "largeurFenetre": 768,
+    "champs": 21,
+    "champsSansEtiquette": [],
+    "interactifs": 28,
+    "sansNom": [],
+    "cibles_sous_24px": 6,
+    "taillesTexte": {
+      "12": 19,
+      "13": 12,
+      "14": 5,
+      "16": 1,
+      "17": 1,
+      "40": 1
+    },
+    "tailleMin": 12,
+    "octetsTransferes": 725847,
+    "octetsJS": 622588,
+    "nbRequetes": 9,
+    "domContentLoaded": 88,
+    "load": 94,
+    "chargement_ms": 1484
+  },
+  "axe:sombre": [
+    {
+      "regle": "color-contrast",
+      "impact": "serious",
+      "aide": "Elements must meet minimum color contrast ratio thresholds",
+      "occurrences": 1,
+      "exemple": "<button class=\"inline-flex items-ce...\" title=\"Raccourci : Ctrl + E...\">",
+      "cible": ".bg-signal"
+    },
+    {
+      "regle": "empty-table-header",
+      "impact": "minor",
+      "aide": "Table header text should not be empty",
+      "occurrences": 1,
+      "exemple": "<th aria-label=\"Actions\"></th>",
+      "cible": "th[aria-label=\"Actions\"]"
+    },
+    {
+      "regle": "heading-order",
+      "impact": "moderate",
+      "aide": "Heading levels should only increase by one",
+      "occurrences": 1,
+      "exemple": "<h4 class=\"text-lg font-semibold tracking-[-0.01em]\">Plans de découpe</h4>",
+      "cible": "h4"
+    },
+    {
+      "regle": "label-content-name-mismatch",
+      "impact": "serious",
+      "aide": "Elements must have their visible text as part of their accessible name",
+      "occurrences": 4,
+      "exemple": "<button type=\"button\" id=\"radix-_r_0_\" aria-haspopup=\"menu\" aria-expanded=\"false\" data-state=\"closed\" class=\"flex items-center gap-1 rounded",
+      "cible": "#radix-_r_0_"
+    }
+  ]
+}
