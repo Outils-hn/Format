@@ -264,7 +264,7 @@ function Index() {
           <Link to="/bibliotheque" className="bandeau-onglet">Bibliothèque</Link>
         </>}
         actions={<>
-          <label className="mr-1 flex items-center gap-2 text-[13px] text-muted-foreground max-sm:hidden">
+          <label className="mr-1 flex items-center gap-2 text-[13px] text-muted-foreground bandeau-bureau">
             <Button type="button" role="switch" variant="ghost" size="icon" aria-checked={workshop} aria-label="Mode atelier" onClick={() => setProject({ ...project, workshopMode: !workshop })}
               className={`relative h-5 w-9 rounded-full transition-colors ${workshop ? "bg-primary" : "bg-input"}`}>
               <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow transition-all ${workshop ? "left-[18px]" : "left-0.5"}`} />
@@ -274,7 +274,7 @@ function Index() {
           {/* Un seul bouton pour toutes les sorties (PDF commande, PDF atelier, Excel) */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="bandeau-btn max-sm:hidden" disabled={!result || stale} title={!result ? "Lancez d'abord l'optimisation" : stale ? "Relancez d'abord : la saisie a changé depuis le calcul" : ""}><Download size={15} /> Exporter <ChevronDown size={14} className="opacity-60" /></button>
+              <button className="bandeau-btn bandeau-bureau" disabled={!result || stale} title={!result ? "Lancez d'abord l'optimisation" : stale ? "Relancez d'abord : la saisie a changé depuis le calcul" : ""}><Download size={15} /> Exporter <ChevronDown size={14} className="opacity-60" /></button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[220px]">
               <DropdownMenuItem onSelect={exportOrder}><FileText size={15} /> PDF commande <span className="ml-auto text-xs text-muted-foreground">fournisseur</span></DropdownMenuItem>
@@ -282,12 +282,12 @@ function Index() {
               <DropdownMenuItem onSelect={exportXlsx}><FileSpreadsheet size={15} /> Commande Excel</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <button className="bandeau-btn max-sm:hidden" onClick={() => setShowProjects(true)}><FolderOpen size={15} /> Mes projets</button>
-          <button className="bandeau-btn max-sm:hidden" onClick={() => void startNew()}><FilePlus2 size={15} /> Nouveau</button>
+          <button className="bandeau-btn bandeau-bureau" onClick={() => setShowProjects(true)}><FolderOpen size={15} /> Mes projets</button>
+          <button className="bandeau-btn bandeau-bureau" onClick={() => void startNew()}><FilePlus2 size={15} /> Nouveau</button>
           {/* Telephone : toutes les actions du bandeau dans un seul menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="bandeau-icone sm:hidden" aria-label="Plus d'actions"><MoreHorizontal /></button>
+              <button className="bandeau-icone bandeau-mobile" aria-label="Plus d'actions"><MoreHorizontal /></button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[220px]">
               <DropdownMenuItem onSelect={save}><Save size={15} /> Sauvegarder</DropdownMenuItem>
@@ -299,7 +299,7 @@ function Index() {
               <DropdownMenuItem disabled={!result || stale} onSelect={exportXlsx}><FileSpreadsheet size={15} /> Commande Excel</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <button className="bandeau-btn primaire max-sm:hidden" onClick={save}><Save size={15} /> Sauvegarder</button>
+          <button className="bandeau-btn primaire bandeau-bureau" onClick={save}><Save size={15} /> Sauvegarder</button>
         </>}
         theme={<ThemeToggle />}
       />

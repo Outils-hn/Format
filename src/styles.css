@@ -341,3 +341,5 @@ body { border-top: 3px solid var(--app); }
   .bandeau-marque button, .bandeau-marque a { min-height: 40px; }
   html, body { overflow-x: clip; }
 }
+@media (max-width: 640px) { .bandeau-bureau { display: none !important; } }
+@media (min-width: 641px) { .bandeau-mobile { display: none !important; } }
