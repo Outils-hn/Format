@@ -101,7 +101,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 // Applique le mode sombre avant l'affichage (evite un flash blanc au chargement).
-const themeInitScript = `(function(){try{if(localStorage.getItem('format.theme')==='dark'){document.documentElement.classList.add('dark');}}catch(e){}})();`;
+const themeInitScript = `(function(){try{if((localStorage.getItem('outils-theme')||localStorage.getItem('format.theme'))==='dark'){document.documentElement.classList.add('dark');}}catch(e){}})();`;
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
