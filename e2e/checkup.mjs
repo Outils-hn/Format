@@ -200,7 +200,7 @@ try {
   verif("Telephone : boutons du bandeau assez grands", petits.length === 0, petits.join(", "));
   await pm.screenshot({ path: `${OUT}/50-telephone.png` });
   const bouton = pm.getByRole("button", { name: "Plus d'actions" });
-  verif("Telephone : bouton ⋯ present", await bouton.count() === 1, await pm.evaluate(() => document.querySelector("header")?.innerHTML.slice(0, 600) ?? ""));
+  verif("Telephone : bouton ⋯ present", await bouton.count() === 1, await pm.evaluate(() => [...document.querySelectorAll("header .bandeau-in > *, header .bandeau-droite > *, header .bandeau-marque > *")].map((e) => `${e.className.toString().slice(0, 18)}:${Math.round(e.getBoundingClientRect().left)}-${Math.round(e.getBoundingClientRect().right)}`).join(" ")));
   await bouton.click({ timeout: 5000 });
   const items = await pm.getByRole("menuitem").allTextContents();
   verif("Telephone : menu ⋯ avec Sauvegarder, Mes projets, Nouveau", ["Sauvegarder", "Mes projets", "Nouveau"].every((t) => items.some((i) => i.includes(t))), items.join(" / "));
