@@ -207,7 +207,7 @@ try {
   await pm.keyboard.press("Escape");
   await pm.screenshot({ path: `${OUT}/50-telephone.png` });
   await cm.close();
-} catch (e) { verif("Telephone", false, e.message.split("\n")[0]); }
+} catch (e) { verif("Telephone", false, e.message.split("\n").slice(0, 8).join(" | ")); }
 await browser.close();
 writeFileSync(`${OUT}/checkup.txt`, lignes.join("\n"));
 console.log(lignes.join("\n"));
