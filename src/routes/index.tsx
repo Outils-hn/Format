@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/format/ThemeToggle";
-import { ChevronDown, Download, FilePlus2, FileSpreadsheet, FileText, FolderOpen, Library, Loader2, Pencil, Play, Plus, Save } from "lucide-react";
+import { ChevronDown, Download, MoreHorizontal, FilePlus2, FileSpreadsheet, FileText, FolderOpen, Library, Loader2, Pencil, Play, Plus, Save } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { indicators, pct1 } from "@/lib/indicators";
 import { toast } from "sonner";
@@ -96,7 +96,8 @@ function Index() {
       || linears.some((l) => !l.bandWidth || !l.totalLength || (l.mode === "fixed" ? !l.segment : !l.min));
     if (emptyField) {
       setCheckInputs(true);
-      toast.error("Complétez les champs entourés en rouge");
+      const n = project.pieces.filter((p) => !p.width || !p.height || !p.quantity).length;
+      toast.error(n > 1 ? `Complétez les champs entourés en rouge (${n} pièces concernées)` : "Complétez les champs entourés en rouge");
       // Amene directement le curseur sur le premier champ a completer
       setTimeout(() => {
         const first = document.querySelector<HTMLElement>('main [aria-invalid="true"]');
@@ -251,7 +252,8 @@ function Index() {
       offcuts: project.offcuts ? { ...project.offcuts, marks: {} } : undefined });
     setEditInfo(true);
   };
-  const summary = result ? `Projet : ${num(result.total.sheets)} panneau${result.total.sheets > 1 ? "x" : ""} · ${pct1(indicators(result.total.balance).yieldPct)}` : null;
+  const nbPieces = allPieces.reduce((n, p) => n + p.quantity, 0);
+  const summary = result ? `Projet : ${num(result.total.sheets)} panneau${result.total.sheets > 1 ? "x" : ""} · rendement ${pct1(indicators(result.total.balance).yieldPct)}` : null;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -262,7 +264,7 @@ function Index() {
           <Link to="/bibliotheque" className="bandeau-onglet">Bibliothèque</Link>
         </>}
         actions={<>
-          <label className="mr-1 flex items-center gap-2 text-[13px] text-muted-foreground">
+          <label className="mr-1 flex items-center gap-2 text-[13px] text-muted-foreground max-sm:hidden">
             <Button type="button" role="switch" variant="ghost" size="icon" aria-checked={workshop} aria-label="Mode atelier" onClick={() => setProject({ ...project, workshopMode: !workshop })}
               className={`relative h-5 w-9 rounded-full transition-colors ${workshop ? "bg-primary" : "bg-input"}`}>
               <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow transition-all ${workshop ? "left-[18px]" : "left-0.5"}`} />
@@ -272,7 +274,7 @@ function Index() {
           {/* Un seul bouton pour toutes les sorties (PDF commande, PDF atelier, Excel) */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="bandeau-btn" disabled={!result || stale} title={!result ? "Lancez d'abord l'optimisation" : stale ? "Relancez d'abord : la saisie a changé depuis le calcul" : ""}><Download size={15} /> Exporter <ChevronDown size={14} className="opacity-60" /></button>
+              <button className="bandeau-btn max-sm:hidden" disabled={!result || stale} title={!result ? "Lancez d'abord l'optimisation" : stale ? "Relancez d'abord : la saisie a changé depuis le calcul" : ""}><Download size={15} /> Exporter <ChevronDown size={14} className="opacity-60" /></button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[220px]">
               <DropdownMenuItem onSelect={exportOrder}><FileText size={15} /> PDF commande <span className="ml-auto text-xs text-muted-foreground">fournisseur</span></DropdownMenuItem>
@@ -280,9 +282,24 @@ function Index() {
               <DropdownMenuItem onSelect={exportXlsx}><FileSpreadsheet size={15} /> Commande Excel</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <button className="bandeau-btn" onClick={() => setShowProjects(true)}><FolderOpen size={15} /> Mes projets</button>
-          <button className="bandeau-btn" onClick={() => void startNew()}><FilePlus2 size={15} /> Nouveau</button>
-          <button className="bandeau-btn primaire" onClick={save}><Save size={15} /> Sauvegarder</button>
+          <button className="bandeau-btn max-sm:hidden" onClick={() => setShowProjects(true)}><FolderOpen size={15} /> Mes projets</button>
+          <button className="bandeau-btn max-sm:hidden" onClick={() => void startNew()}><FilePlus2 size={15} /> Nouveau</button>
+          {/* Telephone : toutes les actions du bandeau dans un seul menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="bandeau-icone sm:hidden" aria-label="Plus d'actions"><MoreHorizontal /></button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[220px]">
+              <DropdownMenuItem onSelect={save}><Save size={15} /> Sauvegarder</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setShowProjects(true)}><FolderOpen size={15} /> Mes projets</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => void startNew()}><FilePlus2 size={15} /> Nouveau</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setProject({ ...project, workshopMode: !workshop })}><Pencil size={15} /> Mode atelier : {workshop ? "activé" : "désactivé"}</DropdownMenuItem>
+              <DropdownMenuItem disabled={!result || stale} onSelect={exportOrder}><FileText size={15} /> PDF commande</DropdownMenuItem>
+              {workshop && <DropdownMenuItem disabled={!result || stale} onSelect={exportWorkshop}><FileText size={15} /> PDF atelier</DropdownMenuItem>}
+              <DropdownMenuItem disabled={!result || stale} onSelect={exportXlsx}><FileSpreadsheet size={15} /> Commande Excel</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <button className="bandeau-btn primaire max-sm:hidden" onClick={save}><Save size={15} /> Sauvegarder</button>
         </>}
         theme={<ThemeToggle />}
       />
@@ -415,13 +432,13 @@ function Index() {
 
       {/* Barre de lancement : pastille flottante en bas a droite (au centre, elle cachait le contenu),
           avec le resume du dernier calcul ; un clic sur le resume amene aux resultats */}
-      <div className="pointer-events-none fixed bottom-5 right-5 z-40 print:hidden">
-        <div className="pointer-events-auto flex items-center gap-3 rounded-full bg-primary py-1.5 pl-4 pr-1.5 text-primary-foreground shadow-[0_12px_32px_-8px_rgb(0_0_0/0.35)]">
+      <div className="pointer-events-none fixed bottom-5 right-5 z-40 max-sm:inset-x-3 max-sm:bottom-3 print:hidden">
+        <div className="pointer-events-auto flex items-center gap-3 max-sm:justify-between rounded-full bg-primary py-1.5 pl-4 pr-1.5 text-primary-foreground shadow-[0_12px_32px_-8px_rgb(0_0_0/0.35)]">
           {summary
             ? <button className="tabular-nums text-[13px] opacity-80 hover:opacity-100" onClick={() => document.getElementById("project-tab-panel")?.scrollIntoView({ behavior: "smooth", block: "start" })} title="Voir les résultats">{summary}</button>
-            : <span className="tabular-nums text-[13px] opacity-70">{num(allPieces.reduce((n, p) => n + p.quantity, 0))} pièces</span>}
-          <Button className="h-9 rounded-full bg-signal px-4 text-[13px] font-semibold text-white hover:bg-signal/90" disabled={running} onClick={run} title="Raccourci : Ctrl + Entrée">
-            {running ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}{running ? "Calcul…" : result ? "Relancer" : "Lancer l'optimisation"}
+            : <span className="tabular-nums text-[13px] opacity-70">{nbPieces} pièce{nbPieces > 1 ? "s" : ""}</span>}
+          <Button className="h-9 rounded-full bg-signal px-4 text-[13px] font-semibold text-white hover:bg-signal/90" disabled={running || (nbPieces === 0 && !result)} onClick={run} title={nbPieces === 0 && !result ? "Ajoutez d'abord des pièces" : "Raccourci : Ctrl + Entrée"}>
+            {running ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}{running ? "Calcul…" : result ? "Relancer" : nbPieces === 0 ? "Ajoutez des pièces" : "Lancer l'optimisation"}
           </Button>
         </div>
       </div>
