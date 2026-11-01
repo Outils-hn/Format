@@ -198,7 +198,10 @@ try {
   verif("Telephone : pas de debordement horizontal", debord <= 0, `${debord} px`);
   const petits = await pm.evaluate(() => [...document.querySelectorAll("header button, header a")].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && (r.height < 36 || r.width < 36); }).map((e) => (e.getAttribute("aria-label") || e.textContent || "").trim().slice(0, 20)));
   verif("Telephone : boutons du bandeau assez grands", petits.length === 0, petits.join(", "));
-  await pm.getByRole("button", { name: "Plus d'actions" }).click();
+  await pm.screenshot({ path: `${OUT}/50-telephone.png` });
+  const bouton = pm.getByRole("button", { name: "Plus d'actions" });
+  verif("Telephone : bouton ⋯ present", await bouton.count() === 1, await pm.evaluate(() => document.querySelector("header")?.innerHTML.slice(0, 600) ?? ""));
+  await bouton.click({ timeout: 5000 });
   const items = await pm.getByRole("menuitem").allTextContents();
   verif("Telephone : menu ⋯ avec Sauvegarder, Mes projets, Nouveau", ["Sauvegarder", "Mes projets", "Nouveau"].every((t) => items.some((i) => i.includes(t))), items.join(" / "));
   await pm.keyboard.press("Escape");
