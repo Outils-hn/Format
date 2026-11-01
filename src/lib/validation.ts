@@ -43,7 +43,11 @@ export function validatePiece(p: Piece, materials: Material[]): string | null {
   if (!m) return "Matériau inconnu";
   const problems = materialProblems(m);
   if (problems.length) return `Matériau « ${m.name} » incomplet (${problems.join(", ")}) : corrigez-le dans la bibliothèque`;
-  if (!p.width || !p.height || p.width <= 0 || p.height <= 0) return "Dimensions manquantes";
+  if (p.width != null && p.width < 0) return "Largeur négative";
+  if (p.height != null && p.height < 0) return "Hauteur négative";
+  if (!p.width && !p.height) return "Largeur et hauteur absentes";
+  if (!p.width) return "Largeur absente";
+  if (!p.height) return "Hauteur absente";
   if (!p.quantity || p.quantity <= 0) return "Quantité nulle";
   // Garde-fou : une cote sous 10 mm vient presque toujours d'un separateur ou d'une unite mal lus.
   if (p.width < MIN_DIMENSION || p.height < MIN_DIMENSION) return `Dimension suspecte (moins de ${MIN_DIMENSION} mm)`;

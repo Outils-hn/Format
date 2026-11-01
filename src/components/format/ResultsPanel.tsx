@@ -78,7 +78,7 @@ function Banner({ result, status, simple = false, typeOf }: { result: OptimizeRe
           {entry.estimate && <p className="mt-1 text-xs text-muted-foreground tabular-nums">{entry.estimate}</p>}
         </div>)}
       </div>
-      <div className="sm:text-right"><p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Rendement</p><p className="mt-1 tabular-nums text-[56px] font-semibold leading-none tracking-[-0.04em]">{pct1(i.yieldPct).replace(/\s*%$/, "")}<span className="text-2xl text-muted-foreground"> %</span></p></div>
+      <div className="sm:text-right"><p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground" title="Rendement = surface des pièces ÷ surface achetée, tous matériaux confondus">Rendement tous matériaux</p><p className="mt-1 tabular-nums text-[56px] font-semibold leading-none tracking-[-0.04em]">{pct1(i.yieldPct).replace(/\s*%$/, "")}<span className="text-2xl text-muted-foreground"> %</span></p></div>
     </div>
     {!simple && <><p className="tabular-nums text-xs text-muted-foreground">Surface achetée {m2(i.purchased)} m² · pièces {m2(i.pieces)} m²{result.total.totalPrice != null ? ` · prix ${chf(result.total.totalPrice)}` : ""}</p><Split b={result.total.balance} /></>}
   </div>;
@@ -209,7 +209,7 @@ export function ResultsPanel({ result, materials, linears = [], pieces = [], sta
       {!summaryOnly && result.materials.filter((r) => !materialId || r.materialId === materialId).map((r) => (
         <div key={r.materialId} className="space-y-3 border-t border-border pt-5">
           <h3 className="text-sm font-semibold">{r.name} <span className="tabular-nums font-normal text-muted-foreground">{num(r.thickness, 1)} mm</span><Badge r={r} mat={mat(r.materialId)} pieces={pieces} />
-            <span className="tabular-nums ml-3 text-xs font-normal text-muted-foreground">{r.sheets.length} panneau(x) · rendement {pct1(indicators(r.balance).yieldPct)}</span></h3>
+            <span className="tabular-nums ml-3 text-xs font-normal text-muted-foreground">{r.sheets.length} panneau(x) · <span title="Rendement = surface des pièces ÷ surface achetée, pour ce matériau seul">rendement du matériau</span> {pct1(indicators(r.balance).yieldPct)}</span></h3>
           <Split b={r.balance} />
           <p className="tabular-nums text-xs text-muted-foreground">Surface achetée {m2(r.balance.purchased)} m² · pièces {m2(r.balance.pieces)} m²</p>
           <Kpis b={r.balance} mode={oc.mode} />

@@ -4,6 +4,13 @@ Le numéro de version se met à jour dans `src/lib/appInfo.ts` (pied de page et 
 
 Chaque version qui change quelque chose de visible pour l'équipe a une puce « Nouveauté : … », en langage courant : c'est la seule phrase affichée sur la page « Nouveautés » de l'Accueil.
 
+## 2.6 — 1er novembre 2026
+
+- Nouveauté : sur téléphone, Format ne déborde plus, les actions sont regroupées dans un menu « ⋯ » et le bouton « Lancer » ne cache plus les pièces.
+- Messages d'erreur précis (« Largeur absente », « Hauteur négative »), pluriel corrigé et nombre de pièces à compléter indiqué.
+- Contour de focus visible dans le tableau des pièces ; bouton « Lancer » grisé tant qu'il n'y a aucune pièce.
+- Rendements nommés (« tous matériaux » / « du matériau ») avec la formule en infobulle.
+
 ## 2.5 — 1er novembre 2026
 
 - Nouveauté : le mode clair ou sombre que tu choisis dans une appli est repris dans toutes les autres.

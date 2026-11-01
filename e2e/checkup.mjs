@@ -187,6 +187,27 @@ try {
   await p6.screenshot({ path: `${OUT}/40-lien-index.png` });
   await c6.close();
 } catch (e) { verif("Lien vers une fiche Index", false, e.message.split("\n")[0]); }
+// Telephone (390 px) : pas de debordement, cibles assez grandes, menu « ⋯ », Lancer grise sans piece
+try {
+  const cm = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  await cm.route(/supabase\.co/, (r) => r.abort());
+  const pm = await cm.newPage();
+  await pm.addInitScript(([m, p]) => { if (!sessionStorage.getItem("s")) { localStorage.setItem("format.materials", JSON.stringify(m)); localStorage.setItem("format.current", JSON.stringify(p)); sessionStorage.setItem("s", "1"); } }, [materials, projet]);
+  await pm.goto(BASE, { waitUntil: "networkidle" }); await pm.waitForTimeout(500);
+  const debord = await pm.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  verif("Telephone : pas de debordement horizontal", debord <= 0, `${debord} px`);
+  const petits = await pm.evaluate(() => [...document.querySelectorAll("header button, header a")].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && (r.height < 36 || r.width < 36); }).map((e) => (e.getAttribute("aria-label") || e.textContent || "").trim().slice(0, 20)));
+  verif("Telephone : boutons du bandeau assez grands", petits.length === 0, petits.join(", "));
+  await pm.screenshot({ path: `${OUT}/50-telephone.png` });
+  const bouton = pm.getByRole("button", { name: "Plus d'actions" });
+  verif("Telephone : bouton ⋯ present", await bouton.count() === 1, await pm.evaluate(() => [...document.querySelectorAll("header .bandeau-in > *, header .bandeau-droite > *, header .bandeau-marque > *")].map((e) => `${e.className.toString().slice(0, 18)}:${Math.round(e.getBoundingClientRect().left)}-${Math.round(e.getBoundingClientRect().right)}`).join(" ")));
+  await bouton.click({ timeout: 5000 });
+  const items = await pm.getByRole("menuitem").allTextContents();
+  verif("Telephone : menu ⋯ avec Sauvegarder, Mes projets, Nouveau", ["Sauvegarder", "Mes projets", "Nouveau"].every((t) => items.some((i) => i.includes(t))), items.join(" / "));
+  await pm.keyboard.press("Escape");
+  await pm.screenshot({ path: `${OUT}/50-telephone.png` });
+  await cm.close();
+} catch (e) { verif("Telephone", false, e.message.split("\n").slice(0, 8).join(" | ")); }
 await browser.close();
 writeFileSync(`${OUT}/checkup.txt`, lignes.join("\n"));
 console.log(lignes.join("\n"));
