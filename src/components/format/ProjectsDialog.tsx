@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { jsonPermis } from "@/components/format/SharedLibrary";
 import { Download, FolderOpen, Trash2, Upload } from "lucide-react";
 import type { Project } from "@/lib/types";
 import { deleteProject, listProjects } from "@/lib/storage";
@@ -43,8 +44,8 @@ export function ProjectsDialog({
         {projects.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted-foreground">Aucun projet sauvegardé</li>}
       </ul>
       <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
-        <button className="btn-outline" onClick={onExport}><Download size={14} /> Exporter le projet (.json)</button>
-        <button className="btn-outline" onClick={() => file.current?.click()}><Upload size={14} /> Importer un projet (.json)</button>
+        <button className="btn-outline" onClick={() => { if (jsonPermis()) onExport(); }}><Download size={14} /> Exporter le projet (.json)</button>
+        <button className="btn-outline" onClick={() => { if (jsonPermis()) file.current?.click(); }}><Upload size={14} /> Importer un projet (.json)</button>
         <input ref={file} type="file" accept=".json,application/json" hidden
           onChange={async (e) => { const f = e.target.files?.[0]; if (f) onImport(await f.text()); e.target.value = ""; }} />
       </div>

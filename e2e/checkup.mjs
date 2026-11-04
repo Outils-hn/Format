@@ -51,7 +51,9 @@ try {
   await page.getByRole("button", { name: "Basculer le thème" }).click(); await page.waitForTimeout(200);
   await page.reload({ waitUntil: "networkidle" });
   verif("Mode sombre retenu apres rechargement", await page.evaluate(() => document.documentElement.classList.contains("dark")));
-  // 5. Sauvegarde complete
+  // 5. Sauvegarde complete (reservee aux comptes : on simule une session ouverte)
+  await page.evaluate(() => localStorage.setItem("sb-ngfzwfbraqkdcocdcmib-auth-token", JSON.stringify({ access_token: "a", refresh_token: "r", expires_at: 4102444800, user: { id: "u1", email: "hugo@test.fr" } })));
+  await page.reload({ waitUntil: "networkidle" });
   await page.getByRole("button", { name: /^Sauvegarde$/ }).click();
   const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /Télécharger la sauvegarde/ }).click()]);
   const chemin = `${OUT}/sauvegarde-test.json`; await dl.saveAs(chemin);
@@ -193,19 +195,28 @@ try {
   await p7.addInitScript((m) => { if (!sessionStorage.getItem("s7")) { localStorage.setItem("outils.format.exports", "3"); localStorage.setItem("format.materials", JSON.stringify(m)); sessionStorage.setItem("s7", "1"); } }, materials);
   await p7.goto(BASE + "bibliotheque", { waitUntil: "networkidle" }); await p7.waitForTimeout(500);
   verif("Bandeau : « Lecture seule » + Se connecter en haut de page", await p7.getByRole("banner").getByText("Lecture seule").isVisible() && await p7.getByRole("banner").getByRole("button", { name: "Se connecter" }).isVisible());
-  await p7.getByRole("button", { name: /Exporter la bibliothèque/ }).click(); await p7.waitForTimeout(400);
-  verif("Apres 3 exports : la connexion est demandee", await p7.getByRole("heading", { name: "Connexion" }).isVisible() || await p7.getByText("Pour modifier la bibliothèque commune").isVisible());
+  const [dlLib0] = await Promise.all([p7.waitForEvent("download", { timeout: 1500 }).catch(() => null), p7.getByRole("button", { name: /Exporter la bibliothèque/ }).click()]);
+  await p7.waitForTimeout(300);
+  verif("Sans compte : l'export JSON de la bibliotheque est refuse", !dlLib0 && await p7.getByText("Fichier JSON : compte requis").first().isVisible());
+  await p7.getByRole("banner").getByRole("button", { name: "Se connecter" }).click(); await p7.waitForTimeout(300);
   await p7.getByLabel("Email").fill("hugo@test.fr"); await p7.getByLabel("Mot de passe").fill("bon");
-  const [dlb] = await Promise.all([p7.waitForEvent("download", { timeout: 8000 }).catch(() => null), p7.getByRole("button", { name: "Se connecter" }).last().click()]);
-  verif("Apres connexion : l'export part", !!dlb);
+  await p7.getByRole("button", { name: "Se connecter" }).last().click(); await p7.waitForTimeout(900);
+  const [dlb] = await Promise.all([p7.waitForEvent("download", { timeout: 8000 }).catch(() => null), p7.getByRole("button", { name: /Exporter la bibliothèque/ }).click()]);
+  verif("Avec compte : l'export de la bibliotheque part", !!dlb);
   verif("Bandeau : email seul", await p7.getByRole("banner").getByText("hugo@test.fr", { exact: true }).isVisible());
   // Sauvegarde du pied de page, dans une fenetre : la connexion doit rester utilisable
   await p7.getByRole("banner").getByRole("button", { name: "Se déconnecter" }).click(); await p7.waitForTimeout(300);
   await p7.getByRole("button", { name: /^Sauvegarde$/ }).click(); await p7.waitForTimeout(300);
-  await p7.getByRole("button", { name: /Télécharger la sauvegarde/ }).click(); await p7.waitForTimeout(400);
+  const [dlSans] = await Promise.all([p7.waitForEvent("download", { timeout: 1500 }).catch(() => null), p7.getByRole("button", { name: /Télécharger la sauvegarde/ }).click()]);
+  await p7.waitForTimeout(300);
+  verif("Sans compte : pas de sauvegarde JSON, message « compte requis »", !dlSans && await p7.getByText("Fichier JSON : compte requis").first().isVisible());
+  await p7.keyboard.press("Escape"); await p7.waitForTimeout(300);
+  await p7.getByRole("banner").getByRole("button", { name: "Se connecter" }).click(); await p7.waitForTimeout(300);
   await p7.getByLabel("Email").fill("hugo@test.fr"); await p7.getByLabel("Mot de passe").fill("bon");
-  const [dls] = await Promise.all([p7.waitForEvent("download", { timeout: 8000 }).catch(() => null), p7.getByRole("button", { name: "Se connecter" }).last().click({ timeout: 5000 }).catch(() => null)]);
-  verif("Sauvegarde sans compte apres 3 exports : connexion utilisable puis telechargement", !!dls);
+  await p7.getByRole("button", { name: "Se connecter" }).last().click(); await p7.waitForTimeout(900);
+  await p7.getByRole("button", { name: /^Sauvegarde$/ }).click(); await p7.waitForTimeout(300);
+  const [dls] = await Promise.all([p7.waitForEvent("download", { timeout: 8000 }).catch(() => null), p7.getByRole("button", { name: /Télécharger la sauvegarde/ }).click()]);
+  verif("Avec compte : la sauvegarde JSON se telecharge", !!dls);
   await c7.close();
 } catch (e) { verif("Deroulement des comptes", false, e.message.split("\n")[0]); }
 

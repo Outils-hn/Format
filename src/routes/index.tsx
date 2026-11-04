@@ -17,7 +17,7 @@ import { ConfirmHost, confirmer } from "@/components/format/Confirm";
 import { fusionner, lireBibliotheque, noterSynchro } from "@/lib/shared-library";
 import { Brand } from "@/components/format/Brand";
 import { Bandeau } from "@/components/format/Bandeau";
-import { CompteBandeau, ConnexionDialog, autoriserExport } from "@/components/format/SharedLibrary";
+import { CompteBandeau, ConnexionDialog, autoriserExport, jsonPermis } from "@/components/format/SharedLibrary";
 import { AppFooter } from "@/components/format/AppFooter";
 import { ProjectSettings } from "@/components/format/ProjectSettings";
 import { Modal } from "@/components/format/Modal";
@@ -199,7 +199,7 @@ function Index() {
   const setInfo = (patch: Partial<typeof info>) => setProject({ ...project, info: { ...info, ...patch } });
 
   const doExport = async () => {
-    if (!(await autoriserExport())) return;
+    if (!jsonPermis()) return;
     const blob = new Blob([exportProject(project, materials)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -208,6 +208,7 @@ function Index() {
     URL.revokeObjectURL(a.href);
   };
   const doImport = (json: string) => {
+    if (!jsonPermis()) return;
     try {
       const r = importProject(json, materials);
       setMaterials(r.materials);
