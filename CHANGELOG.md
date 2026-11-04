@@ -4,6 +4,11 @@ Le numéro de version se met à jour dans `src/lib/appInfo.ts` (pied de page et 
 
 Chaque version qui change quelque chose de visible pour l'équipe a une puce « Nouveauté : … », en langage courant : c'est la seule phrase affichée sur la page « Nouveautés » de l'Accueil.
 
+## 2.7 — 4 novembre 2026
+
+- Nouveauté : la base de données de Format est maintenant dans le même projet Supabase que Index, Access et Check (un seul projet à gérer). Rien ne change à l'usage : mêmes données, même code PIN.
+- Avant la mise en ligne : la base doit avoir été migrée (scripts dans le dépôt de Masse, `supabase/migration-vers-index/`).
+
 ## 2.6 — 1er novembre 2026
 
 - Nouveauté : sur téléphone, Format ne déborde plus, les actions sont regroupées dans un menu « ⋯ » et le bouton « Lancer » ne cache plus les pièces.
