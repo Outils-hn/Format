@@ -1,5 +1,5 @@
 // Bibliotheque commune de materiaux (Supabase, projet d'Index, Francfort, comme Masse et Strate).
-// - La lecture est libre ; les modifications passent par des fonctions protegees par le PIN commun (celui de Masse).
+// - La lecture est libre ; les modifications demandent un compte Index valide (connexion partagee avec Index et Masse).
 // - LES PRIX RESTENT SUR LE POSTE : ils sont retires avant l'envoi (et la base les retire aussi),
 //   puis remis depuis la copie locale a chaque synchronisation.
 // - Sans reseau, Format continue avec la derniere copie locale.
@@ -15,7 +15,6 @@ export interface RemoteRow { id: string; data: Material; updated_at: string; del
 
 const KNOWN = "format.shared.known"; // identifiants deja recus de la bibliotheque commune
 const SYNCED = "format.shared.syncedAt";
-const PIN = "format-pin";
 
 // ---------- Logique pure ----------
 
@@ -71,14 +70,21 @@ export function fusionner(local: Material[], remote: RemoteRow[], used: Set<stri
 
 // ---------- Reseau ----------
 
-const headers = { apikey: SUPABASE_KEY, "Content-Type": "application/json" };
-
 async function appel(path: string, init?: RequestInit, ms = 8000): Promise<Response> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
-  try { return await fetch(`${SUPABASE_URL}${path}`, { ...init, headers, signal: ctrl.signal }); }
+  try {
+    // Connecte : le jeton du compte accompagne la demande ; sinon la cle publique (lecture seule)
+    const jeton = await jetonAcces();
+    const headers = { apikey: SUPABASE_KEY, "Content-Type": "application/json", ...(jeton ? { Authorization: `Bearer ${jeton}` } : {}) };
+    return await fetch(`${SUPABASE_URL}${path}`, { ...init, headers, signal: ctrl.signal });
+  }
   finally { clearTimeout(t); }
 }
+
+/** Branche par compte.ts (evite une dependance circulaire a l'import). */
+let jetonAcces: () => Promise<string | null> = async () => null;
+export const brancherJeton = (f: () => Promise<string | null>) => { jetonAcces = f; };
 
 /** Liste de la bibliotheque commune, ou null si elle est injoignable. */
 export async function lireBibliotheque(): Promise<RemoteRow[] | null> {
@@ -97,12 +103,8 @@ async function rpc(fn: string, args: Record<string, unknown>): Promise<{ ok: boo
   } catch { return { ok: false, error: "Pas de connexion à la bibliothèque commune." }; }
 }
 
-export const verifierPin = (pin: string) => rpc("verify_pin", { p_pin: pin });
-export const envoyerMateriau = (pin: string, m: Material) => rpc("format_save_material", { p_pin: pin, p: sansPrix(m) });
-export const supprimerMateriau = (pin: string, id: string) => rpc("format_delete_material", { p_pin: pin, p_id: id });
-
-/** Un refus lie au PIN (faux, bloque) : on oublie le PIN retenu pour la session. */
-export const erreurDePin = (e?: string) => /PIN|essais/i.test(e ?? "");
+export const envoyerMateriau = (m: Material) => rpc("format_save_material", { p: sansPrix(m) });
+export const supprimerMateriau = (id: string) => rpc("format_delete_material", { p_id: id });
 
 // ---------- Memoire locale ----------
 
@@ -113,7 +115,3 @@ export const lireDateSynchro = () => lire<string | null>(SYNCED, null);
 export function noterSynchro(known: string[]) {
   try { localStorage.setItem(KNOWN, JSON.stringify(known)); localStorage.setItem(SYNCED, JSON.stringify(new Date().toISOString())); } catch { /* stockage bloque */ }
 }
-export const pinSession = () => { try { return sessionStorage.getItem(PIN); } catch { return null; } };
-export const retenirPin = (p: string | null) => {
-  try { if (p) sessionStorage.setItem(PIN, p); else sessionStorage.removeItem(PIN); } catch { /* stockage bloque */ }
-};

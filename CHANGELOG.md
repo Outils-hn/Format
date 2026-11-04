@@ -4,6 +4,13 @@ Le numéro de version se met à jour dans `src/lib/appInfo.ts` (pied de page et 
 
 Chaque version qui change quelque chose de visible pour l'équipe a une puce « Nouveauté : … », en langage courant : c'est la seule phrase affichée sur la page « Nouveautés » de l'Accueil.
 
+## 2.8 — 4 novembre 2026
+
+- Nouveauté : plus de code PIN dans Format. Pour modifier la bibliothèque commune, on se connecte avec son compte Index (mêmes email et mot de passe, compte validé par un collègue) ; la connexion est partagée avec Index et Masse. Le calcul et la consultation restent libres.
+- Page Bibliothèque : indication « Lecture seule » / « Connecté · email » avec bouton Se connecter / Se déconnecter.
+- Base : script `supabase/format-comptes.sql` (fonctions d'écriture réservées aux comptes validés).
+- Avant la mise en ligne : coller ce script dans le SQL Editor de Supabase (projet Index).
+
 ## 2.7 — 4 novembre 2026
 
 - Nouveauté : la base de données de Format est maintenant dans le même projet Supabase que Index, Access et Check (un seul projet à gérer). Rien ne change à l'usage : mêmes données, même code PIN.
