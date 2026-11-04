@@ -86,7 +86,7 @@ const CLE_EXPORTS = "outils.format.exports";
  * Exports (PDF, Excel, .json) : libres pour un compte connecte ; sans compte, 3 exports pour decouvrir
  * l'appli, puis la connexion est demandee. Incitation seulement (compteur dans le navigateur).
  */
-export async function autoriserExport(): Promise<boolean> {
+export async function autoriserExport(avantConnexion?: () => void): Promise<boolean> {
   if (lireSession()) return true;
   let faits = 0;
   try { faits = Number(localStorage.getItem(CLE_EXPORTS)) || 0; } catch { /* stockage bloque */ }
@@ -96,6 +96,7 @@ export async function autoriserExport(): Promise<boolean> {
     return true;
   }
   toast.message("Connecte-toi pour exporter", { description: "Les 3 exports de découverte sont utilisés." });
+  avantConnexion?.(); // une fenetre deja ouverte (ex. Sauvegarde) se ferme pour laisser la place a la connexion
   return demanderConnexion();
 }
 

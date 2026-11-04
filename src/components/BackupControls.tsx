@@ -60,7 +60,7 @@ export function BackupLink({ cfg, appName }: { cfg: BackupConfig; appName: strin
   }, [open]);
 
   const save = async () => {
-    if (!(await autoriserExport())) return;
+    if (!(await autoriserExport(() => setOpen(false)))) return;
     if (downloadBackup(cfg)) {
       setMessage({ text: "Sauvegarde téléchargée. Rangez le fichier en lieu sûr (dossier réseau, clé USB…).", error: false });
       refresh();
