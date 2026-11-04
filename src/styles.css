@@ -343,3 +343,6 @@ body { border-top: 3px solid var(--app); }
 }
 @media (max-width: 640px) { .bandeau-bureau { display: none !important; } }
 @media (min-width: 641px) { .bandeau-mobile { display: none !important; } }
+
+/* Mode sombre : les champs de date natifs (calendrier, chiffres) suivent le thème au lieu de rester noirs */
+.dark input[type="date"], .dark input[type="time"] { color-scheme: dark; }
