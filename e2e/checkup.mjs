@@ -160,7 +160,7 @@ try {
   await p4.getByLabel("Mot de passe").fill("bon"); await p4.getByRole("button", { name: "Se connecter" }).last().click(); await p4.waitForTimeout(900);
   verif("Bibliotheque commune : envoi apres connexion", envois.length === 1, `${envois.length} envoi(s)`);
   verif("Bibliotheque commune : jeton du compte joint a l'envoi", /^Bearer .+\..+\./.test(envois[0]?.auth ?? ""), envois[0]?.auth ?? "");
-  verif("Bibliotheque commune : etat « Connecté · email »", await p4.getByText("Connecté · hugo@test.fr").isVisible());
+  verif("Bibliotheque commune : etat email seul", await p4.getByText("hugo@test.fr", { exact: true }).isVisible());
   verif("Bibliotheque commune : aucun prix envoye", envois.length > 0 && !JSON.stringify(envois).includes("price"), JSON.stringify(envois[0]?.p?.supply ?? {}));
   const local = await p4.evaluate(() => localStorage.getItem("format.materials") ?? "");
   verif("Bibliotheque commune : prix garde sur le poste", local.includes('"price":42'));
@@ -198,7 +198,7 @@ try {
   await p7.getByLabel("Email").fill("hugo@test.fr"); await p7.getByLabel("Mot de passe").fill("bon");
   const [dlb] = await Promise.all([p7.waitForEvent("download", { timeout: 8000 }).catch(() => null), p7.getByRole("button", { name: "Se connecter" }).last().click()]);
   verif("Apres connexion : l'export part", !!dlb);
-  verif("Bandeau : « Connecté · email »", await p7.getByRole("banner").getByText("Connecté · hugo@test.fr").isVisible());
+  verif("Bandeau : email seul", await p7.getByRole("banner").getByText("hugo@test.fr", { exact: true }).isVisible());
   // Sauvegarde du pied de page, dans une fenetre : la connexion doit rester utilisable
   await p7.getByRole("banner").getByRole("button", { name: "Se déconnecter" }).click(); await p7.waitForTimeout(300);
   await p7.getByRole("button", { name: /^Sauvegarde$/ }).click(); await p7.waitForTimeout(300);
