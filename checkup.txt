@@ -1,0 +1,33 @@
+OK     Champ vide : le curseur va dessus (Largeur de P1)
+OK     Menu Exporter : PDF commande, PDF atelier, Excel ( PDF commande fournisseur /  PDF atelier plans /  Commande Excel)
+OK     Nouveau : confirmation au style de l'appli
+OK     Nouveau projet : champs du chantier ouverts
+OK     Nouveau projet : mode atelier garde
+OK     Projet enregistre puis rouvert (Chantier démo)
+OK     Mode sombre retenu apres rechargement
+OK     Sauvegarde complete : projets, materiaux et theme inclus (format.current, format.materials, format.projects, format.theme)
+OK     Premier lancement : guide « Pour commencer »
+OK     Collage sans en-tete : Repere, Largeur, Hauteur, Quantite (label,width,height,quantity)
+OK     Collage sans en-tete : largeur de G2 = 2010
+OK     Piece impossible : calcul bloque avec la raison (Optimisation impossible : G1 : Plus grande que le plus grand format (5'000 × 120 mm pour 2'500 × 1'250 mm utiles).)
+OK     Plans : etiquettes lisibles a l'ecran (>= 9,5 px) (13 textes, plus petit 10.0 px)
+OK     Saisie : nombre affiche « 2'010 »
+OK     Resultat perime : bandeau affiche
+OK     Resultat perime : export bloque
+OK     Suppression d'une piece : Annuler la remet (1 puis 2)
+OK     Import .xlsx : fenetre d'apercu avec les bonnes colonnes (label,width,height,quantity)
+OK     Import .xlsx : pieces ajoutees
+OK     Bibliotheque commune : etat « a jour »
+OK     Bibliotheque commune : materiau de l'equipe recu
+OK     Bibliotheque commune : materiau local signale
+OK     Bibliotheque commune : PIN demande
+OK     Bibliotheque commune : PIN faux refuse
+OK     Bibliotheque commune : envoi apres PIN (1 envoi(s))
+OK     Bibliotheque commune : aucun prix envoye ({"mode":"catalog","formats":[{"id":"f1","width":2500,"length":1250}]})
+OK     Bibliotheque commune : prix garde sur le poste
+OK     Hors ligne : copie locale affichee
+OK     Lien vers la fiche Index dans le materiau (https://outils-hn.github.io/Index/?fiche=fiche-fg)
+OK     Telephone : pas de debordement horizontal (0 px)
+OK     Telephone : boutons du bandeau assez grands
+OK     Telephone : bouton ⋯ present (bandeau-marque:12-124 flex items-center :12-124 bandeau-nav:132-282 bandeau-droite:290-378 mr-1 flex items-ce:0-0 bandeau-btn bandea:0-0 bandeau-btn bandea:0-0 bandeau-btn bandea:0-0 bandeau-icone band:290-330 bandeau-btn primai:0-0 bandeau-icone:338-378)
+OK     Telephone : menu ⋯ avec Sauvegarder, Mes projets, Nouveau ( Sauvegarder /  Mes projets /  Nouveau /  Mode atelier : activé /  PDF commande /  PDF atelier /  Commande Excel)
