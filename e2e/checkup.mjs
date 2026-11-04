@@ -175,6 +175,40 @@ try {
   await c5.close();
 } catch (e) { verif("Deroulement bibliotheque commune", false, e.message.split("\n")[0]); }
 
+// Comptes : bandeau « Se connecter », 3 exports gratuits, puis connexion demandee (exports + sauvegarde)
+try {
+  const c7 = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
+  await c7.route(/supabase\.co/, async (route) => {
+    const url = route.request().url();
+    if (url.includes("/auth/v1/token")) {
+      const b = JSON.parse(route.request().postData() || "{}");
+      if (b.password !== "bon") return route.fulfill({ status: 400, json: { error: "invalid_grant", error_description: "Invalid login credentials" } });
+      const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+      return route.fulfill({ json: { access_token: `${b64({ alg: "HS256" })}.${b64({ sub: "u1", exp: 4102444800 })}.x`, token_type: "bearer", expires_in: 3600, refresh_token: "r", user: { id: "u1", email: "hugo@test.fr" } } });
+    }
+    if (url.includes("/rest/v1/format_materiaux")) return route.fulfill({ json: [] });
+    return route.fulfill({ json: true });
+  });
+  const p7 = await c7.newPage();
+  await p7.addInitScript(() => { if (!sessionStorage.getItem("s7")) { localStorage.setItem("format.exports.libres", "3"); sessionStorage.setItem("s7", "1"); } });
+  await p7.goto(BASE + "bibliotheque", { waitUntil: "networkidle" }); await p7.waitForTimeout(500);
+  verif("Bandeau : « Lecture seule » + Se connecter en haut de page", await p7.getByRole("banner").getByText("Lecture seule").isVisible() && await p7.getByRole("banner").getByRole("button", { name: "Se connecter" }).isVisible());
+  await p7.getByRole("button", { name: /Exporter la bibliothèque/ }).click(); await p7.waitForTimeout(400);
+  verif("Apres 3 exports : la connexion est demandee", await p7.getByRole("heading", { name: "Connexion" }).isVisible() || await p7.getByText("Pour modifier la bibliothèque commune").isVisible());
+  await p7.getByLabel("Email").fill("hugo@test.fr"); await p7.getByLabel("Mot de passe").fill("bon");
+  const [dlb] = await Promise.all([p7.waitForEvent("download", { timeout: 8000 }).catch(() => null), p7.getByRole("button", { name: "Se connecter" }).last().click()]);
+  verif("Apres connexion : l'export part", !!dlb);
+  verif("Bandeau : « Connecté · email »", await p7.getByRole("banner").getByText("Connecté · hugo@test.fr").isVisible());
+  // Sauvegarde du pied de page, dans une fenetre : la connexion doit rester utilisable
+  await p7.getByRole("banner").getByRole("button", { name: "Se déconnecter" }).click(); await p7.waitForTimeout(300);
+  await p7.getByRole("button", { name: /^Sauvegarde$/ }).click(); await p7.waitForTimeout(300);
+  await p7.getByRole("button", { name: /Télécharger la sauvegarde/ }).click(); await p7.waitForTimeout(400);
+  await p7.getByLabel("Email").fill("hugo@test.fr"); await p7.getByLabel("Mot de passe").fill("bon");
+  const [dls] = await Promise.all([p7.waitForEvent("download", { timeout: 8000 }).catch(() => null), p7.getByRole("button", { name: "Se connecter" }).last().click({ timeout: 5000 }).catch(() => null)]);
+  verif("Sauvegarde sans compte apres 3 exports : connexion utilisable puis telechargement", !!dls);
+  await c7.close();
+} catch (e) { verif("Deroulement des comptes", false, e.message.split("\n")[0]); }
+
 // Lien d'un materiau vers sa fiche technique Index (base d'Index simulee)
 try {
   const c6 = await browser.newContext({ viewport: { width: 1440, height: 900 } });

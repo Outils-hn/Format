@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   envoyerMateriau, fusionner, lireBibliotheque, noterSynchro, sansPrix, supprimerMateriau,
 } from "@/lib/shared-library";
+import { LogIn, LogOut } from "lucide-react";
 import { INDEX_URL, connexion, deconnexion, lireSession, useCompte } from "@/lib/compte";
 
 // ---------- Connexion : une seule fenetre pour toute l'appli, ouverte a la demande ----------
@@ -60,17 +61,42 @@ export function ConnexionDialog() {
   );
 }
 
-/** Pastille d'etat du compte (page Bibliotheque). */
-export function EtatCompte() {
+/** Etat du compte dans le bandeau : « Lecture seule » + Se connecter, ou « Connecté · email » + Se déconnecter. */
+export function CompteBandeau() {
   const c = useCompte();
-  return (
-    <span className="flex flex-wrap items-center gap-2">
-      <span>{!c.connecte ? "Lecture seule" : c.valide === false ? "Compte à valider · lecture seule" : `Connecté · ${c.email}`}</span>
-      {c.connecte
-        ? <Button variant="link" size="sm" className="h-auto p-0" onClick={deconnexion}>Se déconnecter</Button>
-        : <Button variant="link" size="sm" className="h-auto p-0" onClick={() => void demanderConnexion()}>Se connecter</Button>}
-    </span>
+  return c.connecte ? (
+    <>
+      <span className={c.valide === false ? "bandeau-statut" : "bandeau-statut ouvert"} title={c.email}>
+        {c.valide === false ? "Compte à valider · lecture seule" : `Connecté · ${c.email}`}
+      </span>
+      <button className="bandeau-btn" aria-label="Se déconnecter" onClick={deconnexion}><LogOut /><span className="max-sm:hidden">Se déconnecter</span></button>
+    </>
+  ) : (
+    <>
+      <span className="bandeau-statut">Lecture seule</span>
+      <button className="bandeau-btn" aria-label="Se connecter" onClick={() => void demanderConnexion()}><LogIn /><span className="max-sm:hidden">Se connecter</span></button>
+    </>
   );
+}
+
+const EXPORTS_LIBRES = 3;
+const CLE_EXPORTS = "format.exports.libres";
+
+/**
+ * Exports (PDF, Excel, .json) : libres pour un compte connecte ; sans compte, 3 exports pour decouvrir
+ * l'appli, puis la connexion est demandee. Incitation seulement (compteur dans le navigateur).
+ */
+export async function autoriserExport(): Promise<boolean> {
+  if (lireSession()) return true;
+  let faits = 0;
+  try { faits = Number(localStorage.getItem(CLE_EXPORTS)) || 0; } catch { /* stockage bloque */ }
+  if (faits < EXPORTS_LIBRES) {
+    try { localStorage.setItem(CLE_EXPORTS, String(faits + 1)); } catch { /* stockage bloque */ }
+    toast.message(`Export gratuit ${faits + 1}/${EXPORTS_LIBRES}`, { description: "Connecte-toi avec ton compte Index pour des exports illimités." });
+    return true;
+  }
+  toast.message("Connecte-toi pour exporter", { description: "Les 3 exports de découverte sont utilisés." });
+  return demanderConnexion();
 }
 
 // ---------- Synchronisation ----------
