@@ -126,7 +126,7 @@ try {
   verif("Import .xlsx : pieces ajoutees", (await p3.getByLabel("Largeur de X2").inputValue()).replace(/\s|\u202f/g, "") === "800,5");
   await c3.close();
 } catch (e) { verif("Deroulement des quick wins", false, e.message.split("\n")[0]); }
-// 7. Bibliotheque commune (Supabase simule) : reception, prix gardes sur le poste, PIN, hors ligne
+// 7. Bibliotheque commune (Supabase simule) : reception, prix gardes sur le poste, connexion par compte, hors ligne
 try {
   const envois = [];
   const c4 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -134,8 +134,13 @@ try {
     const url = route.request().url();
     if (url.includes("/rest/v1/format_materiaux")) return route.fulfill({ json: [{ id: "eq1", data: { id: "eq1", name: "MDF équipe", thickness: 19, kerf: 4, trim: 10, grainLocked: false, cutType: "guillotine", supply: { mode: "single", width: 2800, length: 2070 } }, updated_at: "2026-10-28T10:00:00Z", deleted_at: null }] });
     const body = JSON.parse(route.request().postData() || "{}");
-    if (url.endsWith("/rpc/verify_pin")) return route.fulfill({ json: body.p_pin === "1234" ? { ok: true } : { ok: false, error: "PIN incorrect (4 essai(s) restant(s))." } });
-    if (url.endsWith("/rpc/format_save_material")) { envois.push(body); return route.fulfill({ json: { ok: true } }); }
+    if (url.includes("/auth/v1/token")) {
+      const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+      if (body.password !== "bon") return route.fulfill({ status: 400, json: { error: "invalid_grant", error_description: "Invalid login credentials" } });
+      return route.fulfill({ json: { access_token: `${b64({ alg: "HS256" })}.${b64({ sub: "u1", exp: 4102444800 })}.x`, token_type: "bearer", expires_in: 3600, refresh_token: "r", user: { id: "u1", email: "hugo@test.fr" } } });
+    }
+    if (url.endsWith("/rpc/is_approved")) return route.fulfill({ json: true });
+    if (url.endsWith("/rpc/format_save_material")) { envois.push({ ...body, auth: route.request().headers()["authorization"] ?? "" }); return route.fulfill({ json: { ok: true } }); }
     return route.fulfill({ json: { ok: true } });
   });
   const p4 = await c4.newPage();
@@ -147,11 +152,15 @@ try {
   verif("Bibliotheque commune : materiau local signale", await p4.getByText(/1 matériau\(x\) seulement sur ce poste/).isVisible());
   await p4.screenshot({ path: `${OUT}/check-bibliotheque-commune.png` });
   await p4.getByRole("button", { name: /Envoyer à l'équipe/ }).click(); await p4.waitForTimeout(300);
-  verif("Bibliotheque commune : PIN demande", await p4.getByText("Code PIN requis").isVisible());
-  await p4.getByLabel("Code PIN").fill("0000"); await p4.getByRole("button", { name: "Déverrouiller" }).click(); await p4.waitForTimeout(300);
-  verif("Bibliotheque commune : PIN faux refuse", envois.length === 0 && await p4.getByText("Code PIN requis").isVisible());
-  await p4.getByLabel("Code PIN").fill("1234"); await p4.getByRole("button", { name: "Déverrouiller" }).click(); await p4.waitForTimeout(800);
-  verif("Bibliotheque commune : envoi apres PIN", envois.length === 1, `${envois.length} envoi(s)`);
+  verif("Bibliotheque commune : etat « Lecture seule » sans compte", await p4.getByText("Lecture seule").isVisible());
+  verif("Bibliotheque commune : connexion demandee", await p4.getByRole("heading", { name: "Connexion" }).isVisible() || await p4.getByText("Pour modifier la bibliothèque commune").isVisible());
+  await p4.getByLabel("Email").fill("hugo@test.fr");
+  await p4.getByLabel("Mot de passe").fill("mauvais"); await p4.getByRole("button", { name: "Se connecter" }).last().click(); await p4.waitForTimeout(500);
+  verif("Bibliotheque commune : mauvais mot de passe refuse", envois.length === 0 && await p4.getByRole("alert").getByText("Email ou mot de passe incorrect.").isVisible());
+  await p4.getByLabel("Mot de passe").fill("bon"); await p4.getByRole("button", { name: "Se connecter" }).last().click(); await p4.waitForTimeout(900);
+  verif("Bibliotheque commune : envoi apres connexion", envois.length === 1, `${envois.length} envoi(s)`);
+  verif("Bibliotheque commune : jeton du compte joint a l'envoi", /^Bearer .+\..+\./.test(envois[0]?.auth ?? ""), envois[0]?.auth ?? "");
+  verif("Bibliotheque commune : etat « Connecté · email »", await p4.getByText("Connecté · hugo@test.fr").isVisible());
   verif("Bibliotheque commune : aucun prix envoye", envois.length > 0 && !JSON.stringify(envois).includes("price"), JSON.stringify(envois[0]?.p?.supply ?? {}));
   const local = await p4.evaluate(() => localStorage.getItem("format.materials") ?? "");
   verif("Bibliotheque commune : prix garde sur le poste", local.includes('"price":42'));

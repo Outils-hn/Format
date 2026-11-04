@@ -1,4 +1,4 @@
-// Interface de la bibliotheque commune : demande du PIN (comme dans Masse), etat de la
+// Interface de la bibliotheque commune : connexion par compte Index, etat de la
 // synchronisation, envoi des modifications. La logique pure est dans lib/shared-library.ts.
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -6,45 +6,70 @@ import type { Material } from "@/lib/types";
 import { Modal } from "./Modal";
 import { Button } from "@/components/ui/button";
 import {
-  envoyerMateriau, erreurDePin, fusionner, lireBibliotheque, noterSynchro, pinSession, retenirPin,
-  sansPrix, supprimerMateriau, verifierPin,
+  envoyerMateriau, fusionner, lireBibliotheque, noterSynchro, sansPrix, supprimerMateriau,
 } from "@/lib/shared-library";
+import { INDEX_URL, connexion, deconnexion, lireSession, useCompte } from "@/lib/compte";
 
-// ---------- PIN : une seule fenetre pour toute l'appli, ouverte a la demande ----------
-let resolver: ((v: string | null) => void) | null = null;
+// ---------- Connexion : une seule fenetre pour toute l'appli, ouverte a la demande ----------
+let resolver: ((v: boolean) => void) | null = null;
 const abonnes = new Set<(ouvert: boolean) => void>();
 
-/** PIN de la session, ou demande a l'utilisateur (null s'il annule). */
-export function demanderPin(): Promise<string | null> {
-  const p = pinSession();
-  if (p) return Promise.resolve(p);
+/** Vrai si un compte est connecte, sinon ouvre la fenetre de connexion (faux si l'utilisateur annule). */
+export function demanderConnexion(): Promise<boolean> {
+  if (lireSession()) return Promise.resolve(true);
   abonnes.forEach((f) => f(true));
   return new Promise((r) => (resolver = r));
 }
 
-export function PinDialog() {
+export function ConnexionDialog() {
   const [ouvert, setOuvert] = useState(false);
-  const [valeur, setValeur] = useState("");
+  const [email, setEmail] = useState("");
+  const [mdp, setMdp] = useState("");
+  const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
   useEffect(() => { abonnes.add(setOuvert); return () => void abonnes.delete(setOuvert); }, []);
   if (!ouvert) return null;
-  const fermer = (v: string | null) => { setOuvert(false); setValeur(""); resolver?.(v); resolver = null; };
+  const fermer = (ok: boolean) => { setOuvert(false); setMdp(""); setErreur(null); resolver?.(ok); resolver = null; };
   const valider = async () => {
-    setEnCours(true);
-    const r = await verifierPin(valeur);
+    setEnCours(true); setErreur(null);
+    const e = await connexion(email, mdp);
     setEnCours(false);
-    if (r.ok) { retenirPin(valeur); fermer(valeur); } else toast.error(r.error ?? "PIN incorrect.");
+    if (e) setErreur(e); else fermer(true);
   };
+  const lien = "underline underline-offset-2 hover:text-foreground";
   return (
-    <Modal title="Code PIN requis" onClose={() => fermer(null)}>
-      <p className="text-sm text-muted-foreground">La bibliothèque est commune à l'équipe : saisissez le PIN (le même que Masse) pour la modifier pendant cette session.</p>
-      <input autoFocus type="password" inputMode="numeric" aria-label="Code PIN" className="input-tech mono mt-4" value={valeur}
-        onChange={(e) => setValeur(e.target.value)} onKeyDown={(e) => e.key === "Enter" && valeur && void valider()} />
-      <div className="mt-4 flex justify-end gap-2">
-        <Button variant="ghost" className="btn-ghost" onClick={() => fermer(null)}>Annuler</Button>
-        <Button className="btn-primary" disabled={enCours || !valeur} onClick={valider}>Déverrouiller</Button>
-      </div>
+    <Modal title="Connexion" onClose={() => fermer(false)}>
+      <p className="text-sm text-muted-foreground">La consultation est libre. Pour modifier la bibliothèque commune, connectez-vous avec votre compte Index (mêmes email et mot de passe).</p>
+      <form className="mt-4 space-y-3" onSubmit={(e) => { e.preventDefault(); void valider(); }}>
+        <label className="block text-sm">Email
+          <input autoFocus type="email" autoComplete="username" className="input-tech mt-1" value={email} onChange={(e) => setEmail(e.target.value)} />
+        </label>
+        <label className="block text-sm">Mot de passe
+          <input type="password" autoComplete="current-password" className="input-tech mt-1" value={mdp} onChange={(e) => setMdp(e.target.value)} />
+        </label>
+        {erreur && <p role="alert" className="text-sm text-destructive">{erreur}</p>}
+        <p className="text-xs text-muted-foreground">
+          Pas encore de compte ? <a className={lien} href={`${INDEX_URL}/auth`} target="_blank" rel="noopener noreferrer">Créer un compte dans Index</a> (un collègue doit ensuite le valider).
+        </p>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" className="btn-ghost" onClick={() => fermer(false)}>Annuler</Button>
+          <Button type="submit" className="btn-primary" disabled={enCours || !email || !mdp}>{enCours ? "Connexion…" : "Se connecter"}</Button>
+        </div>
+      </form>
     </Modal>
+  );
+}
+
+/** Pastille d'etat du compte (page Bibliotheque). */
+export function EtatCompte() {
+  const c = useCompte();
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      <span>{!c.connecte ? "Lecture seule" : c.valide === false ? "Compte à valider · lecture seule" : `Connecté · ${c.email}`}</span>
+      {c.connecte
+        ? <Button variant="link" size="sm" className="h-auto p-0" onClick={deconnexion}>Se déconnecter</Button>
+        : <Button variant="link" size="sm" className="h-auto p-0" onClick={() => void demanderConnexion()}>Se connecter</Button>}
+    </span>
   );
 }
 
@@ -64,8 +89,8 @@ const memeContenu = (a: Material, b: Material) => JSON.stringify(sansPrix(a)) ==
 
 /**
  * Envoie a l'equipe ce qui a change entre deux versions de la bibliotheque.
- * Un changement de prix seul reste local (pas de PIN). Renvoie false si l'envoi n'a pas eu lieu
- * (PIN annule ou refuse, pas de connexion) : la modification doit alors etre annulee a l'ecran.
+ * Un changement de prix seul reste local (pas de connexion requise). Renvoie false si l'envoi n'a pas eu lieu
+ * (connexion annulee, compte refuse, pas de connexion) : la modification doit alors etre annulee a l'ecran.
  */
 export async function publierChangements(avant: Material[], apres: Material[], localOnly: Set<string>): Promise<boolean> {
   const idsApres = new Set(apres.map((m) => m.id));
@@ -73,15 +98,14 @@ export async function publierChangements(avant: Material[], apres: Material[], l
   // Un materiau seulement sur ce poste peut etre supprime sans toucher a l'equipe
   const supprimes = avant.filter((m) => !idsApres.has(m.id) && !localOnly.has(m.id));
   if (!modifies.length && !supprimes.length) return true;
-  const pin = await demanderPin();
-  if (!pin) { toast.error("Modification annulée : le PIN est nécessaire pour modifier la bibliothèque commune."); return false; }
+  if (!(await demanderConnexion())) { toast.error("Modification annulée : il faut être connecté pour modifier la bibliothèque commune."); return false; }
   for (const m of modifies) {
-    const r = await envoyerMateriau(pin, m);
-    if (!r.ok) { if (erreurDePin(r.error)) retenirPin(null); toast.error(r.error ?? "Échec de l'envoi."); return false; }
+    const r = await envoyerMateriau(m);
+    if (!r.ok) { toast.error(r.error ?? "Échec de l'envoi."); return false; }
   }
   for (const m of supprimes) {
-    const r = await supprimerMateriau(pin, m.id);
-    if (!r.ok) { if (erreurDePin(r.error)) retenirPin(null); toast.error(r.error ?? "Échec de la suppression."); return false; }
+    const r = await supprimerMateriau(m.id);
+    if (!r.ok) { toast.error(r.error ?? "Échec de la suppression."); return false; }
   }
   return true;
 }

@@ -7,7 +7,7 @@ import type { Material } from "@/lib/types";
 import { exportLibrary, loadMaterials, parseLibrary, saveMaterials, usedMaterialIds } from "@/lib/storage";
 import { ConfirmHost } from "@/components/format/Confirm";
 import { Bandeau } from "@/components/format/Bandeau";
-import { PinDialog, publierChangements, synchroniser, type Etat } from "@/components/format/SharedLibrary";
+import { ConnexionDialog, EtatCompte, publierChangements, synchroniser, type Etat } from "@/components/format/SharedLibrary";
 import { lireDateSynchro } from "@/lib/shared-library";
 import { uid } from "@/lib/ids";
 import { MaterialsCard } from "@/components/format/MaterialsCard";
@@ -47,7 +47,7 @@ function LibraryPage() {
     if (r.etat === "ok") { saveMaterials(r.materials); setMaterials(r.materials); setLocalOnly(new Set(r.localOnly.map((m) => m.id))); }
   };
   useEffect(() => { const m = loadMaterials(); setMaterials(m); void synchro(m); }, []);
-  // Chaque modification est envoyee a l'equipe (PIN) ; sans PIN ou sans reseau, elle est annulee.
+  // Chaque modification est envoyee a l'equipe (compte Index) ; sans connexion ou sans reseau, elle est annulee.
   const change = async (next: Material[]) => {
     const avant = materials;
     saveMaterials(next); setMaterials(next);
@@ -121,6 +121,7 @@ function LibraryPage() {
         {etat === "ok" && "Bibliothèque commune à l'équipe · à jour. Les prix restent sur ce poste."}
         {etat === "synchro" && "Synchronisation avec la bibliothèque commune…"}
         {etat === "horsLigne" && `Bibliothèque commune injoignable : copie locale${dateSynchro ? ` du ${new Date(dateSynchro).toLocaleString("fr-CH", { dateStyle: "short", timeStyle: "short" })}` : ""}. Consultation possible, modifications impossibles.`}
+        <span aria-hidden>·</span><EtatCompte />
         {etat === "horsLigne" && <Button variant="link" size="sm" className="h-auto p-0" onClick={() => void synchro(materials)}>Réessayer</Button>}
       </p>
       {etat === "ok" && localOnly.size > 0 && (
@@ -132,7 +133,7 @@ function LibraryPage() {
       <MaterialsCard materials={materials} onChange={(m) => void change(m)} localOnly={localOnly} />
     </main>
     <AppFooter />
-    <PinDialog />
+    <ConnexionDialog />
     <ConfirmHost />
     {conflict && <Modal title="Matériau déjà présent" onClose={() => setPending(null)}>
       <p className="text-sm">Un matériau nommé « {conflict.name} » existe déjà dans la bibliothèque.</p>
