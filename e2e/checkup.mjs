@@ -190,7 +190,7 @@ try {
     return route.fulfill({ json: true });
   });
   const p7 = await c7.newPage();
-  await p7.addInitScript(() => { if (!sessionStorage.getItem("s7")) { localStorage.setItem("format.exports.libres", "3"); sessionStorage.setItem("s7", "1"); } });
+  await p7.addInitScript((m) => { if (!sessionStorage.getItem("s7")) { localStorage.setItem("outils.format.exports", "3"); localStorage.setItem("format.materials", JSON.stringify(m)); sessionStorage.setItem("s7", "1"); } }, materials);
   await p7.goto(BASE + "bibliotheque", { waitUntil: "networkidle" }); await p7.waitForTimeout(500);
   verif("Bandeau : « Lecture seule » + Se connecter en haut de page", await p7.getByRole("banner").getByText("Lecture seule").isVisible() && await p7.getByRole("banner").getByRole("button", { name: "Se connecter" }).isVisible());
   await p7.getByRole("button", { name: /Exporter la bibliothèque/ }).click(); await p7.waitForTimeout(400);

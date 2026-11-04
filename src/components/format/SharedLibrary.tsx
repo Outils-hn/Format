@@ -80,7 +80,7 @@ export function CompteBandeau() {
 }
 
 const EXPORTS_LIBRES = 3;
-const CLE_EXPORTS = "format.exports.libres";
+const CLE_EXPORTS = "outils.format.exports";
 
 /**
  * Exports (PDF, Excel, .json) : libres pour un compte connecte ; sans compte, 3 exports pour decouvrir
