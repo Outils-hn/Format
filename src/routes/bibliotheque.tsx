@@ -7,7 +7,7 @@ import type { Material } from "@/lib/types";
 import { exportLibrary, loadMaterials, parseLibrary, saveMaterials, usedMaterialIds } from "@/lib/storage";
 import { ConfirmHost } from "@/components/format/Confirm";
 import { Bandeau } from "@/components/format/Bandeau";
-import { CompteBandeau, ConnexionDialog, autoriserExport, publierChangements, synchroniser, type Etat } from "@/components/format/SharedLibrary";
+import { CompteBandeau, ConnexionDialog, jsonPermis, publierChangements, synchroniser, type Etat } from "@/components/format/SharedLibrary";
 import { lireDateSynchro } from "@/lib/shared-library";
 import { uid } from "@/lib/ids";
 import { MaterialsCard } from "@/components/format/MaterialsCard";
@@ -90,7 +90,7 @@ function LibraryPage() {
     advance(lib, rest, pending.added + 1);
   };
   const onFile = async (f: File | undefined) => {
-    if (!f) return;
+    if (!f || !jsonPermis()) return;
     try { advance(materials, parseLibrary(await f.text()), 0); }
     catch { toast.error("Fichier invalide"); }
     if (fileRef.current) fileRef.current.value = "";
@@ -111,9 +111,9 @@ function LibraryPage() {
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="mr-auto text-[32px] font-semibold leading-none tracking-[-0.03em]">Bibliothèque</h2>
         <Button variant="outline" className="btn-outline" disabled={!materials.length}
-          onClick={async () => { if (await autoriserExport()) download(new Blob([exportLibrary(materials)], { type: "application/json" }), "format-bibliotheque.json"); }}>
+          onClick={async () => { if (jsonPermis()) download(new Blob([exportLibrary(materials)], { type: "application/json" }), "format-bibliotheque.json"); }}>
           <Download size={14} /> Exporter la bibliothèque (.json)</Button>
-        <Button variant="outline" className="btn-outline" onClick={() => fileRef.current?.click()}><Upload size={14} /> Importer une bibliothèque (.json)</Button>
+        <Button variant="outline" className="btn-outline" onClick={() => { if (jsonPermis()) fileRef.current?.click(); }}><Upload size={14} /> Importer une bibliothèque (.json)</Button>
         <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
       </div>
       {/* Etat de la bibliotheque commune */}
