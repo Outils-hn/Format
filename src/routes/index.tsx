@@ -17,6 +17,7 @@ import { ConfirmHost, confirmer } from "@/components/format/Confirm";
 import { fusionner, lireBibliotheque, noterSynchro } from "@/lib/shared-library";
 import { Brand } from "@/components/format/Brand";
 import { Bandeau } from "@/components/format/Bandeau";
+import { CompteBandeau, ConnexionDialog, autoriserExport } from "@/components/format/SharedLibrary";
 import { AppFooter } from "@/components/format/AppFooter";
 import { ProjectSettings } from "@/components/format/ProjectSettings";
 import { Modal } from "@/components/format/Modal";
@@ -197,7 +198,8 @@ function Index() {
   };
   const setInfo = (patch: Partial<typeof info>) => setProject({ ...project, info: { ...info, ...patch } });
 
-  const doExport = () => {
+  const doExport = async () => {
+    if (!(await autoriserExport())) return;
     const blob = new Blob([exportProject(project, materials)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -230,17 +232,17 @@ function Index() {
   </>;
 
   const exportOrder = async () => {
-    if (!result || stale || !(await checkInfo())) return;
+    if (!result || stale || !(await checkInfo()) || !(await autoriserExport())) return;
     try { const { exportOrderPdf } = await import("@/lib/export/orderPdf"); exportOrderPdf(result, materials, allPieces, info, project); }
     catch (e) { console.error(e); toast.error("Échec de la génération du PDF"); }
   };
   const exportWorkshop = async () => {
-    if (!result || stale || !(await checkInfo())) return;
+    if (!result || stale || !(await checkInfo()) || !(await autoriserExport())) return;
     try { const { exportWorkshopPdf } = await import("@/lib/export/pdf"); exportWorkshopPdf(result, materials, allPieces, info, recap, project.materialStatus, offcutSettings); }
     catch (e) { console.error(e); toast.error("Échec de la génération du PDF"); }
   };
   const exportXlsx = async () => {
-    if (!result || stale) return;
+    if (!result || stale || !(await autoriserExport())) return;
     try { const { exportOrderXlsx } = await import("@/lib/export/xlsx"); exportOrderXlsx(result, materials, info, allPieces, project, workshop); }
     catch (e) { console.error(e); toast.error("Échec de l'export Excel"); }
   };
@@ -301,8 +303,10 @@ function Index() {
           </DropdownMenu>
           <button className="bandeau-btn primaire bandeau-bureau" onClick={save}><Save size={15} /> Sauvegarder</button>
         </>}
+        statut={<CompteBandeau />}
         theme={<ThemeToggle />}
       />
+      <ConnexionDialog />
 
       <main className="page flex-1 space-y-6 pt-8 pb-6">
         {/* Projet : titre + une ligne de resume ; les champs ne s'ouvrent que pour les modifier */}

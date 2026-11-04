@@ -7,7 +7,7 @@ import type { Material } from "@/lib/types";
 import { exportLibrary, loadMaterials, parseLibrary, saveMaterials, usedMaterialIds } from "@/lib/storage";
 import { ConfirmHost } from "@/components/format/Confirm";
 import { Bandeau } from "@/components/format/Bandeau";
-import { ConnexionDialog, EtatCompte, publierChangements, synchroniser, type Etat } from "@/components/format/SharedLibrary";
+import { CompteBandeau, ConnexionDialog, autoriserExport, publierChangements, synchroniser, type Etat } from "@/components/format/SharedLibrary";
 import { lireDateSynchro } from "@/lib/shared-library";
 import { uid } from "@/lib/ids";
 import { MaterialsCard } from "@/components/format/MaterialsCard";
@@ -104,13 +104,14 @@ function LibraryPage() {
         <Link to="/" className="bandeau-onglet" activeOptions={{ exact: true }}>Projet</Link>
         <Link to="/bibliotheque" className="bandeau-onglet">Bibliothèque</Link>
       </>}
+      statut={<CompteBandeau />}
       theme={<ThemeToggle />}
     />
     <main className="page flex-1 space-y-5 py-6">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="mr-auto text-[32px] font-semibold leading-none tracking-[-0.03em]">Bibliothèque</h2>
         <Button variant="outline" className="btn-outline" disabled={!materials.length}
-          onClick={() => download(new Blob([exportLibrary(materials)], { type: "application/json" }), "format-bibliotheque.json")}>
+          onClick={async () => { if (await autoriserExport()) download(new Blob([exportLibrary(materials)], { type: "application/json" }), "format-bibliotheque.json"); }}>
           <Download size={14} /> Exporter la bibliothèque (.json)</Button>
         <Button variant="outline" className="btn-outline" onClick={() => fileRef.current?.click()}><Upload size={14} /> Importer une bibliothèque (.json)</Button>
         <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
@@ -121,7 +122,6 @@ function LibraryPage() {
         {etat === "ok" && "Bibliothèque commune à l'équipe · à jour. Les prix restent sur ce poste."}
         {etat === "synchro" && "Synchronisation avec la bibliothèque commune…"}
         {etat === "horsLigne" && `Bibliothèque commune injoignable : copie locale${dateSynchro ? ` du ${new Date(dateSynchro).toLocaleString("fr-CH", { dateStyle: "short", timeStyle: "short" })}` : ""}. Consultation possible, modifications impossibles.`}
-        <span aria-hidden>·</span><EtatCompte />
         {etat === "horsLigne" && <Button variant="link" size="sm" className="h-auto p-0" onClick={() => void synchro(materials)}>Réessayer</Button>}
       </p>
       {etat === "ok" && localOnly.size > 0 && (
