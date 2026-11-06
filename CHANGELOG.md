@@ -4,6 +4,10 @@ Le numéro de version se met à jour dans `src/lib/appInfo.ts` (pied de page et 
 
 Chaque version qui change quelque chose de visible pour l'équipe a une puce « Nouveauté : … », en langage courant : c'est la seule phrase affichée sur la page « Nouveautés » de l'Accueil.
 
+## 2.13 — 6 novembre 2026
+
+- Le menu des applis propose Joint (en préparation), pour le concepteur seulement : aucune Nouveauté à annoncer à l'équipe.
+
 ## 2.12 — 4 novembre 2026
 
 - Nouveauté : sans compte, on ne peut plus exporter ni importer de fichier JSON (sauvegarde complète, projet, bibliothèque) : un message invite à se connecter avec son compte Index. Les exports PDF et Excel gardent leurs 3 essais gratuits.
