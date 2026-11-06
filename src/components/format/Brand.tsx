@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { ACCUEIL_URL } from "./LienRetour";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -18,7 +19,19 @@ const APPLIS = [
   { nom: "Trame", role: "Répartition de perçages", url: "https://outils-hn.github.io/Trame/", couleur: "#0E9F6E" },
 ] as const;
 
+// Joint : appli en preparation, visible seulement pour le concepteur (drapeau laisse par l'Accueil, meme site pour toutes les applis).
+const JOINT = { nom: "Joint", role: "Espace entre deux éléments", url: "https://outils-hn.github.io/Joint/", couleur: "#0B7285" } as const;
+function useApplis() {
+  const [apercu, setApercu] = useState(false);
+  useEffect(() => {
+    try { setApercu(localStorage.getItem("outils-apercu") === "1"); } catch { /* stockage bloque */ }
+  }, []);
+  return apercu ? [...APPLIS, JOINT].sort((a, b) => a.nom.localeCompare(b.nom)) : APPLIS;
+}
+
+
 export function Brand() {
+  const applis = useApplis();
   return <div className="flex items-center gap-2.5">
     <Logo className="h-[22px] w-[22px]" />
     <DropdownMenu>
@@ -37,7 +50,7 @@ export function Brand() {
           </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        {APPLIS.map((a) => (
+        {applis.map((a) => (
           <DropdownMenuItem key={a.nom} asChild>
             <a href={a.url} className="flex items-center gap-2.5">
               <span className="h-2.5 w-2.5 rounded-[2px]" style={{ background: a.couleur }} />
