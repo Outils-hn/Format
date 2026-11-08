@@ -346,3 +346,9 @@ body { border-top: 3px solid var(--app); }
 
 /* Mode sombre : les champs de date natifs (calendrier, chiffres) suivent le thème au lieu de rester noirs */
 .dark input[type="date"], .dark input[type="time"] { color-scheme: dark; }
+
+/* Zones tactiles : les liens du pied de page se touchent facilement au doigt (zone invisible agrandie, rien ne bouge) */
+@media (pointer: coarse) {
+  footer a, footer button { position: relative; }
+  footer a::after, footer button::after { content: ""; position: absolute; inset: -14px -8px; }
+}
