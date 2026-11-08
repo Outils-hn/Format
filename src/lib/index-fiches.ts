@@ -2,9 +2,9 @@
 // Lecture seule et publique : la liste des fiches (nom, fournisseur, categorie) est lue dans la base
 // d'Index ; on ne garde ici que l'identifiant et le nom de la fiche choisie.
 export const INDEX_URL = "https://outils-hn.github.io/Index";
-const INDEX_DB = "https://ngfzwfbraqkdcocdcmib.supabase.co";
+const INDEX_DB = "https://dtxgvwaqjmmffiiohika.supabase.co";
 // Cle PUBLIQUE d'Index (faite pour etre visible dans une page web)
-const INDEX_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5nZnp3ZmJyYXFrZGNvY2RjbWliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2Mzg2NTcsImV4cCI6MjA5NTIxNDY1N30.Ikovcm4eWkLvPO_PvkI8C8DJebBT011Rz87k_EYFdbU";
+const INDEX_KEY = "sb_publishable_yEWGxFFSLTE1lJRXnFUmpg_dMwa6LxW";
 
 /** Fiche liee : identifiant Index + nom, garde pour l'affichage meme hors ligne. */
 export interface FicheRef { id: string; name: string }
@@ -16,7 +16,7 @@ let cache: Promise<FicheIndex[]> | null = null;
 /** Liste des fiches actives d'Index (une seule lecture par session). */
 export function chargerFiches(): Promise<FicheIndex[]> {
   cache ??= fetch(`${INDEX_DB}/rest/v1/products?select=id,name,supplier,category,deleted_at&order=name`, {
-    headers: { apikey: INDEX_KEY, Authorization: `Bearer ${INDEX_KEY}` },
+    headers: { apikey: INDEX_KEY },
   })
     .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
     .then((rows: (FicheIndex & { deleted_at: string | null })[]) => rows.filter((r) => !r.deleted_at))

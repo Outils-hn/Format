@@ -8,8 +8,8 @@ import type { Material, Supply } from "./types";
 import { normalizeMaterial } from "./storage";
 
 // Adresse et cle PUBLIQUE du projet (faite pour etre visible dans une page web, comme dans Masse)
-export const SUPABASE_URL = "https://ngfzwfbraqkdcocdcmib.supabase.co";
-export const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5nZnp3ZmJyYXFrZGNvY2RjbWliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2Mzg2NTcsImV4cCI6MjA5NTIxNDY1N30.Ikovcm4eWkLvPO_PvkI8C8DJebBT011Rz87k_EYFdbU";
+export const SUPABASE_URL = "https://dtxgvwaqjmmffiiohika.supabase.co";
+export const SUPABASE_KEY = "sb_publishable_yEWGxFFSLTE1lJRXnFUmpg_dMwa6LxW";
 
 export interface RemoteRow { id: string; data: Material; updated_at: string; deleted_at: string | null }
 

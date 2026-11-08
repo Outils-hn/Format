@@ -52,7 +52,7 @@ try {
   await page.reload({ waitUntil: "networkidle" });
   verif("Mode sombre retenu apres rechargement", await page.evaluate(() => document.documentElement.classList.contains("dark")));
   // 5. Sauvegarde complete (reservee aux comptes : on simule une session ouverte)
-  await page.evaluate(() => localStorage.setItem("sb-ngfzwfbraqkdcocdcmib-auth-token", JSON.stringify({ access_token: "a", refresh_token: "r", expires_at: 4102444800, user: { id: "u1", email: "hugo@test.fr" } })));
+  await page.evaluate(() => localStorage.setItem("sb-dtxgvwaqjmmffiiohika-auth-token", JSON.stringify({ access_token: "a", refresh_token: "r", expires_at: 4102444800, user: { id: "u1", email: "hugo@test.fr" } })));
   await page.reload({ waitUntil: "networkidle" });
   await page.getByRole("button", { name: /^Sauvegarde$/ }).click();
   const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /Télécharger la sauvegarde/ }).click()]);
@@ -225,7 +225,7 @@ try {
   const c6 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   await c6.route(/supabase\.co/, (route) => {
     const u = new URL(route.request().url());
-    if (u.hostname.startsWith("ngfzwfbraqkdcocdcmib") && u.pathname.endsWith("/products"))
+    if (u.hostname.startsWith("dtxgvwaqjmmffiiohika") && u.pathname.endsWith("/products"))
       return route.fulfill({ json: [{ id: "fiche-fg", name: "Fermacell Fibres-Gypse", supplier: "James Hardie", category: "Panneaux", deleted_at: null }] });
     return route.abort();
   });
