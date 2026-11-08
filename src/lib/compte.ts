@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { SUPABASE_URL, SUPABASE_KEY, brancherJeton } from "./shared-library";
 
-export const CLE_SESSION = "sb-ngfzwfbraqkdcocdcmib-auth-token";
+export const CLE_SESSION = "sb-dtxgvwaqjmmffiiohika-auth-token";
 export const INDEX_URL = "https://outils-hn.github.io/Index";
 const EVENT = "format-compte";
 
