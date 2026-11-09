@@ -262,6 +262,22 @@ try {
   await pm.screenshot({ path: `${OUT}/50-telephone.png` });
   await cm.close();
 } catch (e) { verif("Telephone", false, e.message.split("\n").slice(0, 8).join(" | ")); }
+// Hors ligne : apres une premiere visite, l'appli doit s'ouvrir sans reseau
+try {
+  const co = await browser.newContext({ viewport: { width: 390, height: 800 } });
+  await co.addInitScript(() => { try { localStorage.setItem("test-hors-ligne", "1"); } catch (e) {} });
+  const po = await co.newPage();
+  await po.goto(BASE, { waitUntil: "networkidle" });
+  await po.waitForFunction(() => !!(navigator.serviceWorker && navigator.serviceWorker.controller), null, { timeout: 15000 }).catch(() => {});
+  await po.waitForTimeout(2500);
+  verif("Hors ligne : la copie de l'appli est installee", await po.evaluate(() => !!(navigator.serviceWorker && navigator.serviceWorker.controller)));
+  verif("Installation : le manifeste est lisible", await po.evaluate(() => fetch(document.querySelector('link[rel=manifest]').href).then((r) => r.json()).then((j) => !!j.name).catch(() => false)));
+  await co.setOffline(true);
+  await po.reload({ waitUntil: "domcontentloaded" });
+  await po.waitForTimeout(3000);
+  verif("Hors ligne : l'appli s'affiche sans reseau", (await po.locator("h1").count()) > 0, await po.title());
+  await co.close();
+} catch (e) { verif("Hors ligne", false, e.message.split("\n")[0]); }
 await browser.close();
 writeFileSync(`${OUT}/checkup.txt`, lignes.join("\n"));
 console.log(lignes.join("\n"));
