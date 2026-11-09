@@ -333,6 +333,12 @@ body { border-top: 3px solid var(--app); }
   .bandeau-in { padding: 0 12px; gap: 8px; }
   .bandeau-marque { gap: 6px; }
   .bandeau-nav { flex: 1 1 0; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  /* Indice : léger fondu à droite tant qu'il reste des onglets à découvrir (navigateurs récents, sinon rien) */
+  @supports (animation-timeline: scroll()) {
+    .bandeau-nav { animation: fondu-nav linear both; animation-timeline: scroll(self inline); mask-image: linear-gradient(to right, #000 calc(100% - var(--fade-r, 28px)), transparent); }
+    @property --fade-r { syntax: "<length>"; inherits: false; initial-value: 28px; }
+    @keyframes fondu-nav { 0%, 90% { --fade-r: 28px; } 100% { --fade-r: 0px; } }
+  }
   .bandeau-droite { flex-shrink: 0; }
   .bandeau-statut { display: none; }
   .bandeau-btn { height: 40px; }
