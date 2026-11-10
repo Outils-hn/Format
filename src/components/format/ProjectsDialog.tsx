@@ -1,9 +1,9 @@
 import { useRef, useState } from "react";
 import { jsonPermis } from "@/components/format/SharedLibrary";
-import { CloudDownload, Download, FolderOpen, Share2, Trash2, Upload } from "lucide-react";
+import { CloudDownload, Download, FolderOpen, RotateCcw, Share2, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { chantierAccueil } from "@/lib/chantier-accueil";
-import { chantierDe, lire, lister, monId, partager, retirer, type CalculBase } from "@/lib/calculs-base";
+import { chantierDe, corbeille, lire, lister, restaurer, monId, partager, retirer, type CalculBase } from "@/lib/calculs-base";
 import type { Material } from "@/lib/types";
 import type { Project } from "@/lib/types";
 import { deleteProject, listProjects } from "@/lib/storage";
@@ -25,11 +25,20 @@ export function ProjectsDialog({
   const file = useRef<HTMLInputElement>(null);
   const [base, setBase] = useState<CalculBase[] | null>(null);
   const [charge, setCharge] = useState(false);
+  const [corb, setCorb] = useState<CalculBase[] | null>(null);
   const numero = chantierDe(chantierAccueil()).numero;
   const erreur = (e: unknown, d: string) => toast.error(e instanceof Error ? e.message : d);
   const actualiser = async (tous: boolean) => {
     setCharge(true);
     try { setBase(await lister(tous ? "" : numero)); } catch (e) { erreur(e, "Lecture impossible"); } finally { setCharge(false); }
+  };
+  const ouvrirCorbeille = async () => {
+    setCharge(true);
+    try { setCorb(await corbeille()); } catch (e) { erreur(e, "Lecture impossible"); } finally { setCharge(false); }
+  };
+  const remettre = async (id: string) => {
+    try { await restaurer(id); setCorb((l) => l && l.filter((x) => x.id !== id)); toast.success("Calcul restauré"); if (base) void actualiser(!numero); }
+    catch (e) { erreur(e, "Restauration impossible"); }
   };
   return (
     <Modal title="Mes projets" onClose={onClose}>
@@ -38,7 +47,20 @@ export function ProjectsDialog({
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Base commune</span>
           <button className="btn-outline ml-auto" disabled={charge} onClick={() => void actualiser(false)}><CloudDownload size={14} /> {numero ? `Chantier ${numero}` : "Tous"}</button>
           {numero && <button className="btn-outline" disabled={charge} onClick={() => void actualiser(true)}>Tous</button>}
+          <button className="btn-outline" disabled={charge} onClick={() => (corb ? setCorb(null) : void ouvrirCorbeille())}>Corbeille</button>
         </div>
+        {corb && (
+          <ul className="mt-2 space-y-1 rounded border border-dashed border-border p-2">
+            <li className="text-xs text-muted-foreground">Corbeille : vos calculs retirés depuis moins de 30 jours.</li>
+            {corb.length === 0 && <li className="py-1 text-center text-xs text-muted-foreground">Corbeille vide.</li>}
+            {corb.map((c) => (
+              <li key={c.id} className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-sm">{c.nom || "Sans nom"}</span>
+                <button className="btn-outline" onClick={() => void remettre(c.id)}><RotateCcw size={14} /> Restaurer</button>
+              </li>
+            ))}
+          </ul>
+        )}
         {base && (
           <ul className="mt-2 space-y-1">
             {base.length === 0 && <li className="py-2 text-center text-xs text-muted-foreground">Rien de partagé pour l'instant.</li>}
