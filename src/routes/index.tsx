@@ -28,6 +28,7 @@ import { runOptimization, type Objective, type OptimizeResult } from "@/lib/opti
 import { linearErrors, linearPieces, linearRecap, linearSegments } from "@/lib/linear";
 import { allowRotation, rotationCandidates, rotationSavings } from "@/lib/rotation";
 import { validatePiece } from "@/lib/validation";
+import { chantierAccueil } from "@/lib/chantier-accueil";
 import { dims, num } from "@/lib/format";
 import { orderTypeLabel, orderTypeOf } from "@/lib/order";
 
@@ -176,6 +177,7 @@ function Index() {
     });
     const cur = loadCurrent();
     if (cur) setProject(cur);
+    else { const c = chantierAccueil(); if (c) setProject((p) => ({ ...p, info: { ...p.info, site: p.info.site || c } })); }
     if (!cur?.info.site) setEditInfo(true);
     setReady(true);
   }, []);
@@ -251,6 +253,7 @@ function Index() {
   const startNew = async () => {
     if (!await confirmer({ titre: "Nouveau projet", message: "Les modifications non sauvegardées du projet ouvert seront perdues.", ok: "Commencer un nouveau projet" })) return;
     const fresh = newProject();
+    fresh.info.site = chantierAccueil();
     setProject({ ...fresh, workshopMode: project.workshopMode, showEstimate: project.showEstimate,
       offcuts: project.offcuts ? { ...project.offcuts, marks: {} } : undefined });
     setEditInfo(true);
