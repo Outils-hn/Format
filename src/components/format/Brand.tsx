@@ -1,5 +1,6 @@
-import { useEffect } from "react";
-import { Check, ChevronDown, PencilLine, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, ChevronDown, PencilLine, Search, Keyboard } from "lucide-react";
+import { RaccourcisApplis, useToucheAide } from "./RaccourcisApplis";
 import { ACCUEIL_URL } from "./LienRetour";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Logo } from "./Logo";
@@ -44,6 +45,8 @@ function useRaccourciRecherche() {
 
 export function Brand() {
   useRaccourciRecherche();
+  const [raccourcis, setRaccourcis] = useState(false);
+  useToucheAide(() => setRaccourcis(true));
   const applis = APPLIS;
   return <div className="flex items-center gap-2.5">
     <Logo className="h-[22px] w-[22px]" />
@@ -88,8 +91,20 @@ export function Brand() {
             </a>
           </DropdownMenuItem>
         ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => setRaccourcis(true)} className="flex items-center gap-2.5">
+          <span className="flex h-2.5 w-2.5 shrink-0 items-center justify-center"><Keyboard className="!size-4 shrink-0 text-muted-foreground" aria-hidden /></span>
+          <span className="w-[4.5rem] shrink-0 font-medium">Raccourcis</span>
+          <span className="text-xs text-muted-foreground">Touches du clavier · ?</span>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    <RaccourcisApplis app="Format" open={raccourcis} onOpenChange={setRaccourcis} propres={[
+    { touches: ["Entrée"], texte: "Tableau des pièces : ligne suivante, même colonne (Maj + Entrée : précédente)" },
+    { touches: ["↓", "↑"], texte: "Tableau des pièces : ligne suivante / précédente" },
+    { touches: ["←", "→"], texte: "Tableau des pièces : colonne voisine, si le curseur est au bout du texte" },
+  ]} />
+    </>
     <span className="sr-only">Optimisation de découpe 2D</span>
   </div>;
 }
