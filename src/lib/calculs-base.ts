@@ -18,7 +18,7 @@ export interface CalculBase {
 /** Numero et nom du chantier : ceux choisis dans l'Accueil, sinon ceux du texte « 24-118 · Nom ». */
 export function chantierDe(texte: string, lire: (c: string) => string | null = (c) => localStorage.getItem(c)): { numero: string; nom: string } {
   const [n, ...reste] = texte.split(" · ");
-  if (reste.length) return { numero: n.trim(), nom: reste.join(" · ").trim() };
+  if (reste.length) return { numero: (n ?? "").trim(), nom: reste.join(" · ").trim() };
   try {
     const i = JSON.parse(lire(CLE_CHANTIER_ACCUEIL) ?? "null");
     const numero = String(i?.numero ?? "").trim(), nom = String(i?.nom ?? "").trim();
@@ -55,7 +55,7 @@ export async function partager(p: Project, materials: Material[]): Promise<void>
     if (r.length) return; // copie partagee d'un autre auteur ou supprimee : on en recree une
   }
   const r = (await appel("", { method: "POST", body: JSON.stringify(corps) })) as { id: string }[];
-  ecrireLiens({ ...liens, [p.id]: r[0].id });
+  ecrireLiens({ ...liens, [p.id]: r[0]?.id ?? "" });
 }
 
 /** Calculs Format de la base (sans les donnees), du plus recent au plus ancien. */
