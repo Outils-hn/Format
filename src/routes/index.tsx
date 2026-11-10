@@ -29,6 +29,7 @@ import { linearErrors, linearPieces, linearRecap, linearSegments } from "@/lib/l
 import { allowRotation, rotationCandidates, rotationSavings } from "@/lib/rotation";
 import { validatePiece } from "@/lib/validation";
 import { chantierAccueil } from "@/lib/chantier-accueil";
+import { lire as lireCalculBase } from "@/lib/calculs-base";
 import { dims, num } from "@/lib/format";
 import { orderTypeLabel, orderTypeOf } from "@/lib/order";
 
@@ -209,8 +210,8 @@ function Index() {
     a.click();
     URL.revokeObjectURL(a.href);
   };
-  const doImport = (json: string) => {
-    if (!jsonPermis()) return;
+  const doImport = (json: string, base = false) => {
+    if (!base && !jsonPermis()) return;
     try {
       const r = importProject(json, materials);
       setMaterials(r.materials);
@@ -221,6 +222,20 @@ function Index() {
       toast.error("Fichier invalide");
     }
   };
+
+  // Lien direct depuis l'Accueil : Format/?calcul=<id>
+  const lienFait = useRef(false);
+  useEffect(() => {
+    if (!ready || lienFait.current) return;
+    const id = new URLSearchParams(window.location.search).get("calcul");
+    if (!id) return;
+    lienFait.current = true;
+    history.replaceState(null, "", window.location.pathname + window.location.hash);
+    void lireCalculBase(id)
+      .then((c) => (c?.donnees?.project ? doImport(JSON.stringify(c.donnees), true) : toast.error("Calcul introuvable (supprimé ou non accessible).")))
+      .catch((e) => toast.error(e instanceof Error ? e.message : "Ouverture impossible"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
 
   const optimizationControls = <>
           <label className="flex items-center gap-2 text-sm">
@@ -464,7 +479,7 @@ function Index() {
       </Modal>}
 
       {showProjects && (
-        <ProjectsDialog currentId={project.id} onClose={() => setShowProjects(false)} onExport={doExport} onImport={doImport}
+        <ProjectsDialog materials={materials} onOpenBase={(j) => doImport(j, true)} currentId={project.id} onClose={() => setShowProjects(false)} onExport={doExport} onImport={doImport}
           onOpen={(p) => { setProject(p); setShowProjects(false); setEditInfo(!p.info.site); }} />
       )}
 
