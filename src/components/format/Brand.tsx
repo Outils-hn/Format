@@ -104,7 +104,6 @@ export function Brand() {
     { touches: ["↓", "↑"], texte: "Tableau des pièces : ligne suivante / précédente" },
     { touches: ["←", "→"], texte: "Tableau des pièces : colonne voisine, si le curseur est au bout du texte" },
   ]} />
-    </>
     <span className="sr-only">Optimisation de découpe 2D</span>
   </div>;
 }
