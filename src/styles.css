@@ -312,6 +312,8 @@ body { border-top: 3px solid var(--app); }
 .bandeau-onglet:hover { color: var(--foreground); }
 .bandeau-onglet[aria-current="page"], .bandeau-onglet.actif { background: var(--muted); color: var(--foreground); font-weight: 500; box-shadow: inset 0 -2px 0 var(--app); }
 .bandeau-droite { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.bandeau-droite > *, .bandeau-onglet, .bandeau-bureau { flex-shrink: 0; white-space: nowrap; }
+.bandeau-btn-icone { width: 32px; padding: 0; justify-content: center; }
 .bandeau-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
 .bandeau-btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid var(--input); border-radius: 6px; background: var(--card); color: var(--foreground); font-size: 13px; font-weight: 500; line-height: 1; white-space: nowrap; cursor: pointer; text-decoration: none; }
 .bandeau-btn:hover { background: var(--muted); }

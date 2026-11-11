@@ -30,8 +30,8 @@ export function Bandeau({ marque, onglets, actions, statut, theme }: {
             aria-label="Recherche globale (Ctrl+K)"
             title="Rechercher dans toutes les applis (Ctrl+K)"
           >
-            <Search aria-hidden /> <span>Rechercher</span>
-            <kbd className="hidden rounded border border-border px-1 font-mono text-[10px] font-normal text-muted-foreground md:inline">Ctrl K</kbd>
+            {/* Format a beaucoup d'actions : la recherche reste une simple loupe (Ctrl+K marche toujours) */}
+            <Search aria-hidden />
           </button>
           {statut}
           {theme}

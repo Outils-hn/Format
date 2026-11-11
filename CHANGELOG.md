@@ -4,6 +4,10 @@ Le numéro de version se met à jour dans `src/lib/appInfo.ts` (pied de page et 
 
 Chaque version qui change quelque chose de visible pour l'équipe a une puce « Nouveauté : … », en langage courant : c'est la seule phrase affichée sur la page « Nouveautés » de l'Accueil.
 
+## 2.33 — 11 novembre 2026
+
+- Nouveauté : le bandeau du haut ne déborde plus : la recherche et la déconnexion sont devenues de simples icônes, et rien ne se coupe ni ne passe sur deux lignes.
+
 ## 2.32 — 11 novembre 2026
 
 - Nouveauté : l'appli est réservée aux comptes de l'équipe. Sans compte, on passe par l'Accueil pour se connecter, puis on revient directement ici.
