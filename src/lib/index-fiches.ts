@@ -1,5 +1,5 @@
 // Liens vers les fiches techniques d'Index (bibliotheque commune du bureau).
-// Lecture seule et publique : la liste des fiches (nom, fournisseur, categorie) est lue dans la base
+// Lecture reservee aux comptes valides : la liste des fiches (nom, fournisseur, categorie) est lue dans la base
 // d'Index ; on ne garde ici que l'identifiant et le nom de la fiche choisie.
 export const INDEX_URL = "https://outils-hn.github.io/Index";
 const INDEX_DB = "https://dtxgvwaqjmmffiiohika.supabase.co";
@@ -12,11 +12,19 @@ export interface FicheIndex { id: string; name: string; supplier: string; catego
 
 export const lienFiche = (id: string) => `${INDEX_URL}/?fiche=${encodeURIComponent(id)}`;
 
+// Jeton du compte connecte (session commune a toutes les applis) : sans lui, la base ne renvoie plus rien
+const jetonCompte = (): Record<string, string> => {
+  try {
+    const t = JSON.parse(localStorage.getItem("sb-dtxgvwaqjmmffiiohika-auth-token") ?? "null")?.access_token;
+    return t ? { Authorization: `Bearer ${t}` } : {};
+  } catch { return {}; }
+};
+
 let cache: Promise<FicheIndex[]> | null = null;
 /** Liste des fiches actives d'Index (une seule lecture par session). */
 export function chargerFiches(): Promise<FicheIndex[]> {
   cache ??= fetch(`${INDEX_DB}/rest/v1/products?select=id,name,supplier,category,deleted_at&order=name`, {
-    headers: { apikey: INDEX_KEY },
+    headers: { apikey: INDEX_KEY, ...jetonCompte() },
   })
     .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
     .then((rows: (FicheIndex & { deleted_at: string | null })[]) => rows.filter((r) => !r.deleted_at))
