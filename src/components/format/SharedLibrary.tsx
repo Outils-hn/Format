@@ -69,7 +69,7 @@ export function CompteBandeau() {
       <span className={c.valide === false ? "bandeau-statut" : "bandeau-statut ouvert"} title={c.email}>
         {c.valide === false ? "Compte à valider · lecture seule" : (c.nom || c.email)}
       </span>
-      <button className="bandeau-btn" aria-label="Se déconnecter" onClick={deconnexion}><LogOut /><span className="max-sm:hidden">Se déconnecter</span></button>
+      <button className="bandeau-btn bandeau-btn-icone" aria-label="Se déconnecter" title="Se déconnecter" onClick={deconnexion}><LogOut /></button>
     </>
   ) : (
     <>
