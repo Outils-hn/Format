@@ -154,7 +154,7 @@ try {
   verif("Bibliotheque commune : materiau local signale", await p4.getByText(/1 matériau\(x\) seulement sur ce poste/).isVisible());
   await p4.screenshot({ path: `${OUT}/check-bibliotheque-commune.png` });
   await p4.getByRole("button", { name: /Envoyer à l'équipe/ }).click(); await p4.waitForTimeout(300);
-  verif("Bibliotheque commune : etat « Lecture seule » sans compte", await p4.getByText("Lecture seule").isVisible());
+  verif("Bibliotheque commune : plus de « Lecture seule » sans compte", !(await p4.getByText("Lecture seule").isVisible()));
   verif("Bibliotheque commune : connexion demandee", await p4.getByRole("heading", { name: "Connexion" }).isVisible() || await p4.getByText("Pour modifier la bibliothèque commune").isVisible());
   await p4.getByLabel("Email").fill("hugo@test.fr");
   await p4.getByLabel("Mot de passe").fill("mauvais"); await p4.getByRole("button", { name: "Se connecter" }).last().click(); await p4.waitForTimeout(500);
@@ -194,7 +194,7 @@ try {
   const p7 = await c7.newPage();
   await p7.addInitScript((m) => { if (!sessionStorage.getItem("s7")) { localStorage.setItem("outils.format.exports", "3"); localStorage.setItem("format.materials", JSON.stringify(m)); sessionStorage.setItem("s7", "1"); } }, materials);
   await p7.goto(BASE + "bibliotheque", { waitUntil: "networkidle" }); await p7.waitForTimeout(500);
-  verif("Bandeau : « Lecture seule » + Se connecter en haut de page", await p7.getByRole("banner").getByText("Lecture seule").isVisible() && await p7.getByRole("banner").getByRole("button", { name: "Se connecter" }).isVisible());
+  verif("Bandeau : « Se connecter » seul, plus de « Lecture seule »", !(await p7.getByRole("banner").getByText("Lecture seule").isVisible()) && await p7.getByRole("banner").getByRole("button", { name: "Se connecter" }).isVisible());
   const [dlLib0] = await Promise.all([p7.waitForEvent("download", { timeout: 1500 }).catch(() => null), p7.getByRole("button", { name: /Exporter la bibliothèque/ }).click()]);
   await p7.waitForTimeout(300);
   verif("Sans compte : l'export JSON de la bibliotheque est refuse", !dlLib0 && await p7.getByText("Fichier JSON : compte requis").first().isVisible());

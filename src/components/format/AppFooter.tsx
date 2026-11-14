@@ -22,7 +22,7 @@ export function AppFooter({ aboveLaunchBar = false }: { aboveLaunchBar?: boolean
         <span>{APP_INFO.name} v{APP_INFO.version} ·</span>
         <Dialog.Trigger asChild>
           <Button variant="ghost" className="h-auto rounded-sm px-0.5 py-0 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-foreground">
-            Conçu par {APP_INFO.author}
+            À propos
           </Button>
         </Dialog.Trigger>
         <span>· {APP_INFO.year} ·</span>
