@@ -4,6 +4,10 @@ Le numéro de version se met à jour dans `src/lib/appInfo.ts` (pied de page et 
 
 Chaque version qui change quelque chose de visible pour l'équipe a une puce « Nouveauté : … », en langage courant : c'est la seule phrase affichée sur la page « Nouveautés » de l'Accueil.
 
+## 2.36 — 14 novembre 2026
+
+- Nouveauté : le « Mode atelier » est expliqué : en passant la souris dessus (ou dans le menu sur téléphone), on lit qu'il affiche les plans de découpe détaillés et le PDF pour l'atelier.
+
 ## 2.35 — 14 novembre 2026
 
 - Nouveauté : en bas de page, le lien « Conçu par… » devient « À propos » ; les noms sont dans la fenêtre qui s'ouvre. Les liens du pied de page ont partout la même présentation (soulignés au survol seulement).

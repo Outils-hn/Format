@@ -285,7 +285,7 @@ function Index() {
           <Link to="/bibliotheque" className="bandeau-onglet">Bibliothèque</Link>
         </>}
         actions={<>
-          <label className="mr-1 flex items-center gap-2 text-[13px] text-muted-foreground bandeau-bureau">
+          <label className="mr-1 flex items-center gap-2 text-[13px] text-muted-foreground bandeau-bureau" title="Activé : plans de découpe détaillés et PDF pour l'atelier. Désactivé : l'essentiel pour passer la commande.">
             <Button type="button" role="switch" variant="ghost" size="icon" aria-checked={workshop} aria-label="Mode atelier" onClick={() => setProject({ ...project, workshopMode: !workshop })}
               className={`relative h-5 w-9 rounded-full transition-colors ${workshop ? "bg-primary" : "bg-input"}`}>
               <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-card shadow transition-all ${workshop ? "left-[18px]" : "left-0.5"}`} />
@@ -314,7 +314,7 @@ function Index() {
               <DropdownMenuItem onSelect={save}><Save size={15} /> Sauvegarder</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setShowProjects(true)}><FolderOpen size={15} /> Mes projets</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => void startNew()}><FilePlus2 size={15} /> Nouveau</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setProject({ ...project, workshopMode: !workshop })}><Pencil size={15} /> Mode atelier : {workshop ? "activé" : "désactivé"}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setProject({ ...project, workshopMode: !workshop })}><Pencil size={15} /> Mode atelier : {workshop ? "activé" : "désactivé"} <span className="ml-auto text-xs text-muted-foreground">plans détaillés</span></DropdownMenuItem>
               <DropdownMenuItem disabled={!result || stale} onSelect={exportOrder}><FileText size={15} /> PDF commande</DropdownMenuItem>
               {workshop && <DropdownMenuItem disabled={!result || stale} onSelect={exportWorkshop}><FileText size={15} /> PDF atelier</DropdownMenuItem>}
               <DropdownMenuItem disabled={!result || stale} onSelect={exportXlsx}><FileSpreadsheet size={15} /> Commande Excel</DropdownMenuItem>
