@@ -1,9 +1,9 @@
 /** Screen-only identity. Update this release record for each new version. */
 export const APP_INFO = {
   name: "Format",
-  version: "2.33",
+  version: "2.34",
   author: "Hugo N.",
   year: "2026",
   description: "Estimation de la matière à commander et optimisation de découpe de panneaux",
-  updatedAt: "2026-11-07",
+  updatedAt: "2026-11-14",
 } as const;
