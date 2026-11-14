@@ -1,4 +1,6 @@
 import { LienRetour } from "./LienRetour";
+import { useState } from "react";
+import { RaccourcisApplis, useToucheAide } from "./RaccourcisApplis";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +10,8 @@ import { BackupLink, BackupReminder } from "@/components/BackupControls";
 import { BACKUP_CONFIG } from "@/lib/backup-config";
 
 export function AppFooter({ aboveLaunchBar = false }: { aboveLaunchBar?: boolean }) {
+  const [raccourcis, setRaccourcis] = useState(false);
+  useToucheAide(() => setRaccourcis(true));
   const updated = new Intl.DateTimeFormat("fr-FR", {
     day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
   }).format(new Date(`${APP_INFO.updatedAt}T00:00:00Z`));
@@ -23,6 +27,8 @@ export function AppFooter({ aboveLaunchBar = false }: { aboveLaunchBar?: boolean
         </Dialog.Trigger>
         <span>· {APP_INFO.year} ·</span>
         <BackupLink cfg={BACKUP_CONFIG} appName={APP_INFO.name} />
+        <span>·</span>
+        <button type="button" onClick={() => setRaccourcis(true)} className="rounded-sm px-0.5 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">Raccourcis</button>
         <span>·</span>
         <LienRetour app="Format" version={APP_INFO.version} className="rounded-sm px-0.5 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline" />
       </p>
@@ -48,5 +54,10 @@ export function AppFooter({ aboveLaunchBar = false }: { aboveLaunchBar?: boolean
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+    <RaccourcisApplis app="Format" open={raccourcis} onOpenChange={setRaccourcis} propres={[
+    { touches: ["Entrée"], texte: "Tableau des pièces : ligne suivante, même colonne (Maj + Entrée : précédente)" },
+    { touches: ["↓", "↑"], texte: "Tableau des pièces : ligne suivante / précédente" },
+    { touches: ["←", "→"], texte: "Tableau des pièces : colonne voisine, si le curseur est au bout du texte" },
+  ]} />
   </footer>;
 }
