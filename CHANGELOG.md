@@ -4,6 +4,10 @@ Le numéro de version se met à jour dans `src/lib/appInfo.ts` (pied de page et 
 
 Chaque version qui change quelque chose de visible pour l'équipe a une puce « Nouveauté : … », en langage courant : c'est la seule phrase affichée sur la page « Nouveautés » de l'Accueil.
 
+## 2.40 — 15 novembre 2026
+
+- Nouveauté : dans le menu des applis, Maquette passe en dernier.
+
 ## 2.39 — 15 novembre 2026
 
 - Nouveauté : le bouton « Calculer » est un peu plus foncé pour que son texte blanc se lise mieux.
