@@ -460,7 +460,7 @@ function Index() {
           {summary
             ? <button className="tabular-nums text-[13px] opacity-80 hover:opacity-100" onClick={() => document.getElementById("project-tab-panel")?.scrollIntoView({ behavior: "smooth", block: "start" })} title="Voir les résultats">{summary}</button>
             : <span className="tabular-nums text-[13px] opacity-70">{nbPieces} pièce{nbPieces > 1 ? "s" : ""}</span>}
-          <Button className="h-9 rounded-full bg-signal px-4 text-[13px] font-semibold text-white hover:bg-signal/90" disabled={running || (nbPieces === 0 && !result)} onClick={run} title={nbPieces === 0 && !result ? "Ajoutez d'abord des pièces" : "Raccourci : Ctrl + Entrée"}>
+          <Button className="h-9 rounded-full bg-[oklch(0.52_0.19_40)] px-4 text-[13px] font-semibold text-white hover:bg-[oklch(0.52_0.19_40)]/90" disabled={running || (nbPieces === 0 && !result)} onClick={run} title={nbPieces === 0 && !result ? "Ajoutez d'abord des pièces" : "Raccourci : Ctrl + Entrée"}>
             {running ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}{running ? "Calcul…" : result ? "Relancer" : nbPieces === 0 ? "Ajoutez des pièces" : "Lancer l'optimisation"}
           </Button>
         </div>
