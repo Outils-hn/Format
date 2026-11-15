@@ -177,7 +177,7 @@ try {
   await c5.close();
 } catch (e) { verif("Deroulement bibliotheque commune", false, e.message.split("\n")[0]); }
 
-// Comptes : bandeau « Se connecter », 3 exports gratuits, puis connexion demandee (exports + sauvegarde)
+// Comptes : bandeau « Se connecter », sauvegarde refusee sans compte, puis connexion (exports + sauvegarde)
 try {
   const c7 = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
   await c7.route(/supabase\.co/, async (route) => {
@@ -192,7 +192,7 @@ try {
     return route.fulfill({ json: true });
   });
   const p7 = await c7.newPage();
-  await p7.addInitScript((m) => { if (!sessionStorage.getItem("s7")) { localStorage.setItem("outils.format.exports", "3"); localStorage.setItem("format.materials", JSON.stringify(m)); sessionStorage.setItem("s7", "1"); } }, materials);
+  await p7.addInitScript((m) => { if (!sessionStorage.getItem("s7")) { localStorage.setItem("format.materials", JSON.stringify(m)); sessionStorage.setItem("s7", "1"); } }, materials);
   await p7.goto(BASE + "bibliotheque", { waitUntil: "networkidle" }); await p7.waitForTimeout(500);
   verif("Bandeau : « Se connecter » seul, plus de « Lecture seule »", !(await p7.getByRole("banner").getByText("Lecture seule").isVisible()) && await p7.getByRole("banner").getByRole("button", { name: "Se connecter" }).isVisible());
   const [dlLib0] = await Promise.all([p7.waitForEvent("download", { timeout: 1500 }).catch(() => null), p7.getByRole("button", { name: /Exporter la bibliothèque/ }).click()]);
