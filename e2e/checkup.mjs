@@ -12,6 +12,12 @@ const verif = (nom, ok, detail = "") => lignes.push(`${ok ? "OK    " : "ECHEC "}
 const materials = [{ id: "fg", name: "Fibres-Gypse", thickness: 15, kerf: 4, trim: 0, grainLocked: false, cutType: "free", supplier: "A", orderType: "cut", supply: { mode: "single", width: 2500, length: 1250 } }];
 const projet = { id: "demo", info: { site: "Chantier démo", taskNumber: "T-01", client: "Client démo", date: "2026-10-27" }, workshopMode: true,
   pieces: [{ id: "P1", label: "P1", materialId: "fg", width: 2010, height: 382, quantity: 24, canRotate: true }], linears: [], updatedAt: "2026-10-27T00:00:00Z" };
+// regles : regles axe ignorees pour cet ecran (menus Radix ouverts : le reste de la page est volontairement masque, faux positif connu)
+const controleAxe = async (p, nom, regles = []) => {
+  const axe = await new AxeBuilder({ page: p }).disableRules(regles).analyze();
+  const graves = axe.violations.filter((v) => v.impact === "critical" || v.impact === "serious");
+  verif(`Accessibilite ${nom} : aucun defaut grave`, !graves.length, graves.map((v) => `${v.id} ${v.nodes.length} : ${v.nodes.slice(0, 5).map((x) => x.target.join(" ") + " " + (x.any[0]?.data?.contrastRatio ?? "")).join(" ; ")}`).join(", "));
+};
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
   await ctx.route(/supabase\.co/, (r) => r.abort()); // jamais la vraie bibliotheque commune
@@ -32,9 +38,11 @@ try {
   await page.getByLabel("Largeur de P1").fill("2010");
   // 2. Calcul + menu Exporter (3 sorties en mode atelier)
   await page.keyboard.press("Control+Enter"); await page.getByText(/Plans de découpe/i).first().waitFor({ timeout: 60000 });
+  await controleAxe(page, "resultat du calcul");
   await page.getByRole("button", { name: /Exporter/ }).click();
   const sorties = await page.getByRole("menuitem").allTextContents();
   verif("Menu Exporter : PDF commande, PDF atelier, Excel", sorties.length === 3, sorties.join(" / "));
+  await controleAxe(page, "menu Exporter", ["aria-hidden-focus"]);
   await page.keyboard.press("Escape");
   // 3. Enregistrer, puis nouveau projet, puis rouvrir
   await page.getByRole("banner").getByRole("button", { name: /^Sauvegarder$/ }).click(); await page.waitForTimeout(400);
@@ -157,6 +165,7 @@ try {
   await p4.getByRole("button", { name: /Envoyer à l'équipe/ }).click(); await p4.waitForTimeout(300);
   verif("Bibliotheque commune : plus de « Lecture seule » sans compte", !(await p4.getByText("Lecture seule").isVisible()));
   verif("Bibliotheque commune : connexion demandee", await p4.getByRole("heading", { name: "Connexion" }).isVisible() || await p4.getByText("Pour modifier la bibliothèque commune").isVisible());
+  await controleAxe(p4, "fenetre de connexion");
   await p4.getByLabel("Email").fill("hugo@test.fr");
   await p4.getByLabel("Mot de passe").fill("mauvais"); await p4.getByRole("button", { name: "Se connecter" }).last().click(); await p4.waitForTimeout(500);
   verif("Bibliotheque commune : mauvais mot de passe refuse", envois.length === 0 && await p4.getByRole("alert").getByText("Email ou mot de passe incorrect.").isVisible());
