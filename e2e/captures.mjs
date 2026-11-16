@@ -2,6 +2,7 @@
 // Lance par .github/workflows/captures.yml ; resultat dans le dossier passe en argument.
 import { chromium } from "playwright";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { detailsVisuels } from "./details.mjs";
 
 const BASE = process.env.APP_URL ?? "http://127.0.0.1:8080/";
 const OUT = process.argv[2] ?? "captures";
@@ -44,7 +45,8 @@ async function session(name, workshop, fn) {
   try { await fn(page); } catch (e) { errors.push(`[${name}] ${e.message.split("\n")[0]}`); }
   await ctx.close();
 }
-const shot = (page, file, full = true) => page.screenshot({ path: `${OUT}/${file}.png`, fullPage: full });
+const notes = [];
+const shot = async (page, file, full = true) => { await page.screenshot({ path: `${OUT}/${file}.png`, fullPage: full }); await detailsVisuels(page, file, notes); };
 const pdf = async (page, label, file) => {
   await page.getByRole("button", { name: /Exporter/ }).first().click();
   const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }), page.getByRole("menuitem", { name: label }).first().click()]);
@@ -100,6 +102,7 @@ await session("sombre", true, async (page) => {
   await page.getByRole("button", { name: "Modifier" }).first().click(); await page.waitForTimeout(500);
   await shot(page, "14-mode-sombre-fenetre-materiau", false);
 });
+writeFileSync(`${OUT}/details.txt`, notes.length ? notes.join("\n") : "aucune");
 writeFileSync(`${OUT}/erreurs.txt`, errors.join("\n") || "aucune");
 console.log(errors.join("\n") || "aucune erreur");
 await browser.close();
