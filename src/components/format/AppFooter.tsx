@@ -18,19 +18,22 @@ export function AppFooter({ aboveLaunchBar = false }: { aboveLaunchBar?: boolean
 
   return <footer className={`shrink-0 px-4 pt-6 text-center text-xs text-muted-foreground print:hidden ${aboveLaunchBar ? "pb-40" : "pb-6"}`}>
     <Dialog.Root>
-      <p className="flex flex-wrap items-center justify-center gap-x-1 gap-y-1">
-        <span>{APP_INFO.name} v{APP_INFO.version} ·</span>
+      <p className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1">
+        <span>{APP_INFO.name} v{APP_INFO.version}</span>
+        <span aria-hidden="true">·</span>
         <Dialog.Trigger asChild>
-          <Button variant="ghost" className="h-auto rounded-sm px-0.5 py-0 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-foreground">
+          <Button variant="ghost" className="h-auto rounded-sm px-0 py-0 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-foreground">
             À propos
           </Button>
         </Dialog.Trigger>
-        <span>· {APP_INFO.year} ·</span>
+        <span aria-hidden="true">·</span>
+        <span>{APP_INFO.year}</span>
+        <span aria-hidden="true">·</span>
         <BackupLink cfg={BACKUP_CONFIG} appName={APP_INFO.name} />
-        <span>·</span>
-        <button type="button" onClick={() => setRaccourcis(true)} className="rounded-sm px-0.5 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">Raccourcis</button>
-        <span>·</span>
-        <LienRetour app="Format" version={APP_INFO.version} className="rounded-sm px-0.5 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline" />
+        <span aria-hidden="true">·</span>
+        <button type="button" onClick={() => setRaccourcis(true)} className="rounded-sm px-0 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">Raccourcis</button>
+        <span aria-hidden="true">·</span>
+        <LienRetour app="Format" version={APP_INFO.version} className="rounded-sm px-0 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline" />
       </p>
       {/* En bas a gauche, a cote de la pastille de calcul (centree) */}
       <BackupReminder cfg={BACKUP_CONFIG} className="bottom-5" />
