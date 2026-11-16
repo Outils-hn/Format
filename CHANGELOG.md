@@ -4,6 +4,10 @@ Le numéro de version se met à jour dans `src/lib/appInfo.ts` (pied de page et 
 
 Chaque version qui change quelque chose de visible pour l'équipe a une puce « Nouveauté : … », en langage courant : c'est la seule phrase affichée sur la page « Nouveautés » de l'Accueil.
 
+## 2.41 — 16 novembre 2026
+
+- Nouveauté : petites retouches d'affichage : espaces régulières autour des « · » du pied de page, et le bouton « Plusieurs formats » du formulaire matériau tient sur une seule ligne.
+
 ## 2.40 — 15 novembre 2026
 
 - Nouveauté : dans le menu des applis, Maquette passe en dernier.

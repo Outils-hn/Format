@@ -146,7 +146,7 @@ function MaterialForm({ initial, onSave, onCancel }: { initial: Material; onSave
         <div className="mb-3 grid grid-cols-3 gap-1 rounded-lg border border-border p-1">
           {([
             ["single", "Format unique"],
-            ["catalog", "Plusieurs formats catalogue"],
+            ["catalog", "Plusieurs formats"],
             ["fixedWidth", "Longueur à la demande"],
           ] as const).map(([k, l]) => (
             <Button key={k} variant="ghost" aria-pressed={s.mode === k} className={`btn h-auto min-h-8 justify-center whitespace-normal text-xs ${s.mode === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`} onClick={() => setMode(k)}>{l}</Button>

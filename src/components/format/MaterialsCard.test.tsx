@@ -10,7 +10,7 @@ describe("Material editor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Modifier" }));
     fireEvent.change(screen.getByLabelText("Largeur (mm)"), { target: { value: "1000" } });
     fireEvent.change(screen.getByLabelText("Longueur (mm)"), { target: { value: "2000" } });
-    fireEvent.click(screen.getByRole("button", { name: "Plusieurs formats catalogue" }));
+    fireEvent.click(screen.getByRole("button", { name: "Plusieurs formats" }));
     expect(screen.getByLabelText("Largeur du format")).toHaveValue("1'000");
     expect(screen.getByLabelText("Longueur du format")).toHaveValue("2'000");
     fireEvent.change(screen.getByLabelText("Prix du format"), { target: { value: "42,5" } });
